@@ -20,6 +20,7 @@ load('Data/basic.RData')
 ```
 
 ## Regional trends
+### i.e. Figure 5.2 from IPCC AR5 (booorring)
 
 ```{r regional_trends, echo=FALSE,warning=FALSE,fig.width=8}
 
@@ -42,25 +43,71 @@ ggarrange(p1, p2, ncol=2, common.legend = TRUE, legend="bottom")
 
 ```
 
+### Top countries by growth in per capita emissions
+
+```{r growth_rates, echo=FALSE,warning=FALSE,fig.width=8}
+
+rates <- basic %>% 
+  filter(Country!="World") %>% 
+  filter(Year>1989 & Year<2018) %>% 
+  mutate(co2_terr_pc = co2_terr_GCB/pop_UN) %>% 
+  mutate(co2_cons_pc = co2_cons_GCB/pop_UN) %>% 
+  select(Country,UN6,Year,co2_terr_pc,pop_UN)
+
+# filter by years to assess here (last 10?)
+models <- rates %>% 
+  filter(Year>2004) %>% 
+  na.omit() %>% 
+  group_by(Country) %>% 
+  nest() %>% 
+  mutate(model = map(data, ~lm(co2_terr_pc ~ Year, data = .x)),
+         tidy_model = map(model, broom::tidy)) %>% 
+  unnest(tidy_model)
+
+models <- models %>% 
+  group_by(Country) %>% 
+  mutate(intercept = first(estimate))
+
+rates <- left_join(rates,models %>% filter(term=='Year') %>% select(-term),by=c("Country"="Country"))
+
+#top increase
+decline <- rates %>%
+  group_by(Country,Year) %>% 
+  filter(max(pop_UN)>1e6) %>% 
+  arrange(desc(estimate)) %>%
+  group_by(Year) %>%
+  do(head(., n = 15))
+
+# plot facet grid
+decline %>%
+  ggplot(aes(x=Year,y=co2_terr_pc)) +
+  geom_point() +
+  geom_line() +
+  geom_smooth(data=subset(decline, Year>2004),method = "lm") +
+  #geom_abline(data=subset(decline,Year>2004),aes(intercept = intercept, slope = estimate)) +
+  facet_wrap(. ~ Country,ncol=5) 
+
+
+```
+
+
 ```{r well_being, echo=FALSE,warning=FALSE,fig.width=8}
 
 
-wb <- basic %>% 
-  filter(Country!="World")
-
-
-
-p1 <- wb %>% 
-  filter(Year>1990) %>% 
-  ggplot(aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,colour=UN6,size=pop_UN)) +
-  geom_point(alpha = 0.7) +
-  scale_size(range = c(2, 12),guide=FALSE) +
-  ylim(35,85) +
-  xlim(0,30) +
-  theme(legend.title = element_blank())
-
-p1 + transition_time(Year) +
-  labs(title = "Year: {round(frame_time)}") +
-  shadow_wake(wake_length = 0.1, alpha = FALSE)
+# wb <- basic %>% 
+#   filter(Country!="World")
+# 
+# p1 <- wb %>% 
+#   filter(Year>1990) %>% 
+#   ggplot(aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,colour=UN6,size=pop_UN)) +
+#   geom_point(alpha = 0.7) +
+#   scale_size(range = c(2, 12),guide=FALSE) +
+#   ylim(35,85) +
+#   xlim(0,30) +
+#   theme(legend.title = element_blank())
+# 
+# p1 + transition_time(Year) +
+#   labs(title = "Year: {round(frame_time)}") +
+#   shadow_wake(wake_length = 0.1, alpha = FALSE)
 
 ```
