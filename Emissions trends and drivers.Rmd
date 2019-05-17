@@ -1,0 +1,66 @@
+---
+title: "Emissions trends and drivers"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+#knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(ggpubr)
+library(gganimate)
+
+
+rm(list = ls())
+load('Data/basic.RData')
+
+# any other adjustments here
+
+```
+
+## Regional trends
+
+```{r regional_trends, echo=FALSE,warning=FALSE,fig.width=8}
+
+region <- basic %>%
+  filter(Country!="World") %>% 
+  filter(Year>1969 & Year<2018) %>% 
+  group_by(UN6,Year) %>% 
+  summarise(co2_territorial_total = sum(co2_terr_GCB,na.rm=TRUE),pop_total=sum(pop_UN)) %>% 
+  mutate(co2_territorial_pc = co2_territorial_total/pop_total)
+
+p1 <- region %>% ggplot(.,aes(x=Year,y=co2_territorial_total,fill=UN6)) +
+  geom_area() +
+  theme(legend.title = element_blank(),legend.position = "none")
+
+p2 <- region %>% ggplot(.,aes(x=Year,y=co2_territorial_pc,colour=UN6)) +
+  geom_path(size=1) +
+  theme(legend.title = element_blank(), legend.position = "none")
+
+ggarrange(p1, p2, ncol=2, common.legend = TRUE, legend="bottom")
+
+```
+
+```{r well_being, echo=FALSE,warning=FALSE,fig.width=8}
+
+
+wb <- basic %>% 
+  filter(Country!="World")
+
+
+
+p1 <- wb %>% 
+  filter(Year>1990) %>% 
+  ggplot(aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,colour=UN6,size=pop_UN)) +
+  geom_point(alpha = 0.7) +
+  scale_size(range = c(2, 12),guide=FALSE) +
+  ylim(35,85) +
+  xlim(0,30) +
+  theme(legend.title = element_blank())
+
+p1 + transition_time(Year) +
+  labs(title = "Year: {round(frame_time)}") +
+  shadow_wake(wake_length = 0.1, alpha = FALSE)
+
+```
