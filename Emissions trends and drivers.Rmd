@@ -19,10 +19,10 @@ load('Data/basic.RData')
 
 ```
 
-## Regional trends
-### i.e. Figure 5.2 from IPCC AR5 (booorring)
+### Regional trends
+<strong>i.e. Figure 5.2 from IPCC AR5 (booorring)</strong>  
 
-```{r regional_trends, echo=FALSE,warning=FALSE,fig.width=8}
+```{r regional_trends, echo=FALSE,warning=FALSE,fig.width=6,fig.height=4}
 
 region <- basic %>%
   filter(Country!="World") %>% 
@@ -43,16 +43,17 @@ ggarrange(p1, p2, ncol=2, common.legend = TRUE, legend="bottom")
 
 ```
 
-### Fast decline and growth in total emissions, relative to 2000-2005
+### Growth rates
 
-```{r growth_rates, echo=FALSE,warning=FALSE,fig.width=8}
+
+```{r growth_rates, echo=FALSE,warning=FALSE}
 
 rates <- basic %>% 
   filter(Country!="World") %>% 
   filter(Year>1979 & Year<2018) %>% 
   mutate(co2_terr_pc = co2_terr_GCB/pop_UN) %>% 
   mutate(co2_cons_pc = co2_cons_GCB/pop_UN) %>% 
-  select(Country,UN6,Year,co2_terr_pc,pop_UN,co2_terr_GCB)
+  select(Country,UN6,Year,co2_terr_pc,pop_UN,co2_terr_GCB,health_lex_WB)
 
 subset <- rates %>% 
   group_by(Country) %>% 
@@ -78,7 +79,11 @@ models <- rates %>%
 
 rates <- left_join(rates,models %>% filter(term=='Year') %>% select(-term),by=c("Country"="Country"))
 
+```
 
+<strong>Fast decline in total emissions, relative to 2000-2005</strong>  
+
+``` {r decline, echo=FALSE,warning=FALSE,fig.width=8}
 
 ## choose subset (fast decline)
 blarg<- rates %>%
@@ -99,7 +104,11 @@ blarg %>%
   facet_wrap(. ~ Country,ncol=5) +
   ylim(-0.5,0.5)
   
+```
 
+<strong>Fast growth in total emissions, relative to 2000-2005</strong>  
+
+``` {r increase, echo=FALSE,warning=FALSE,fig.width=8}
 ## choose subset (fast increase)
 blarg<- rates %>%
   na.omit() %>% 
@@ -119,34 +128,36 @@ blarg %>%
   facet_wrap(. ~ Country,ncol=5) +
   ylim(-0.5,0.5)
 
-
-#top increase
-# decline <- rates %>%
-#   group_by(Country,Year) %>% 
-#   filter(max(pop_UN)>1e6) %>% 
-#   arrange(estimate) %>%
-#   group_by(Year) %>%
-#   do(head(., n = 15))
-# 
-# # plot facet grid
-# decline %>%
-#   ggplot(aes(x=Year,y=co2_terr_pc)) +
-#   geom_point() +
-#   geom_line() +
-#   geom_smooth(data=subset(decline, Year>2004),method = "lm") +
-#   #geom_abline(data=subset(decline,Year>2004),aes(intercept = intercept, slope = estimate)) +
-#   facet_wrap(. ~ Country,ncol=5) 
-# 
-# # plot normalised rates
-# decline %>% 
-#   ggplot(aes(x=Year,y=rate))+
-#   geom_point() +
-#   geom_line() +
-#   facet_wrap(. ~ Country,ncol=5)
-  
-
 ```
 
+<strong>Fast increase in total emissions, relative to 2000-2005, with high well-being (70yrs life exp.)</strong>  
+
+``` {r increase_WB, echo=FALSE,warning=FALSE,fig.width=8}
+
+## choose subset (fast increase)
+blarg<- rates %>%
+  na.omit() %>% 
+  group_by(Country) %>% 
+  filter(max(pop_UN)>1e6) %>% 
+  filter(max(health_lex_WB)>75) %>%
+  filter(std.error<0.01) %>% 
+  group_by(Country,Year)%>% 
+  arrange(desc(estimate)) %>%
+  group_by(Year) %>% 
+  do(head(., n = 20))
+
+# plot 
+blarg %>% 
+  ggplot(aes(x=Year,y=rate))+
+  geom_point(colour='grey') +
+  geom_line(colour='grey') +
+  geom_smooth(data=subset(blarg, Year>2004),method = "lm") +
+  facet_wrap(. ~ Country,ncol=5) +
+  ylim(-0.5,0.5)
+
+
+
+```
 
 ```{r well_being, echo=FALSE,warning=FALSE,fig.width=8}
 
