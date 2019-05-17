@@ -53,7 +53,8 @@ rates <- basic %>%
   filter(Year>1979 & Year<2018) %>% 
   mutate(co2_terr_pc = co2_terr_GCB/pop_UN) %>% 
   mutate(co2_cons_pc = co2_cons_GCB/pop_UN) %>% 
-  select(Country,UN6,Year,co2_terr_pc,pop_UN,co2_terr_GCB,health_lex_WB)
+  mutate(gdp_ppp_pc = gdp_ppp_WB/pop_UN)# %>% 
+  #select(Country,UN6,Year,co2_terr_pc,pop_UN,co2_terr_GCB,health_lex_WB)
 
 subset <- rates %>% 
   group_by(Country) %>% 
@@ -83,7 +84,7 @@ rates <- left_join(rates,models %>% filter(term=='Year') %>% select(-term),by=c(
 
 <strong>Fast decline in total emissions, relative to 2000-2005</strong>  
 
-``` {r decline, echo=FALSE,warning=FALSE,fig.width=8}
+``` {r decline, echo=FALSE,warning=FALSE,fig.width=8,fig.path="Plots/",dev=c('png')}
 
 ## choose subset (fast decline)
 blarg<- rates %>%
@@ -108,7 +109,7 @@ blarg %>%
 
 <strong>Fast growth in total emissions, relative to 2000-2005</strong>  
 
-``` {r increase, echo=FALSE,warning=FALSE,fig.width=8}
+``` {r increase, echo=FALSE,warning=FALSE,fig.width=8,fig.path="Plots/",dev=c('png')}
 ## choose subset (fast increase)
 blarg<- rates %>%
   na.omit() %>% 
@@ -132,7 +133,7 @@ blarg %>%
 
 <strong>Fast increase in total emissions, relative to 2000-2005, with high well-being (70yrs life exp.)</strong>  
 
-``` {r increase_WB, echo=FALSE,warning=FALSE,fig.width=8}
+``` {r increase_WB, echo=FALSE,warning=FALSE,fig.width=8,fig.path="Plots/",dev=c('png')}
 
 ## choose subset (fast increase)
 blarg<- rates %>%
@@ -153,11 +154,43 @@ blarg %>%
   geom_line(colour='grey') +
   geom_smooth(data=subset(blarg, Year>2004),method = "lm") +
   facet_wrap(. ~ Country,ncol=5) +
-  ylim(-0.5,0.5)
-
+  ylim(-0.5,0.5) +
+  ylab('Change in CO2, relative to 2000-2005 (%)') +
+  theme(axis.title.x = element_blank()) 
 
 
 ```
+
+<strong>Fast increase in total emissions, relative to 2000-2005, with high income (>10,000)</strong>  
+
+``` {r increase_income, echo=FALSE,warning=FALSE,fig.width=8,fig.path="Plots/",dev=c('png')}
+
+## choose subset (fast increase)
+blarg<- rates %>%
+  na.omit() %>% 
+  group_by(Country) %>% 
+  filter(max(pop_UN)>1e6) %>% 
+  filter(max(gdp_ppp_pc)>15000) %>%
+  filter(std.error<0.01) %>% 
+  group_by(Country,Year)%>% 
+  arrange(desc(estimate)) %>%
+  group_by(Year) %>% 
+  do(head(., n = 10))
+
+# plot 
+blarg %>% 
+  ggplot(aes(x=Year,y=rate))+
+  geom_point(colour='grey') +
+  geom_line(colour='grey') +
+  geom_smooth(data=subset(blarg, Year>2004),method = "lm") +
+  facet_wrap(. ~ Country,ncol=5) +
+  ylim(-0.5,0.5) +
+  ylab('Change in CO2, relative to 2000-2005 (%)') +
+  theme(axis.title.x = element_blank()) 
+
+
+```
+
 
 ```{r well_being, echo=FALSE,warning=FALSE,fig.width=8}
 
