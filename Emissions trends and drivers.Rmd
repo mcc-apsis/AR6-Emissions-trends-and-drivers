@@ -16,13 +16,20 @@ rm(list = ls())
 load('Data/basic.RData')
 
 # any other adjustments here
+basic$UN6 <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",basic$UN6)
+
+basic <- basic %>% 
+  mutate(gdp_ppp_pc = gdp_ppp_WB/pop_UN)
+
+basic$income_category  <- cut(basic$gdp_ppp_pc,breaks = c(1700,4300,8600,15000,29000,150000),dig.lab=10,include.lowest=TRUE)
+
 
 ```
 
 ### Regional trends
 <strong>i.e. Figure 5.2 from IPCC AR5 (booorring)</strong>  
 
-```{r regional_trends, echo=FALSE,warning=FALSE,fig.width=6,fig.height=4}
+```{r regional_trends_territorial, echo=FALSE,warning=FALSE,fig.width=10,fig.height=5}
 
 region <- basic %>%
   filter(Country!="World") %>% 
@@ -31,15 +38,29 @@ region <- basic %>%
   summarise(co2_territorial_total = sum(co2_terr_GCB,na.rm=TRUE),pop_total=sum(pop_UN)) %>% 
   mutate(co2_territorial_pc = co2_territorial_total/pop_total)
 
-p1 <- region %>% ggplot(.,aes(x=Year,y=co2_territorial_total,fill=UN6)) +
+
+
+## cumulative emissions total (horizontal bar chart)
+p1 <- region %>% 
+  group_by(UN6) %>% 
+  summarise(cumulative_co2 = sum(co2_territorial_total)) %>% 
+  ggplot(.,aes(y=cumulative_co2,x=UN6,fill=UN6)) +
+  geom_bar(stat='identity') +
+  coord_flip() +
+  theme(legend.title = element_blank(), legend.position = "none") +
+  theme(axis.title.y = element_blank()) 
+  
+## total territorial emissions (stacked area)
+p2 <- region %>% ggplot(.,aes(x=Year,y=co2_territorial_total,fill=UN6)) +
   geom_area() +
   theme(legend.title = element_blank(),legend.position = "none")
 
-p2 <- region %>% ggplot(.,aes(x=Year,y=co2_territorial_pc,colour=UN6)) +
+## per capita territorial emissions (line chart)
+p3 <- region %>% ggplot(.,aes(x=Year,y=co2_territorial_pc,colour=UN6)) +
   geom_path(size=1) +
   theme(legend.title = element_blank(), legend.position = "none")
 
-ggarrange(p1, p2, ncol=2, common.legend = TRUE, legend="bottom")
+ggarrange(p1, p2, p3, ncol=3)
 
 ```
 
@@ -192,7 +213,52 @@ blarg %>%
 ```
 
 
-```{r well_being, echo=FALSE,warning=FALSE,fig.width=8}
+```{r well_being, echo=FALSE,warning=FALSE,fig.width=9,fig.path="Plots/",dev=c('pdf')}
+
+theme_set(theme_bw())
+
+wb <- basic %>% 
+  filter(Country!="World") %>% 
+  filter(Year==2016) %>% 
+  select(Country,UN6,co2_cons_GCB,pop_UN,health_lex_WB,gdp_ppp_WB,gdp_ppp_pc,income_category) %>% 
+  filter(!is.na(income_category))
+
+pointsToLabel <- wb$Country[wb$pop_UN>50e6 | wb$co2_cons_GCB/wb$pop_UN > 20]
+
+plot <- wb %>%
+  ggplot(aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,size=pop_UN,colour=income_category)) +
+  geom_point(alpha = 0.7,stroke=1) +
+  geom_text(inherit.aes=FALSE,
+            aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,label=Country),
+            data=wb[wb$Country %in% pointsToLabel,]) +
+  scale_size(range = c(2, 12),guide=FALSE) +
+  scale_y_continuous(limits=c(50,85))+
+  xlim(0,30) +
+  theme(legend.title = element_blank(),
+        legend.position=c(0.90, 0.2), 
+        legend.background = element_blank(),
+        legend.key = element_blank()) +
+  scale_colour_brewer(palette = "GnBu") +
+  labs(y="Life expectancy at birth (years)", x="Carbon emissions in 2016 (tCO2/capita)")
+
+inset <- wb %>% 
+  ggplot(aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,size=pop_UN,colour=income_category)) +
+  geom_point(alpha = 0.7,stroke=1) +
+  geom_text(inherit.aes=FALSE,
+            aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,label=Country)) +
+  scale_size(range = c(2, 12),guide=FALSE) +
+  scale_y_continuous(breaks=c(70,75,80),limits = c(70,80),expand=c(0,0)) +
+  scale_x_continuous(breaks=c(1,2,3),limits=c(0.5,3.5),expand=c(0,0)) +
+  scale_colour_brewer(palette = "GnBu") +
+  theme(legend.position = "none",
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        plot.background=element_blank(),
+        strip.background=element_blank())
+  
+inset_grob <- ggplotGrob(inset)
+
+plot + annotation_custom(inset_grob,xmin = 10,xmax = 26, ymin = 50, ymax = 67.5)
 
 
 # wb <- basic %>% 
