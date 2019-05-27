@@ -314,7 +314,7 @@ inset <- wb_iea %>%
             aes(x=ene_tot_final_cons_IEA/pop_UN,y=health_lex_WB,label=Country)) +
   scale_size(range = c(2, 12),guide=FALSE) +
   scale_y_continuous(breaks=c(70,75,80),limits = c(70,80),expand=c(0,0)) +
-  scale_x_continuous(breaks=c(10,20,30,40),limits=c(0,50),expand=c(0,0)) +
+  scale_x_continuous(breaks=c(5,10,15,20),limits=c(0,25),expand=c(0,0)) +
   scale_colour_brewer(palette = "GnBu") +
   theme(legend.position = "none",
         axis.title.x=element_blank(),
