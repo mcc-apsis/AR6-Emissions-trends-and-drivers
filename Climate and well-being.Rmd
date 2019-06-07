@@ -1,0 +1,165 @@
+---
+title: "Climate and well-being"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+#knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(ggpubr)
+library(gganimate)
+
+
+rm(list = ls())
+load('Data/basic.RData')
+
+# any other adjustments here
+basic$UN6 <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",basic$UN6)
+
+basic <- basic %>% 
+  mutate(gdp_ppp_pc = gdp_ppp_WB/pop_UN)
+
+basic$income_category  <- cut(basic$gdp_ppp_pc,breaks = c(1700,4300,8600,15000,29000,150000),dig.lab=10,include.lowest=TRUE)
+
+```
+
+```{r well_being_co2, echo=FALSE,warning=FALSE,fig.width=9,fig.path="Plots/",dev=c('pdf')}
+
+theme_set(theme_bw())
+
+wb <- basic %>% 
+  filter(Country!="World") %>% 
+  filter(Year==2016) %>% 
+  select(Country,UN6,co2_cons_GCB,pop_UN,health_lex_WB,gdp_ppp_WB,gdp_ppp_pc,income_category) %>% 
+  filter(!is.na(income_category))
+
+pointsToLabel <- wb$Country[wb$pop_UN>50e6 | wb$co2_cons_GCB/wb$pop_UN > 20]
+
+plot <- wb %>%
+  ggplot(aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,size=pop_UN,colour=income_category)) +
+  geom_point(alpha = 0.7,stroke=1) +
+  geom_text(inherit.aes=FALSE,
+            aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,label=Country),
+            data=wb[wb$Country %in% pointsToLabel,]) +
+  scale_size(range = c(2, 12),guide=FALSE) +
+  scale_y_continuous(limits=c(50,85))+
+  xlim(0,30) +
+  theme(legend.title = element_blank(),
+        legend.position=c(0.90, 0.2), 
+        legend.background = element_blank(),
+        legend.key = element_blank()) +
+  scale_colour_brewer(palette = "GnBu") +
+  labs(y="Life expectancy at birth (years)", x="Carbon emissions in 2016 (tCO2/capita)")
+
+inset <- wb %>% 
+  ggplot(aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,size=pop_UN,colour=income_category)) +
+  geom_point(alpha = 0.7,stroke=1) +
+  geom_text(inherit.aes=FALSE,
+            aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,label=Country)) +
+  scale_size(range = c(2, 12),guide=FALSE) +
+  scale_y_continuous(breaks=c(70,75,80),limits = c(70,80),expand=c(0,0)) +
+  scale_x_continuous(breaks=c(1,2,3),limits=c(0.5,3.5),expand=c(0,0)) +
+  scale_colour_brewer(palette = "GnBu") +
+  theme(legend.position = "none",
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        plot.background=element_blank(),
+        strip.background=element_blank())
+  
+inset_grob <- ggplotGrob(inset)
+
+plot = plot + annotation_custom(inset_grob,xmin = 10,xmax = 26, ymin = 50, ymax = 67.5)
+
+plot
+
+```
+
+```{r well_being_ene, echo=FALSE,warning=FALSE,fig.width=9,fig.path="Plots/",dev=c('pdf','png')}
+
+theme_set(theme_bw())
+
+wb_iea <- basic %>% 
+  filter(Country!="World") %>% 
+  filter(Year==2014) %>% 
+  select(Country,UN6,co2_cons_GCB,pop_UN,health_lex_WB,gdp_ppp_WB,gdp_ppp_pc,income_category,ene_tot_final_cons_IEA) %>% 
+  filter(!is.na(income_category))
+
+pointsToLabel <- wb_iea$Country[wb_iea$pop_UN>50e6 | wb_iea$ene_tot_final_cons_IEA/wb_iea$pop_UN > 200]
+
+plot <- wb_iea %>%
+  ggplot(aes(x=ene_tot_final_cons_IEA/pop_UN,y=health_lex_WB,size=pop_UN,colour=income_category)) +
+  geom_point(alpha = 0.7,stroke=1) +
+  geom_text(inherit.aes=FALSE,
+            aes(x=ene_tot_final_cons_IEA/pop_UN,y=health_lex_WB,label=Country),
+            data=wb_iea[wb_iea$Country %in% pointsToLabel,]) +
+  scale_size(range = c(2, 12),guide=FALSE) +
+  scale_y_continuous(limits=c(50,85))+
+  xlim(0,250) +
+  theme(legend.title = element_blank(),
+        legend.position=c(0.90, 0.2), 
+        legend.background = element_blank(),
+        legend.key = element_blank()) +
+  scale_colour_brewer(palette = "GnBu") +
+  labs(y="Life expectancy at birth (years)", x="Final energy consumption in 2014 (GJ/capita)")
+
+inset <- wb_iea %>% 
+  ggplot(aes(x=ene_tot_final_cons_IEA/pop_UN,y=health_lex_WB,size=pop_UN,colour=income_category)) +
+  geom_point(alpha = 0.7,stroke=1) +
+  geom_text(inherit.aes=FALSE,
+            aes(x=ene_tot_final_cons_IEA/pop_UN,y=health_lex_WB,label=Country)) +
+  scale_size(range = c(2, 12),guide=FALSE) +
+  scale_y_continuous(breaks=c(70,75,80),limits = c(70,80),expand=c(0,0)) +
+  scale_x_continuous(breaks=c(5,10,15,20,25),limits=c(0,30),expand=c(0,0)) +
+  scale_colour_brewer(palette = "GnBu") +
+  theme(legend.position = "none",
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        plot.background=element_blank(),
+        strip.background=element_blank())
+  
+inset_grob <- ggplotGrob(inset)
+
+plot = plot + annotation_custom(inset_grob,xmin = 75,xmax = 210, ymin = 50, ymax = 67.5)
+plot
+
+```
+
+```{r well_being_renewables, echo=FALSE,warning=FALSE,fig.width=9,fig.path="Plots/",dev=c('pdf','png')}
+
+theme_set(theme_bw())
+
+wb_ren <- basic %>% 
+  filter(Country!="World") %>% 
+  filter(Year==2014) %>% 
+  select(Country,ISO,UN6,co2_cons_GCB,pop_UN,health_lex_WB,gdp_ppp_pc,income_category,ene_renewable_primary_supply_IEA,ene_hydro_primary_supply_IEA,ene_nuclear_primary_supply_IEA,ene_geo_primary_supply_IEA,ene_tot_primary_supply_IEA) %>% 
+  filter(!is.na(income_category))
+
+wb_ren <- wb_ren %>% 
+  group_by(Country) %>% 
+  mutate(renewable_primary_supply = sum(ene_renewable_primary_supply_IEA,ene_hydro_primary_supply_IEA,ene_nuclear_primary_supply_IEA,ene_geo_primary_supply_IEA)) %>% 
+  mutate(renewable_primary_supply_pc = renewable_primary_supply/pop_UN) %>% 
+  select(-ene_renewable_primary_supply_IEA,-ene_hydro_primary_supply_IEA,-ene_nuclear_primary_supply_IEA,-ene_geo_primary_supply_IEA)
+  
+pointsToLabel <- wb_ren$Country[wb_ren$pop_UN>50e6 | wb_ren$renewable_primary_supply_pc > 25]
+
+p1 <- wb_ren %>%
+  ggplot(aes(x=renewable_primary_supply_pc,y=health_lex_WB,size=pop_UN,colour=income_category)) +
+  geom_point(alpha = 0.7,stroke=1) +
+  geom_text(inherit.aes=FALSE,
+            aes(x=renewable_primary_supply_pc,y=health_lex_WB-1,label=Country),
+            data=wb_ren[wb_ren$Country %in% pointsToLabel,]) +
+  scale_size(range = c(2, 12),guide=FALSE) +
+  scale_y_continuous(limits=c(50,85))+
+  xlim(0,100) +
+  theme(legend.title = element_blank(),
+        legend.position=c(0.90, 0.2), 
+        legend.background = element_blank(),
+        legend.key = element_blank()) +
+  scale_colour_brewer(palette = "GnBu") +
+  labs(y="Life expectancy at birth (years)", x="Low-carbon energy supply in 2014 (GJ/capita)")
+
+p1
+
+```

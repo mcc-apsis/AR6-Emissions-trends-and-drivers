@@ -451,7 +451,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -2458,18 +2458,18 @@
          y="251.24469">Income ($ ppp)</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:125%;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="52.054916"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:125%;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="49.02446"
        y="25.490219"
        id="text7576"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         id="tspan7578"
-         x="52.054916"
-         y="25.490219">Goldenberg's</tspan><tspan
+         id="tspan4585"
+         x="49.02446"
+         y="25.490219">Goldemberg's</tspan><tspan
          sodipodi:role="line"
-         x="52.054916"
-         y="44.240219"
-         id="tspan7580">Corner</tspan></text>
+         id="tspan4587"
+         x="49.02446"
+         y="44.240219">Corner</tspan></text>
   </g>
 </svg>

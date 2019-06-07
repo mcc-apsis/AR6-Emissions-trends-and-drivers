@@ -5,15 +5,31 @@ output: html_document
 
 ```{r setup, include=FALSE}
 
-#knitr::opts_chunk$set(echo = FALSE)
-
+rm(list = ls())
 library(tidyverse)
 library(ggpubr)
 library(gganimate)
+library(xlsx)
 
 
-rm(list = ls())
+######### load the global carbon budget ######### 
+
+gcb <- read.xlsx('Data/Global_Carbon_Budget_2018v1.0.xlsx',sheetIndex = 'Global Carbon Budget',startRow = 20,endRow = 79,colIndex = 1:7)
+
+fft <- read.xlsx('Data/Global_Carbon_Budget_2018v1.0.xlsx',sheetIndex = 'Fossil Emissions by Fuel Type',startRow = 13,endRow = 2017,colIndex = 1:8)
+
+######### load basic development and emissions data ######### 
+
 load('Data/basic.RData')
+
+## bring in more regional codes
+codes <- read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheetName = 'ISO_master')
+
+basic <- left_join(basic,codes %>% select(alpha.3,WB.income),by=c("ISO"="alpha.3")) %>% 
+  select(Country,ISO,Year,UN6,RCP5,IAM10,WB.income,pop_UN,everything())
+rm(codes)
+
+basic$WB.income <- factor(basic$WB.income,levels(basic$WB.income)[c(1,4,3,2)])
 
 # any other adjustments here
 basic$UN6 <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",basic$UN6)
@@ -26,43 +42,175 @@ basic$income_category  <- cut(basic$gdp_ppp_pc,breaks = c(1700,4300,8600,15000,2
 
 ```
 
-### Regional trends
-<strong>i.e. Figure 5.2 from IPCC AR5 (booorring)</strong>  
+### Budget
 
-```{r regional_trends_territorial, echo=FALSE,warning=FALSE,fig.width=10,fig.height=5}
+```{r budget, echo=FALSE,warning=FALSE}
 
-region <- basic %>%
-  filter(Country!="World") %>% 
-  filter(Year>1969 & Year<2018) %>% 
-  group_by(UN6,Year) %>% 
-  summarise(co2_territorial_total = sum(co2_terr_GCB,na.rm=TRUE),pop_total=sum(pop_UN)) %>% 
-  mutate(co2_territorial_pc = co2_territorial_total/pop_total)
+fossil_data <- fft %>% 
+  select(-Per.Capita,-Total) %>% 
+  group_by(Year) %>% 
+  mutate_at(vars(-group_cols()),funs(.*3.664)) %>% 
+  mutate_at(vars(-group_cols()),funs(./1000))
+
+budget_data <- gcb %>% 
+  select(-ocean.sink,-land.sink,-atmospheric.growth,-budget.imbalance) %>% 
+  group_by(Year) %>% 
+  mutate_at(vars(-group_cols()),funs(.*3.664))
+
+plot_data <- left_join(budget_data,fossil_data,by=c("Year"="Year")) %>% 
+  select(-fossil.fuel.and.industry)
+
+plot_data <- gather(plot_data,key,value,-Year)
+plot_data$key <- gsub("land.use.change.emissions","Land use change",plot_data$key)
+plot_data$key <- as.factor(plot_data$key)
+plot_data$key <- factor(plot_data$key,levels(plot_data$key)[c(3,1,4,2,6,5)])
 
 
-
-## cumulative emissions total (horizontal bar chart)
-p1 <- region %>% 
-  group_by(UN6) %>% 
-  summarise(cumulative_co2 = sum(co2_territorial_total)) %>% 
-  ggplot(.,aes(y=cumulative_co2,x=UN6,fill=UN6)) +
-  geom_bar(stat='identity') +
-  coord_flip() +
-  theme(legend.title = element_blank(), legend.position = "none") +
-  theme(axis.title.y = element_blank()) 
-  
-## total territorial emissions (stacked area)
-p2 <- region %>% ggplot(.,aes(x=Year,y=co2_territorial_total,fill=UN6)) +
+plot_data %>% 
+  ggplot(.,aes(x=Year,y=value,fill=key)) +
   geom_area() +
-  theme(legend.title = element_blank(),legend.position = "none")
+  ylab("Fossil fuel, cement & land use change emissions (GtCO2/yr)") +
+  theme(legend.position = c(0.15,0.75),
+        legend.title = element_blank(),
+        axis.title.x = element_blank())
 
-## per capita territorial emissions (line chart)
-p3 <- region %>% ggplot(.,aes(x=Year,y=co2_territorial_pc,colour=UN6)) +
-  geom_path(size=1) +
-  theme(legend.title = element_blank(), legend.position = "none")
 
-ggarrange(p1, p2, p3, ncol=3)
 
 ```
+
+### Regional trends by sector / GHG segment
+
+```{r regional_trends, echo=FALSE,warning=FALSE,fig.width=8,fig.height=8}
+
+selection = c("co2_terr_GCB","pop_UN")
+time_start = 2010
+
+##############  calculate growth rates in given time period ############## 
+
+rates <- basic %>% 
+  filter(!is.na(WB.income)) %>% 
+  filter(Year>=time_start & Year<2018) %>% 
+  group_by(Country,Year,WB.income) %>% 
+  summarise_at(selection,sum,na.rm=TRUE)
+
+####### CHECK DATA HERE FOR ZEROS AND NANS ####### 
+
+## remove countries below absolute emissions threshold
+
+rates <- rates %>% 
+  group_by(Country) %>% 
+  mutate(rate=(last(co2_terr_GCB)/first(co2_terr_GCB))^(1/(last(Year)-time_start+1))-1) %>% 
+  filter(Year==2017) %>% 
+  na.omit() %>% 
+  arrange(desc(co2_terr_GCB))
+
+# what is 80% of the emissions?
+threshold <- basic %>% 
+  filter(Country=="World") %>% 
+  filter(Year==2017) %>% 
+  summarise_at(selection,funs(.*0.80))
+
+threshold <- as.vector(threshold[,grep(selection[1],colnames(threshold))])
+rates$cutoff <- 0
+z <- 0
+for (i in 1:length(rates$Country)){
+  z <- z + rates$co2_terr_GCB[i]
+  if (z > threshold) {
+    break
+  }
+  rates$cutoff[i] <- 1
+}
+
+country_list <- rates %>% select(Country,cutoff)
+
+#### calculate growth rates for countries below threshold, grouped by region ####
+
+blarg <- basic %>% 
+  filter(!is.na(WB.income)) %>% 
+  filter(Year>=time_start & Year<2018) %>% 
+  group_by(Country,Year,WB.income) %>% 
+  summarise_at(selection,sum,na.rm=TRUE)
+
+blarg <- left_join(blarg,country_list,by=c("Country"="Country")) %>% 
+  filter(cutoff==0) %>% 
+  filter(!is.na(WB.income)) %>% 
+  filter(Year>=time_start & Year<2018) %>% 
+  group_by(WB.income,Year) %>% 
+  summarise_at(selection,sum,na.rm=TRUE)
+  
+blarg <- blarg %>% 
+  group_by(WB.income) %>% 
+  mutate(rate=(last(co2_terr_GCB)/first(co2_terr_GCB))^(1/(last(Year)-time_start+1))-1) %>% 
+  filter(Year==2017) %>% 
+  na.omit() %>% 
+  mutate(Country=paste(WB.income,"(rest)"))
+
+
+### join and plot
+rates <- rbind(rates %>% filter(cutoff==1) %>% select(-cutoff),blarg)
+
+p2 <- rates %>% 
+  ggplot(.,aes(x = reorder(Country,rate), y = rate*100, fill=WB.income)) +
+  geom_bar(stat='identity') + 
+  coord_flip() +
+  #facet_grid(WB.income~.,scales="free_y") +
+  theme(legend.position="none")
+
+
+############## plot absolute values, trend over time ############## 
+
+regions <- left_join(basic,country_list,by=c("Country"="Country")) %>%
+  filter(!is.na(WB.income)) %>% 
+  filter(Country!="World") %>% 
+  filter(Year>1980 & Year<2018) %>% 
+  filter(cutoff==0) %>% 
+  group_by(WB.income,Year) %>% 
+  summarise_at(selection,sum,na.rm=TRUE) %>% 
+  mutate(Country=paste(WB.income,"(rest)")) %>% 
+  ungroup()
+
+countries <- left_join(basic,country_list,by=c("Country"="Country")) %>%
+  filter(!is.na(WB.income)) %>% 
+  filter(Country!="World") %>% 
+  filter(Year>1980 & Year<2018) %>% 
+  filter(cutoff==1) %>% 
+  group_by(Country,Year,WB.income) %>% 
+  summarise_at(selection,sum,na.rm=TRUE) %>% 
+  ungroup()
+
+plot_data <- rbind(countries,regions)
+
+rect <- data.frame(xmin=time_start, xmax=2017, ymin=-Inf, ymax=Inf)
+
+plot_data %>% 
+  #filter(WB.income!="High income") %>% 
+  ggplot(.,aes(x=Year,y=co2_terr_GCB,fill=WB.income)) +
+  geom_area(color="black")
+
+#plot_data %>% 
+ # ggplot(.,aes(x=Year,y=co2_terr_GCB,fill=WB.income)) +
+  #geom_bar(stat='identity')
+
+z <- region %>%
+  filter(Year>2015) %>% 
+  select(Country,Year,WB.income,co2_terr_GCB)
+
+
+#+
+  geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
+              fill="grey20",
+              alpha=0.35,
+              inherit.aes = FALSE) +
+  theme(legend.position='bottom',
+        legend.title=element_blank())
+
+
+
+ggarrange(p1,p2,ncol=1,nrow=2)
+
+
+```
+
 
 ### Growth rates
 
@@ -100,6 +248,31 @@ models <- rates %>%
   mutate(intercept = first(estimate))
 
 rates <- left_join(rates,models %>% filter(term=='Year') %>% select(-term),by=c("Country"="Country"))
+
+```
+
+
+``` {r rates_summary, echo=FALSE, warning=FALSE,fig.width=8}
+
+blarg <- rates %>% 
+  na.omit() %>% 
+  group_by(Country,Year) %>% 
+  filter(max(pop_UN)>1e6) %>% 
+  filter(std.error<0.01) %>% 
+  arrange(estimate)
+
+
+# rank countries by rate of change
+#blarg$Country <- 
+
+
+blarg %>% 
+  filter(Year==2014) %>% 
+  ggplot(aes(y=rate,x=Country)) +
+  geom_bar(stat='identity') +
+  coord_flip()
+
+
 
 ```
 
@@ -213,162 +386,6 @@ blarg %>%
 ```
 
 
-```{r well_being_co2, echo=FALSE,warning=FALSE,fig.width=9,fig.path="Plots/",dev=c('pdf')}
-
-theme_set(theme_bw())
-
-wb <- basic %>% 
-  filter(Country!="World") %>% 
-  filter(Year==2016) %>% 
-  select(Country,UN6,co2_cons_GCB,pop_UN,health_lex_WB,gdp_ppp_WB,gdp_ppp_pc,income_category) %>% 
-  filter(!is.na(income_category))
-
-pointsToLabel <- wb$Country[wb$pop_UN>50e6 | wb$co2_cons_GCB/wb$pop_UN > 20]
-
-plot <- wb %>%
-  ggplot(aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,size=pop_UN,colour=income_category)) +
-  geom_point(alpha = 0.7,stroke=1) +
-  geom_text(inherit.aes=FALSE,
-            aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,label=Country),
-            data=wb[wb$Country %in% pointsToLabel,]) +
-  scale_size(range = c(2, 12),guide=FALSE) +
-  scale_y_continuous(limits=c(50,85))+
-  xlim(0,30) +
-  theme(legend.title = element_blank(),
-        legend.position=c(0.90, 0.2), 
-        legend.background = element_blank(),
-        legend.key = element_blank()) +
-  scale_colour_brewer(palette = "GnBu") +
-  labs(y="Life expectancy at birth (years)", x="Carbon emissions in 2016 (tCO2/capita)")
-
-inset <- wb %>% 
-  ggplot(aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,size=pop_UN,colour=income_category)) +
-  geom_point(alpha = 0.7,stroke=1) +
-  geom_text(inherit.aes=FALSE,
-            aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,label=Country)) +
-  scale_size(range = c(2, 12),guide=FALSE) +
-  scale_y_continuous(breaks=c(70,75,80),limits = c(70,80),expand=c(0,0)) +
-  scale_x_continuous(breaks=c(1,2,3),limits=c(0.5,3.5),expand=c(0,0)) +
-  scale_colour_brewer(palette = "GnBu") +
-  theme(legend.position = "none",
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        plot.background=element_blank(),
-        strip.background=element_blank())
-  
-inset_grob <- ggplotGrob(inset)
-
-plot + annotation_custom(inset_grob,xmin = 10,xmax = 26, ymin = 50, ymax = 67.5)
-
-
-# wb <- basic %>% 
-#   filter(Country!="World")
-# 
-# p1 <- wb %>% 
-#   filter(Year>1990) %>% 
-#   ggplot(aes(x=co2_cons_GCB/pop_UN,y=health_lex_WB,colour=UN6,size=pop_UN)) +
-#   geom_point(alpha = 0.7) +
-#   scale_size(range = c(2, 12),guide=FALSE) +
-#   ylim(35,85) +
-#   xlim(0,30) +
-#   theme(legend.title = element_blank())
-# 
-# p1 + transition_time(Year) +
-#   labs(title = "Year: {round(frame_time)}") +
-#   shadow_wake(wake_length = 0.1, alpha = FALSE)
-
-```
-
-```{r well_being_ene, echo=FALSE,warning=FALSE,fig.width=9,fig.path="Plots/",dev=c('pdf','png')}
-
-theme_set(theme_bw())
-
-wb_iea <- basic %>% 
-  filter(Country!="World") %>% 
-  filter(Year==2014) %>% 
-  select(Country,UN6,co2_cons_GCB,pop_UN,health_lex_WB,gdp_ppp_WB,gdp_ppp_pc,income_category,ene_tot_final_cons_IEA) %>% 
-  filter(!is.na(income_category))
-
-pointsToLabel <- wb_iea$Country[wb_iea$pop_UN>50e6 | wb_iea$ene_tot_final_cons_IEA/wb_iea$pop_UN > 200]
-
-plot <- wb_iea %>%
-  ggplot(aes(x=ene_tot_final_cons_IEA/pop_UN,y=health_lex_WB,size=pop_UN,colour=income_category)) +
-  geom_point(alpha = 0.7,stroke=1) +
-  geom_text(inherit.aes=FALSE,
-            aes(x=ene_tot_final_cons_IEA/pop_UN,y=health_lex_WB,label=Country),
-            data=wb_iea[wb_iea$Country %in% pointsToLabel,]) +
-  scale_size(range = c(2, 12),guide=FALSE) +
-  scale_y_continuous(limits=c(50,85))+
-  xlim(0,250) +
-  theme(legend.title = element_blank(),
-        legend.position=c(0.90, 0.2), 
-        legend.background = element_blank(),
-        legend.key = element_blank()) +
-  scale_colour_brewer(palette = "GnBu") +
-  labs(y="Life expectancy at birth (years)", x="Final energy consumption in 2014 (GJ/capita)")
-
-inset <- wb_iea %>% 
-  ggplot(aes(x=ene_tot_final_cons_IEA/pop_UN,y=health_lex_WB,size=pop_UN,colour=income_category)) +
-  geom_point(alpha = 0.7,stroke=1) +
-  geom_text(inherit.aes=FALSE,
-            aes(x=ene_tot_final_cons_IEA/pop_UN,y=health_lex_WB,label=Country)) +
-  scale_size(range = c(2, 12),guide=FALSE) +
-  scale_y_continuous(breaks=c(70,75,80),limits = c(70,80),expand=c(0,0)) +
-  scale_x_continuous(breaks=c(5,10,15,20,25),limits=c(0,30),expand=c(0,0)) +
-  scale_colour_brewer(palette = "GnBu") +
-  theme(legend.position = "none",
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        plot.background=element_blank(),
-        strip.background=element_blank())
-  
-inset_grob <- ggplotGrob(inset)
-
-plot + annotation_custom(inset_grob,xmin = 75,xmax = 210, ymin = 50, ymax = 67.5)
-
-
-```
-
-```{r well_being_renewables, echo=FALSE,warning=FALSE,fig.width=9,fig.path="Plots/",dev=c('pdf','png')}
 
 
 
-theme_set(theme_bw())
-
-wb_ren <- basic %>% 
-  filter(Country!="World") %>% 
-  filter(Year==2014) %>% 
-  select(Country,ISO,UN6,co2_cons_GCB,pop_UN,health_lex_WB,gdp_ppp_pc,income_category,ene_renewable_primary_supply_IEA,ene_hydro_primary_supply_IEA,ene_nuclear_primary_supply_IEA,ene_geo_primary_supply_IEA,ene_tot_primary_supply_IEA) %>% 
-  filter(!is.na(income_category))
-
-wb_ren <- wb_ren %>% 
-  group_by(Country) %>% 
-  mutate(renewable_primary_supply = sum(ene_renewable_primary_supply_IEA,ene_hydro_primary_supply_IEA,ene_nuclear_primary_supply_IEA,ene_geo_primary_supply_IEA)) %>% 
-  mutate(renewable_primary_supply_pc = renewable_primary_supply/pop_UN) %>% 
-  select(-ene_renewable_primary_supply_IEA,-ene_hydro_primary_supply_IEA,-ene_nuclear_primary_supply_IEA,-ene_geo_primary_supply_IEA)
-  
-pointsToLabel <- wb_ren$Country[wb_ren$pop_UN>50e6 | wb_ren$renewable_primary_supply_pc > 25]
-
-plot <- wb_ren %>%
-  ggplot(aes(x=renewable_primary_supply_pc,y=health_lex_WB,size=pop_UN,colour=income_category)) +
-  geom_point(alpha = 0.7,stroke=1) +
-  geom_text(inherit.aes=FALSE,
-            aes(x=renewable_primary_supply_pc,y=health_lex_WB-1,label=Country),
-            data=wb_ren[wb_ren$Country %in% pointsToLabel,]) +
-  scale_size(range = c(2, 12),guide=FALSE) +
-  scale_y_continuous(limits=c(50,85))+
-  xlim(0,100) +
-  theme(legend.title = element_blank(),
-        legend.position=c(0.90, 0.2), 
-        legend.background = element_blank(),
-        legend.key = element_blank()) +
-  scale_colour_brewer(palette = "GnBu") +
-  labs(y="Life expectancy at birth (years)", x="Low-carbon energy supply in 2014 (GJ/capita)")
-
-plot
-
-
-
-
-
-```
