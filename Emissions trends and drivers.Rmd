@@ -18,8 +18,8 @@ library(xlsx)
 
 gcb <- read.xlsx('Data/Global_Carbon_Budget_2018v1.0.xlsx',sheetIndex = "CDIAC CO2",startRow = 4,endRow = 270)
 names(gcb) <- c("Year","Total","Gas","Oil","Coal","Cement","Flaring","Net land-use","Total CO2")
-  
-  
+
+
 fft <- read.xlsx('Data/Global_Carbon_Budget_2018v1.0.xlsx',sheetIndex = 'Fossil Emissions by Fuel Type',startRow = 13,endRow = 2017,colIndex = 1:8)
 
 ######### load basic development and emissions data ######### 
@@ -63,9 +63,6 @@ xlsx::write.xlsx(blarg,file='Data/missing_designations.xlsx')
 
 ```{r budget, echo=FALSE,warning=FALSE,fig.width=10,fig.path="Plots/",dev=c('png','pdf')}
 
-
-
-
 plot_data <- gather(gcb,key,value,-Year) %>% 
   filter(key!="Total CO2",key!="Total") %>% 
   filter(Year>=1850) 
@@ -78,8 +75,8 @@ p1 <- plot_data %>%
   geom_area() +
   ylab("Carbon emissions (GtCO2/yr)") +
   theme(legend.position = c(0.15,0.75),
-    legend.title = element_blank(),
-    axis.title.x = element_blank())
+        legend.title = element_blank(),
+        axis.title.x = element_blank())
 
 
 future_budget <- data.frame(target=c("1.5oC target","2oC target"),budget=c(500,1000)) %>% 
@@ -181,8 +178,6 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
           axis.title.y = element_blank()) 
   
   
-  ############## plot absolute values, trend over time ############## 
-  
   regions <- left_join(edgar_GHG,country_list,by=c("Country"="Country")) %>%
     filter(Chapter==sector) %>% 
     filter(!is.na(WB.income)) %>% 
@@ -194,19 +189,6 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
     mutate(Country=paste(WB.income,"(rest)")) %>% 
     ungroup() %>% 
     rename_at(gas,funs(sprintf('value')))
-  
-  countries <- left_join(edgar_GHG,country_list,by=c("Country"="Country")) %>%
-    filter(Chapter==sector) %>% 
-    filter(!is.na(WB.income)) %>% 
-    filter(Country!="World") %>% 
-    filter(Year>1979 & Year<2018) %>% 
-    filter(cutoff==1) %>% 
-    group_by(Country,Year,WB.income) %>% 
-    summarise_at(gas,sum,na.rm=TRUE) %>% 
-    ungroup() %>% 
-    rename_at(gas,funs(sprintf('value')))
-  
-  plot_data <- rbind(countries,regions)
   
   rect <- data.frame(xmin=time_start, xmax=2017, ymin=-Inf, ymax=Inf)
   
@@ -222,12 +204,39 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
           axis.title.x = element_blank()) +
     ylab(paste(gas,"Emissions, Gg CO2eq")) +
     ggtitle(paste(sector,"Sector,",gas,"Emissions"))
-
-  p3 <- ggarrange(p1,p2,ncol=1,nrow=2)
-  return(p3)
+  
+  
+  ############## plot absolute values ############## 
+  
+  countries <- left_join(edgar_GHG,country_list,by=c("Country"="Country")) %>%
+    filter(Chapter==sector) %>% 
+    filter(!is.na(WB.income)) %>% 
+    filter(Country!="World") %>% 
+    filter(Year>1979 & Year<2018) %>% 
+    filter(cutoff==1) %>% 
+    group_by(Country,Year,WB.income) %>% 
+    summarise_at(gas,sum,na.rm=TRUE) %>% 
+    ungroup() %>% 
+    rename_at(gas,funs(sprintf('value')))
+  
+  plot_data <- rbind(countries,regions) %>% 
+    filter(Year==2017)
+  
+  library(treemapify)
+  
+  p3 <- plot_data %>% ggplot(.,aes(area=value,fill=WB.income,subgroup=WB.income,label=Country)) +
+    geom_treemap() +
+    geom_treemap_text(reflow=TRUE,min.size=2) +
+    theme(legend.position='none',
+          plot.margin = unit(c(0,0,0,2.5),"cm")) +
+    xlab("Distribution of total sector emissions")
+  
+  
+  p4 <- ggarrange(p1,p3,p2,ncol=1,nrow=3,heights=c(2,1.2,2))
+  return(p4)
 }
 
-# blarg <- edgar_GHG %>% 
+# blarg <asd- edgar_GHG %>% 
 #   group_by(Year,WB.income) %>% 
 #   summarise(total_GHG=sum(total_GHG))
 # 
@@ -236,11 +245,11 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
 #   geom_area() +
 #   theme(legend.position='bottom',
 #         legend.title=element_blank())
-  
+
 ```
 
 
-```{r edgar_plots, echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="Plots/",dev=c('png','pdf')}
+```{r edgar_plots, echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="Plots/",dev=c('png','pdf')}
 
 #### 
 
