@@ -11,7 +11,6 @@ library(ggpubr)
 library(gganimate)
 library(xlsx)
 
-
 ######### load the global carbon budget ######### 
 
 #gcb <- read.xlsx('Data/Global_Carbon_Budget_2018v1.0.xlsx',sheetIndex = 'Global Carbon Budget',startRow = 20,endRow = 79,colIndex = 1:7)
@@ -50,16 +49,27 @@ edgar_GHG <- left_join(edgar_GHG,codes %>% select(Country,Code,WB.income),by=c("
 edgar_GHG$WB.income <- factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
 rm(codes)
 
-blarg <- edgar_GHG %>% 
-  filter(ISO=="USA",Year==2017) %>% 
-  select(IPCC.detailed,IPCC.description,Sector,Chapter)
-xlsx::write.xlsx(blarg,file='Data/missing_designations.xlsx')
+
 
 ```
 
-### Budget
 
-<strong>Placeholder figure for historical and future budget</strong>
+### GHG emissions by gas (Figure 1)
+
+```{r Figure_1, echo=FALSE,warning=FALSE,fig.width=10,fig.path="Plots/",dev=c('png','pdf')}
+
+blarg <- edgar_GHG %>% 
+  group_by(Year) %>% 
+  summarise(CO2=sum(CO2,na.rm=T),CH4=sum(CH4,na.rm=T),N2O=sum(N2O,na.rm=T),Fgas=sum(Fgas,na.rm=T))
+
+gather(blarg,gas,value,-Year) %>% 
+  ggplot(.,aes(x=Year,y=value,fill=gas)) +
+  geom_area()
+
+```
+
+### Long term CO2 emissions sources and sinks (Figure 2)
+
 
 ```{r budget, echo=FALSE,warning=FALSE,fig.width=10,fig.path="Plots/",dev=c('png','pdf')}
 
@@ -93,16 +103,22 @@ ggarrange(p1,p2,ncol=2,widths = c(2.5,1))
 
 ```
 
+
+
 ### Regional trends by sector / GHG segment
 
 ```{r edgar_prep,include=FALSE}
+# 
+# sector="Total"
+# gas="GHG"
+# time_start=2010
 
 edgar_emissions_plot <- function(time_start,sector,gas) {
   
   ##############  calculate growth rates in given time period ############## 
   
   rates <- edgar_GHG %>% 
-    filter(Chapter==sector) %>% 
+    filter(category_1==sector) %>% 
     filter(!is.na(WB.income)) %>% 
     filter(Year>=time_start & Year<2018) %>% 
     group_by(Country,Year,WB.income) %>% 
@@ -143,7 +159,7 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
   #### calculate growth rates for countries below threshold, grouped by region ####
   
   blarg <- edgar_GHG %>% 
-    filter(Chapter==sector) %>% 
+    filter(category_1==sector) %>% 
     filter(!is.na(WB.income)) %>% 
     filter(Year>=time_start & Year<2018) %>% 
     group_by(Country,Year,WB.income) %>% 
@@ -179,7 +195,7 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
   
   
   regions <- left_join(edgar_GHG,country_list,by=c("Country"="Country")) %>%
-    filter(Chapter==sector) %>% 
+    filter(category_1==sector) %>% 
     filter(!is.na(WB.income)) %>% 
     filter(Country!="World") %>% 
     filter(Year>1979 & Year<2018) %>% 
@@ -209,7 +225,7 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
   ############## plot absolute values ############## 
   
   countries <- left_join(edgar_GHG,country_list,by=c("Country"="Country")) %>%
-    filter(Chapter==sector) %>% 
+    filter(category_1==sector) %>% 
     filter(!is.na(WB.income)) %>% 
     filter(Country!="World") %>% 
     filter(Year>1979 & Year<2018) %>% 
@@ -224,15 +240,25 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
   
   library(treemapify)
   
-  p3 <- plot_data %>% ggplot(.,aes(area=value,fill=WB.income,subgroup=WB.income,label=Country)) +
-    geom_treemap() +
-    geom_treemap_text(reflow=TRUE,min.size=2) +
-    theme(legend.position='none',
-          plot.margin = unit(c(0,0,0,2.5),"cm")) +
-    xlab("Distribution of total sector emissions")
+  # p3 <- plot_data %>% ggplot(.,aes(area=value,fill=WB.income,subgroup=WB.income,label=Country)) +
+  #   geom_treemap() +
+  #   geom_treemap_text(reflow=TRUE,min.size=2) +
+  #   theme(legend.position='none',
+  #         plot.margin = unit(c(0,0,0,2.5),"cm")) +
+  #   xlab("Distribution of total sector emissions")
   
   
-  p4 <- ggarrange(p1,p3,p2,ncol=1,nrow=3,heights=c(2,1.2,2))
+  # blarg <- plot_data %>% 
+  #   arrange(desc(value))
+  # 
+  # plot_data$ordered <- factor(plot_data$Country,levels=blarg$Country)
+  # 
+  # p3 <- plot_data %>% 
+  #   ggplot(.,aes(x=Year,y=value,fill=WB.income,group=ordered)) +
+  #   geom_bar(stat='identity')
+  
+  
+  p4 <- ggarrange(p1,p2,ncol=1,nrow=2)
   return(p4)
 }
 
@@ -249,25 +275,29 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
 ```
 
 
-```{r edgar_plots, echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="Plots/",dev=c('png','pdf')}
+```{r edgar_plots, echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="Plots/",dev=c('png','pdf')}
 
 #### 
+
 
 time_start = 2010
 
 plot_energy_GHG <- edgar_emissions_plot(time_start,'Energy','GHG')
 plot_energy_GHG
 
-plot_industry_GHG <- edgar_emissions_plot(time_start,'Industry','GHG')
+plot_industry_GHG <- edgar_emissions_plot(time_start,'Industrial Processes','GHG')
 plot_industry_GHG
 
-plot_transport_GHG <- edgar_emissions_plot(time_start,'Transport','GHG')
+plot_transport_GHG <- edgar_emissions_plot(time_start,'Solvent and Other Product Use','GHG')
 plot_transport_GHG
 
-plot_buildings_GHG <- edgar_emissions_plot(time_start,'Buildings','GHG')
+plot_buildings_GHG <- edgar_emissions_plot(time_start,'Agriculture','GHG')
 plot_buildings_GHG
 
-plot_AFOLU_GHG <- edgar_emissions_plot(time_start,'AFOLU','GHG')
+plot_AFOLU_GHG <- edgar_emissions_plot(time_start,'Other (please specify)','GHG')
+plot_AFOLU_GHG
+
+plot_AFOLU_GHG <- edgar_emissions_plot(time_start,'Waste','GHG')
 plot_AFOLU_GHG
 
 plot_total_GHG <- edgar_emissions_plot(time_start,'Total','GHG')
