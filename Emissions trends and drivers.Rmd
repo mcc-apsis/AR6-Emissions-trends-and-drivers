@@ -11,44 +11,26 @@ library(ggpubr)
 library(gganimate)
 library(xlsx)
 
-######### load the global carbon budget ######### 
-
-#gcb <- read.xlsx('Data/Global_Carbon_Budget_2018v1.0.xlsx',sheetIndex = 'Global Carbon Budget',startRow = 20,endRow = 79,colIndex = 1:7)
-
-gcb <- read.xlsx('Data/Global_Carbon_Budget_2018v1.0.xlsx',sheetIndex = "CDIAC CO2",startRow = 4,endRow = 270)
-names(gcb) <- c("Year","Total","Gas","Oil","Coal","Cement","Flaring","Net land-use","Total CO2")
-
-
-fft <- read.xlsx('Data/Global_Carbon_Budget_2018v1.0.xlsx',sheetIndex = 'Fossil Emissions by Fuel Type',startRow = 13,endRow = 2017,colIndex = 1:8)
 
 ######### load basic development and emissions data ######### 
 
-load('Data/basic.RData')
-
-## bring in more regional codes
-codes <- read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheetName = 'ISO_master')
-
-basic <- left_join(basic,codes %>% select(Code,WB.income),by=c("ISO"="Code")) %>% 
-  select(Country,ISO,Year,UN6,RCP5,IAM10,WB.income,pop_UN,everything())
-
-basic$WB.income <- factor(basic$WB.income,levels(basic$WB.income)[c(1,4,3,2)])
-
-# any other adjustments here
-basic$UN6 <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",basic$UN6)
-
-basic <- basic %>% 
-  mutate(gdp_ppp_pc = gdp_ppp_WB/pop_UN)
-
-basic$income_category  <- cut(basic$gdp_ppp_pc,breaks = c(1700,4300,8600,15000,29000,150000),dig.lab=10,include.lowest=TRUE)
-
-######### load edgar data ######### 
-
-load('Data/edgar.RData')
-
-edgar_GHG <- left_join(edgar_GHG,codes %>% select(Country,Code,WB.income),by=c("ISO"="Code"))
-edgar_GHG$WB.income <- factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
-rm(codes)
-
+# load('Data/basic.RData')
+# 
+# ## bring in more regional codes
+# codes <- read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheetName = 'ISO_master')
+# 
+# basic <- left_join(basic,codes %>% select(Code,WB.income),by=c("ISO"="Code")) %>% 
+#   select(Country,ISO,Year,UN6,RCP5,IAM10,WB.income,pop_UN,everything())
+# 
+# basic$WB.income <- factor(basic$WB.income,levels(basic$WB.income)[c(1,4,3,2)])
+# 
+# # any other adjustments here
+# basic$UN6 <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",basic$UN6)
+# 
+# basic <- basic %>% 
+#   mutate(gdp_ppp_pc = gdp_ppp_WB/pop_UN)
+# 
+# basic$income_category  <- cut(basic$gdp_ppp_pc,breaks = c(1700,4300,8600,15000,29000,150000),dig.lab=10,include.lowest=TRUE)
 
 
 ```
@@ -56,50 +38,123 @@ rm(codes)
 
 ### GHG emissions by gas (Figure 1)
 
-```{r Figure_1, echo=FALSE,warning=FALSE,fig.width=10,fig.path="Plots/",dev=c('png','pdf')}
+```{r Fig1_trend, echo=FALSE,warning=FALSE,fig.width=8,fig.path="Plots/",dev=c('png','pdf')}
 
-blarg <- edgar_GHG %>% 
-  group_by(Year) %>% 
-  summarise(CO2=sum(CO2,na.rm=T),CH4=sum(CH4,na.rm=T),N2O=sum(N2O,na.rm=T),Fgas=sum(Fgas,na.rm=T))
+######### load Jan data ######### 
 
-gather(blarg,gas,value,-Year) %>% 
+data <- read.xlsx('Data/data from Jan.xlsx',sheetIndex = "EDGAR gas - Figure 1",startRow = 10,endRow = 16,check.names=FALSE)
+
+data <- gather(data,Year,value,-source,-gas) %>% 
+  mutate(Year=as.numeric(Year)) %>% 
+  filter(!is.na(value))
+
+data %>% 
   ggplot(.,aes(x=Year,y=value,fill=gas)) +
-  geom_area()
+  geom_area() +
+  ylab('GHG Emissions (GtCO2eq/yr)') +
+  theme_bw() +
+  theme(axis.title.x = element_blank(),
+          legend.position = c(0.12,0.8),
+        legend.title=element_blank(),
+        legend.background = element_blank())
 
 ```
 
 ### Long term CO2 emissions sources and sinks (Figure 2)
 
 
-```{r budget, echo=FALSE,warning=FALSE,fig.width=10,fig.path="Plots/",dev=c('png','pdf')}
+```{r Fig2_budget, echo=FALSE,warning=FALSE,fig.width=10,fig.path="Plots/",dev=c('png','pdf')}
 
-plot_data <- gather(gcb,key,value,-Year) %>% 
+######### load the global carbon budget ######### 
+
+gcb <- read.xlsx('Data/data from Jan.xlsx',sheetIndex = "CDIAC CO2 - Figure 2",startRow = 3,endRow = 270,colIndex=1:9)
+names(gcb) <- c("Year","Total","Gas","Oil","Coal","Cement","Flaring","Net land-use","Total CO2")
+
+# fft <- read.xlsx('Data/Global_Carbon_Budget_2018v1.0.xlsx',sheetIndex = 'Fossil Emissions by Fuel Type',startRow = 13,endRow = 2017,colIndex = 1:8)
+
+budget_data <- gather(gcb,key,value,-Year) %>% 
   filter(key!="Total CO2",key!="Total") %>% 
   filter(Year>=1850) 
 
-plot_data$key <- as.factor(plot_data$key)
-plot_data$key <- factor(plot_data$key,levels(plot_data$key)[c(1,2,3,4,6,5)])
+budget_data$key <- as.factor(budget_data$key)
+budget_data$key <- factor(budget_data$key,levels(budget_data$key)[c(1,2,3,4,6,5)])
 
-p1 <- plot_data %>% 
+p1 <- budget_data %>% 
   ggplot(.,aes(x=Year,y=value,fill=key)) + 
   geom_area() +
   ylab("Carbon emissions (GtCO2/yr)") +
-  theme(legend.position = c(0.15,0.75),
+  theme_bw() +
+  theme(legend.position = c(0.15,0.7),
         legend.title = element_blank(),
+        axis.title.x = element_blank(),
+        legend.background = element_blank())
+
+##### future budget code
+
+# future_budget <- data.frame(target=c("1.5oC target","2oC target"),budget=c(500,1000)) %>% 
+#   mutate(years=ceiling(budget/as.vector(plot_data %>% filter(Year==2017) %>% summarise(total=sum(value)))[[1]]))
+# 
+# p2 <- future_budget %>% 
+#   ggplot(.,aes(x=target,y=budget)) +
+#   geom_bar(stat='identity') +
+#   geom_text(aes(x=target,y=budget+50,label=paste("Years: ",years))) +
+#   theme(axis.title.x = element_blank()) +
+#   ylab("Total carbon budget relative to climate targets (GtCO2)")
+
+date_data <- gcb %>% 
+  select(Year,value=Total) %>% 
+  filter(Year>=1850) %>% 
+  mutate(key=ifelse(Year>=1850 & Year < 1890,'1850-1889',NA)) %>% 
+  mutate(key=ifelse(Year>=1890 & Year < 1930,'1890-1930',key)) %>% 
+  mutate(key=ifelse(Year>=1930 & Year < 1970,'1930-1970',key)) %>% 
+  mutate(key=ifelse(Year>=1970 & Year < 2010,'1970-2010',key)) %>% 
+  filter(!is.na(key))
+
+date_data <- date_data %>% 
+  mutate(key=as.factor(key)) %>% 
+  group_by(key) %>% 
+  summarise(value=sum(value)) %>% 
+  add_row(key="1.5",value=300) %>% 
+  add_row(key="2.0",value=1000)
+
+
+date_data$key <- factor(date_data$key,levels(date_data$key)[c(6,5,4,3,2,1)])
+
+p2 <- date_data %>% 
+  ggplot(.,aes(x='x',y=value,fill=key)) +
+  geom_bar(stat='identity') +
+  ylab('GHG emissions, cumulative (GtCO2eq)') +
+  theme_bw() +
+  theme(legend.position= c(0.5,0.5),
+        legend.background = element_blank(),
         axis.title.x = element_blank())
 
 
-future_budget <- data.frame(target=c("1.5oC target","2oC target"),budget=c(500,1000)) %>% 
-  mutate(years=ceiling(budget/as.vector(plot_data %>% filter(Year==2017) %>% summarise(total=sum(value)))[[1]]))
+time_data <- data.frame(target=c("1.5oC target","2oC target"),budget=c(500,1000)) %>% 
+  group_by(budget) %>% 
+  mutate(current_emissions=budget/as.vector(budget_data %>% filter(Year==2017) %>% summarise(total=sum(value)))[[1]]) %>% 
+  mutate(fake_1 = 1.5*(budget/as.vector(budget_data %>% filter(Year==2017) %>% summarise(total=sum(value)))[[1]]))%>% 
+  mutate(fake_2 = 2*(budget/as.vector(budget_data %>% filter(Year==2017) %>% summarise(total=sum(value)))[[1]]))
 
-p2 <- future_budget %>% 
-  ggplot(.,aes(x=target,y=budget)) +
+time_data <- gather(time_data,key,value,-budget,-target) %>% 
+  mutate(key=as.factor(key))
+
+time_data$key <- factor(time_data$key,levels(time_data$key)[c(3,2,1)])
+
+p3 <- time_data %>% 
+  ggplot(.,aes(x=key,y=value,fill=target)) + 
   geom_bar(stat='identity') +
-  geom_text(aes(x=target,y=budget+50,label=paste("Years: ",years))) +
-  theme(axis.title.x = element_blank()) +
-  ylab("Total carbon budget relative to climate targets (GtCO2)")
+  coord_flip() +
+  facet_grid(target~.) +
+  theme_bw() +
+  theme(legend.position='none',
+        axis.title.y=element_blank()) +
+  ylab('Years until budget exceeded')
 
-ggarrange(p1,p2,ncol=2,widths = c(2.5,1))
+p4<- ggarrange(p2,p3,ncol=2,widths=c(1,2))
+
+p <- ggarrange(p1,p4,nrow=2)
+p
 
 ```
 
@@ -112,13 +167,32 @@ ggarrange(p1,p2,ncol=2,widths = c(2.5,1))
 # sector="Total"
 # gas="GHG"
 # time_start=2010
+# category="category_1"
 
-edgar_emissions_plot <- function(time_start,sector,gas) {
+######### load edgar data ######### 
+
+load('Data/edgar.RData')
+
+codes <- read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheetName = 'ISO_master')
+edgar_GHG <- left_join(edgar_GHG,codes %>% select(Country,Code,WB.income),by=c("ISO"="Code"))
+edgar_GHG$WB.income <- factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
+rm(codes)
+
+chapters <- read.xlsx('Data/IPCC_master_categories_JM.xlsx',sheetName='code_comparisons',colIndex = 1:6) %>% 
+  select(code,IPCC_AR5_chapter,IPCC_AR5_sector)
+
+edgar_GHG <- left_join(edgar_GHG,chapters,by=c("sector_code"="code"))
+
+edgar_emissions_plot <- function(time_start,category,sector,gas) {
   
   ##############  calculate growth rates in given time period ############## 
   
+  sector_code <- edgar_GHG %>%
+    filter_at(vars(category),all_vars(.==sector))
+  sector_code <- substr(sector_code$sector_code[[1]],1,as.numeric(str_sub(category,-1)))
+  
   rates <- edgar_GHG %>% 
-    filter(category_1==sector) %>% 
+    filter_at(vars(category),all_vars(.==sector)) %>% 
     filter(!is.na(WB.income)) %>% 
     filter(Year>=time_start & Year<2018) %>% 
     group_by(Country,Year,WB.income) %>% 
@@ -159,7 +233,7 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
   #### calculate growth rates for countries below threshold, grouped by region ####
   
   blarg <- edgar_GHG %>% 
-    filter(category_1==sector) %>% 
+    filter_at(vars(category),all_vars(.==sector)) %>% 
     filter(!is.na(WB.income)) %>% 
     filter(Year>=time_start & Year<2018) %>% 
     group_by(Country,Year,WB.income) %>% 
@@ -188,14 +262,15 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
   p2 <- rates %>% 
     ggplot(.,aes(x = reorder(Country,rate), y = rate*100, fill=WB.income)) +
     geom_bar(stat='identity') + 
-    ylab(paste("Rate of change in ",gas," emissions (",sector," Sector), ",time_start,"-2017\n (Countries responsible for 80% of sector emissions are shown)",sep="")) +
+    ylab(paste("Rate of change in ",gas," emissions (Sector ",sector,") ",time_start,"-2017\n (Countries responsible for 80% of sector emissions are shown)",sep="")) +
     coord_flip() +
+    theme_bw() +
     theme(legend.position="none",
           axis.title.y = element_blank()) 
   
   
   regions <- left_join(edgar_GHG,country_list,by=c("Country"="Country")) %>%
-    filter(category_1==sector) %>% 
+    filter_at(vars(category),all_vars(.==sector)) %>% 
     filter(!is.na(WB.income)) %>% 
     filter(Country!="World") %>% 
     filter(Year>1979 & Year<2018) %>% 
@@ -215,17 +290,18 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
               fill="grey20",
               alpha=0.35,
               inherit.aes = FALSE) +
+    theme_bw() +
     theme(legend.position='bottom',
           legend.title=element_blank(),
           axis.title.x = element_blank()) +
     ylab(paste(gas,"Emissions, Gg CO2eq")) +
-    ggtitle(paste(sector,"Sector,",gas,"Emissions"))
+    ggtitle(paste("IPCC Sector ",sector,", ",gas," Emissions",sep=""))
   
   
   ############## plot absolute values ############## 
   
   countries <- left_join(edgar_GHG,country_list,by=c("Country"="Country")) %>%
-    filter(category_1==sector) %>% 
+    filter_at(vars(category),all_vars(.==sector)) %>% 
     filter(!is.na(WB.income)) %>% 
     filter(Country!="World") %>% 
     filter(Year>1979 & Year<2018) %>% 
@@ -275,33 +351,42 @@ edgar_emissions_plot <- function(time_start,sector,gas) {
 ```
 
 
-```{r edgar_plots, echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="Plots/",dev=c('png','pdf')}
+```{r edgar_plots,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="Plots/",dev=c('png','pdf')}
 
 #### 
 
 
+
 time_start = 2010
+plot_list = list()
 
-plot_energy_GHG <- edgar_emissions_plot(time_start,'Energy','GHG')
-plot_energy_GHG
+for (i in 1:7) {
+  
+  p <- edgar_emissions_plot(time_start,'IPCC_AR5_sector',i,'GHG')
+  plot_list[[i]] <- p
+  
+}
 
-plot_industry_GHG <- edgar_emissions_plot(time_start,'Industrial Processes','GHG')
-plot_industry_GHG
 
-plot_transport_GHG <- edgar_emissions_plot(time_start,'Solvent and Other Product Use','GHG')
-plot_transport_GHG
+plot_list
 
-plot_buildings_GHG <- edgar_emissions_plot(time_start,'Agriculture','GHG')
-plot_buildings_GHG
-
-plot_AFOLU_GHG <- edgar_emissions_plot(time_start,'Other (please specify)','GHG')
-plot_AFOLU_GHG
-
-plot_AFOLU_GHG <- edgar_emissions_plot(time_start,'Waste','GHG')
-plot_AFOLU_GHG
-
-plot_total_GHG <- edgar_emissions_plot(time_start,'Total','GHG')
-plot_total_GHG
+# plot_energy_GHG <- edgar_emissions_plot(time_start,'category_1','Energy','GHG')
+# plot_energy_GHG
+# 
+# plot_industry_GHG <- edgar_emissions_plot(time_start,'category_3','Manufacturing Industries and Construction (ISIC)','GHG')
+# plot_industry_GHG
+# 
+# plot_transport_GHG <- edgar_emissions_plot(time_start,'category_3','Transport','GHG')
+# plot_transport_GHG
+# 
+# plot_buildings_GHG <- edgar_emissions_plot(time_start,'category_1','Agriculture','GHG')
+# plot_buildings_GHG
+# 
+# plot_waste_GHG <- edgar_emissions_plot(time_start,'category_1','Waste','GHG')
+# plot_waste_GHG
+# 
+# plot_total_GHG <- edgar_emissions_plot(time_start,'category_1','Total','GHG')
+# plot_total_GHG
 
 ```
 

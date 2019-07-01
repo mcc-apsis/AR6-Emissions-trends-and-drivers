@@ -72,20 +72,34 @@ edgar_categories <- edgar_GHG %>%
   filter(ISO_A3=="USA",Year==2017) %>% 
   select(code=IPCC.detailed,EDGAR_description=IPCC_detailed_description)
 
-ipcc_categories <- read.xlsx('Data/IPCC_detailed.xlsx',sheetName='1996') %>% 
+ipcc_ar1_categories <- read.xlsx('Data/IPCC_detailed.xlsx',sheetName='1996') %>% 
   select(IPCC.1996.Code,IPCC.1996.Name) %>% 
   filter(!is.na(IPCC.1996.Name)) %>% 
   select(code=IPCC.1996.Code,IPCC_1996_description=IPCC.1996.Name) %>% 
   mutate(source="IPCC_1996") %>% 
   mutate(IPCC_1996_description=as.character(IPCC_1996_description))
 
-master_list <- full_join(ipcc_categories,edgar_categories,by=("code"="code"))
+ipcc_ar5_categories <- read.xlsx('Data/IPCC Mapping.xlsx',sheetName='EmissionMap',startRow = 3,endRow = 132) %>% 
+  select(code=IPCC.cat.,IPCC_AR5_sector=Sector.1,IPCC_AR5_chapter=Chapter.1,IPCC_AR5_description=IPCC_description) %>% 
+  mutate(IPCC_AR5_description=as.character(IPCC_AR5_description))
+
+
+master_list <- full_join(ipcc_ar1_categories,edgar_categories,by=("code"="code"))
+master_list <- full_join(master_list,ipcc_ar5_categories,by=("code"="code"))
+
+z <- master_list %>% 
+  select(code,IPCC_1996_description,EDGAR_description,IPCC_AR5_description,IPCC_AR5_sector,IPCC_AR5_chapter) %>% 
+arrange(code)
+
+openxlsx::write.xlsx(z,'Data/IPCC_master_categories.xlsx',sheetName='code_comparisons',row.names = FALSE)
 
 master_list <- master_list %>% 
   mutate(category=ifelse(is.na(EDGAR_description),IPCC_1996_description,EDGAR_description)) %>% 
-  mutate(source=ifelse(is.na(EDGAR_description),source,"EDGAR_2018")) %>% 
+  mutate(source=ifelse(is.na(source),"IPCC_AR5",source)) %>% 
+  mutate(category=ifelse(is.na(category),IPCC_AR5_description,category)) %>% 
+  mutate(source=ifelse(is.na(IPCC_1996_description)&is.na(IPCC_AR5_description),"EDGAR_2018",source)) %>% 
   arrange(code) %>% 
-  select(code,IPCC_1996_description,EDGAR_description,combined_category=category,source)
+  select(code,IPCC_1996_description,IPCC_AR5_description,EDGAR_description,combined_category=category,source)
 
 diss_list <- master_list %>% 
   select(code,combined_category,source)
@@ -132,8 +146,8 @@ diss_list <- left_join(diss_list,category_6,by=c("handle_6"="code"))
 diss_list <- diss_list %>% 
   select(-handle_1,-handle_2,-handle_3,-handle_4,-handle_5,-handle_6)
 
-write.xlsx(master_list,'Data/IPCC_master_categories.xlsx',sheetName='full_list',row.names = FALSE)
-write.xlsx(diss_list,'Data/IPCC_master_categories.xlsx',sheetName='split_list',row.names = FALSE,append=TRUE)
+write.xlsx(master_list,'Data/IPCC_master_categories.xlsx',sheetName='full_list',row.names = FALSE,append=T)
+write.xlsx(diss_list,'Data/IPCC_master_categories.xlsx',sheetName='split_list',row.names = FALSE,append=T)
 
 #### join categories to EDGAR
 
