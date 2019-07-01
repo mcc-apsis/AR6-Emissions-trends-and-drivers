@@ -63,7 +63,7 @@ data %>%
 ### Long term CO2 emissions sources and sinks (Figure 2)
 
 
-```{r Fig2_budget, echo=FALSE,warning=FALSE,fig.width=10,fig.path="Plots/",dev=c('png','pdf')}
+```{r Fig2_budget, echo=FALSE,warning=FALSE,fig.width=10,fig.height=6,fig.path="Plots/",dev=c('png','pdf')}
 
 ######### load the global carbon budget ######### 
 
