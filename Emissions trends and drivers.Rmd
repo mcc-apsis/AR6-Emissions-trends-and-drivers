@@ -35,6 +35,81 @@ library(xlsx)
 
 ```
 
+### GHGs by sector
+
+```{r ghgs_total_income, echo=FALSE,warning=FALSE,fig.width=8,fig.path="Plots/",dev=c('png','pdf')}
+
+load('Data/edgar.RData')
+
+plot_data <- edgar_GHG %>% 
+  filter(!is.na(WB.income)) %>% 
+  filter(sector_code=="Total") %>% 
+  group_by(Year,WB.income) %>% 
+  summarise(total_ghg=sum(GHG,rm.na=T)) 
+
+plot_data %>% 
+  ggplot(.,aes(x=Year,y=total_ghg/1e6,fill=WB.income)) +
+  geom_area() +
+  ylab("GHG emissions (GtCO2eq/yr)") +
+  theme_bw() +
+  theme(axis.title.x = element_blank(),
+          legend.position = c(0.12,0.8),
+        legend.title=element_blank(),
+        legend.background = element_blank())
+  
+
+
+
+```
+
+### GHGs by sector
+
+```{r ghgs_5sectors, echo=FALSE,warning=FALSE,fig.width=8,fig.path="Plots/",dev=c('png','pdf')}
+
+
+load('Data/edgar.RData')
+
+plot_data <- edgar_GHG %>% 
+  filter(sector_code!="Total") %>%
+  filter(!is.na(IPCC_AR5_chapter)) %>% 
+  filter(IPCC_AR5_chapter!=11) %>% 
+  group_by(Year,IPCC_AR5_chapter) %>% 
+  summarise(total_ghg=sum(GHG,rm.na=T)/1e6) %>% 
+  ungroup()
+
+plot_data <- plot_data %>% 
+  mutate(IPCC_AR5_chapter=ifelse(IPCC_AR5_chapter==7,"Energy",IPCC_AR5_chapter)) %>% 
+  mutate(IPCC_AR5_chapter=ifelse(IPCC_AR5_chapter==8,"Transport",IPCC_AR5_chapter)) %>% 
+  mutate(IPCC_AR5_chapter=ifelse(IPCC_AR5_chapter==9,"Buildings",IPCC_AR5_chapter)) %>% 
+  mutate(IPCC_AR5_chapter=ifelse(IPCC_AR5_chapter==10,"Industry",IPCC_AR5_chapter))
+  
+data <- xlsx::read.xlsx('Data/data from Jan.xlsx',sheetIndex = "EDGAR gas - Figure 1",startRow = 10,endRow = 16,check.names=FALSE)
+
+data <- gather(data,Year,value,-source,-gas) %>% 
+  mutate(Year=as.numeric(Year)) %>% 
+  filter(!is.na(value)) %>%
+  filter(gas=="CO2 landuse") %>% 
+  mutate(IPCC_AR5_chapter="Land use") %>% 
+  select(Year,IPCC_AR5_chapter,total_ghg=value) 
+
+plot_data <- rbind(plot_data,data)
+
+plot_data$IPCC_AR5_chapter <- as.factor(plot_data$IPCC_AR5_chapter)
+plot_data$IPCC_AR5_chapter <- factor(plot_data$IPCC_AR5_chapter,levels(plot_data$IPCC_AR5_chapter)[c(2,3,5,1,4)])
+
+plot_data %>%
+  ggplot(.,aes(x=Year,y=total_ghg,fill=IPCC_AR5_chapter)) +
+  geom_area() +
+  ylab("GHG emissions (GtCO2eq/yr)") +
+  theme_bw() +
+  theme(axis.title.x = element_blank(),
+          legend.position = c(0.12,0.8),
+        legend.title=element_blank(),
+        legend.background = element_blank())
+
+
+```
+
 
 ### GHG emissions by gas (Figure 1)
 
@@ -42,7 +117,7 @@ library(xlsx)
 
 ######### load Jan data ######### 
 
-data <- read.xlsx('Data/data from Jan.xlsx',sheetIndex = "EDGAR gas - Figure 1",startRow = 10,endRow = 16,check.names=FALSE)
+data <- xlsx::read.xlsx('Data/data from Jan.xlsx',sheetIndex = "EDGAR gas - Figure 1",startRow = 10,endRow = 16,check.names=FALSE)
 
 data <- gather(data,Year,value,-source,-gas) %>% 
   mutate(Year=as.numeric(Year)) %>% 
@@ -176,18 +251,18 @@ library(openxlsx)
 
 load('Data/edgar.RData')
 
-codes <- read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
-edgar_GHG <- left_join(edgar_GHG,codes %>% select(Country,Code,WB.income),by=c("ISO"="Code"))
-edgar_GHG$WB.income <- as.factor(edgar_GHG$WB.income)
-edgar_GHG$WB.income <- factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
-rm(codes)
-
-chapters <- read.xlsx('Data/IPCC_master_categories_JM.xlsx',sheet='code_comparisons',cols = 1:6) %>% 
-  select(code,IPCC_AR5_chapter,IPCC_AR5_sector)
-
-edgar_GHG <- left_join(edgar_GHG,chapters,by=c("sector_code"="code"))
-
-
+# codes <- read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
+# edgar_GHG <- left_join(edgar_GHG,codes %>% select(Country,Code,WB.income),by=c("ISO"="Code"))
+# edgar_GHG$WB.income <- as.factor(edgar_GHG$WB.income)
+# edgar_GHG$WB.income <- factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
+# rm(codes)
+# 
+# chapters <- read.xlsx('Data/IPCC_master_categories_JM.xlsx',sheet='code_comparisons',cols = 1:6) %>% 
+#   select(code,IPCC_AR5_chapter,IPCC_AR5_sector)
+# 
+# edgar_GHG <- left_join(edgar_GHG,chapters,by=c("sector_code"="code"))
+# 
+# save(edgar_GHG,file='Data/edgar.RData')
 
 edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs) {
   
@@ -407,23 +482,11 @@ plot_list
 
 ######
 load('Data/edgar.RData')
-
-codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
-edgar_GHG <- left_join(edgar_GHG,codes %>% select(Country,Code,WB.income),by=c("ISO"="Code"))
-edgar_GHG$WB.income <- as.factor(edgar_GHG$WB.income)
-edgar_GHG$WB.income <- factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
-rm(codes)
-
-chapters <- openxlsx::read.xlsx('Data/IPCC_master_categories_JM.xlsx',sheet='code_comparisons',cols = 1:6) %>% 
-  select(code,IPCC_AR5_chapter,IPCC_AR5_sector)
-
-edgar_GHG <- left_join(edgar_GHG,chapters,by=c("sector_code"="code"))
-
 load('Data/basic.RData')
 
 edgar_GHG <- left_join(edgar_GHG,basic %>% select(ISO,pop_UN,Year,gdp_real_WB),by=c("ISO"="ISO","Year"="Year"))
 
-######
+######20
 region <- edgar_GHG %>% 
   filter(Year>1969 & Year<2018) %>% 
   #filter(!is.na(WB.income)) %>% 
