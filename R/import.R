@@ -17,9 +17,7 @@ library(tidyverse)
 
 ### EDGAR data
 
-rm(list = ls())
-library(xlsx)
-library(tidyverse)
+########### load sheets ########### 
 
 edgar_CO2 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
                                  sheet='CO2',startRow=10)
@@ -33,31 +31,38 @@ edgar_CH4 <- edgar_CH4[1:57]
 edgar_CH4 <- gather(edgar_CH4,Year,Value,'1970':'2017') %>% 
   select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,CH4 = Value)
 
-
 edgar_N2O <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
                                  sheet='N2O',startRow=10)
 edgar_N2O <- edgar_N2O[1:58]
 edgar_N2O <- gather(edgar_N2O,Year,Value,'1970':'2017') %>% 
   select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,N2O = Value)
 
-edgar_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
-                                 sheet='Fgas',startRow=10)
+edgar_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR GHG.xlsx',
+                                  sheet='Fgas2',rows=10:1717)
+
 edgar_Fgas <- edgar_Fgas[1:58]
-edgar_Fgas <- edgar_Fgas[1:1707,]
 edgar_Fgas <- gather(edgar_Fgas,Year,Value,'1970':'2017')%>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,Gas,Fgas = Value) %>% 
+  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,Gas,Fgas = Value) #%>% 
   mutate(Fgas = as.numeric(Fgas))
-### merge all Fgas into single indicator
+
+########### merge all Fgas into single indicator ########### 
 edgar_Fgas <- edgar_Fgas %>% 
   group_by(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description) %>% 
   summarise(Fgas=sum(Fgas))
+
+########### join sheets ########### 
 
 edgar_GHG <- full_join(edgar_CO2,edgar_CH4)
 edgar_GHG <- full_join(edgar_GHG,edgar_N2O)
 edgar_GHG <- full_join(edgar_GHG,edgar_Fgas)
 
+########### apply updated GWPs to CH4 and N2O ########### 
 
-#### calculate total GHG
+edgar_GHG <- edgar_GHG %>% 
+  mutate(CH4 = CH4 *28/25) %>% 
+  mutate(N2O = N2O *265/298)
+
+########### calculate total GHG ########### 
 edgar_GHG <- edgar_GHG %>% 
   group_by(ISO_A3,Year,IPCC.detailed) %>% 
   mutate(GHG = sum(CO2,CH4,N2O,Fgas,na.rm=T)) %>% 
@@ -66,7 +71,7 @@ edgar_GHG <- edgar_GHG %>%
 
 rm(edgar_CH4,edgar_CO2,edgar_Fgas,edgar_N2O)
 
-############# compile source categories
+########### compile source categories ########### 
 
 edgar_categories <- edgar_GHG %>% 
   filter(ISO_A3=="USA",Year==2017) %>% 
@@ -149,25 +154,14 @@ diss_list <- diss_list %>%
 write.xlsx(master_list,'Data/IPCC_master_categories.xlsx',sheetName='full_list',row.names = FALSE,append=T)
 write.xlsx(diss_list,'Data/IPCC_master_categories.xlsx',sheetName='split_list',row.names = FALSE,append=T)
 
-#### join categories to EDGAR
+########### join categories to EDGAR ########### 
 
 edgar_GHG <- left_join(edgar_GHG,diss_list %>% select(code,combined_category,category_1,category_2,category_3),by=c("IPCC.detailed"="code"))
 
 edgar_GHG <- edgar_GHG %>% 
   select(ISO=ISO_A3,sector_code=IPCC.detailed,category_final=combined_category,category_1,category_2,category_3,Year,everything(),-IPCC_detailed_description)
 
-#### calculate total sector emissions
-# totals <- gather(edgar_GHG,key,value,CO2:GHG)
-# totals <- totals %>% 
-#   group_by(ISO,Year,key) %>% 
-#   summarise(value=sum(value,na.rm=T)) %>% 
-#   mutate(sector_code="Total",category_final="Total",category_1="Total",category_2="Total",category_3="Total")
-# totals <- spread(totals,key,value) %>% 
-#   ungroup()
-# 
-# edgar_GHG <- rbind(edgar_GHG,totals)
-
-#### join WB.codes and categories developed by Jan
+########### join World Bank income classification and categories developed by Jan ########### 
 
 codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
 edgar_GHG <- left_join(edgar_GHG,codes %>% select(Country,Code,WB.income),by=c("ISO"="Code"))
@@ -180,7 +174,8 @@ chapters <- openxlsx::read.xlsx('Data/IPCC_master_categories_JM.xlsx',sheet='cod
 
 edgar_GHG <- left_join(edgar_GHG,chapters,by=c("sector_code"="code"))
 
-### allocate WB NAs to low income
+########### allocate World Bank NAs to low income ########### 
+
 edgar_GHG <- edgar_GHG %>% 
   mutate(WB.income = ifelse(is.na(WB.income),"Low income",as.character(WB.income))) %>% 
   mutate(WB.income = as.factor(WB.income))
