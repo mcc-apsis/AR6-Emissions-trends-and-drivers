@@ -5,10 +5,10 @@ library(tidyverse)
 
 ##### import data from matlab
 
-file.copy('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/MATLAB/Data shop/Aggregation/Basic data/basic.xls','Data/',overwrite=TRUE)
-
-basic<-read.xlsx('Data/basic.xls','data_full')
-save(basic,file='Data/basic.RData')
+# file.copy('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/MATLAB/Data shop/Aggregation/Basic data/basic.xls','Data/',overwrite=TRUE)
+# 
+# basic<-read.xlsx('Data/basic.xls','data_full')
+# save(basic,file='Data/basic.RData')
 
 # 
 # z<- read.delim('Data/labels_T.txt',sep = '\t',header = FALSE)
@@ -157,14 +157,33 @@ edgar_GHG <- edgar_GHG %>%
   select(ISO=ISO_A3,sector_code=IPCC.detailed,category_final=combined_category,category_1,category_2,category_3,Year,everything(),-IPCC_detailed_description)
 
 #### calculate total sector emissions
-totals <- gather(edgar_GHG,key,value,CO2:GHG)
-totals <- totals %>% 
-  group_by(ISO,Year,key) %>% 
-  summarise(value=sum(value,na.rm=T)) %>% 
-  mutate(sector_code="Total",category_final="Total",category_1="Total",category_2="Total",category_3="Total")
-totals <- spread(totals,key,value) %>% 
-  ungroup()
+# totals <- gather(edgar_GHG,key,value,CO2:GHG)
+# totals <- totals %>% 
+#   group_by(ISO,Year,key) %>% 
+#   summarise(value=sum(value,na.rm=T)) %>% 
+#   mutate(sector_code="Total",category_final="Total",category_1="Total",category_2="Total",category_3="Total")
+# totals <- spread(totals,key,value) %>% 
+#   ungroup()
+# 
+# edgar_GHG <- rbind(edgar_GHG,totals)
 
-edgar_GHG <- rbind(edgar_GHG,totals)
+#### join WB.codes and categories developed by Jan
+
+codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
+edgar_GHG <- left_join(edgar_GHG,codes %>% select(Country,Code,WB.income),by=c("ISO"="Code"))
+edgar_GHG$WB.income <- as.factor(edgar_GHG$WB.income)
+edgar_GHG$WB.income <- factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
+rm(codes)
+
+chapters <- openxlsx::read.xlsx('Data/IPCC_master_categories_JM.xlsx',sheet='code_comparisons',cols = 1:6) %>%
+  select(code,IPCC_AR5_chapter,IPCC_AR5_sector)
+
+edgar_GHG <- left_join(edgar_GHG,chapters,by=c("sector_code"="code"))
+
+### allocate WB NAs to low income
+edgar_GHG <- edgar_GHG %>% 
+  mutate(WB.income = ifelse(is.na(WB.income),"Low income",as.character(WB.income))) %>% 
+  mutate(WB.income = as.factor(WB.income))
+edgar_GHG$WB.income = factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
 
 save(edgar_GHG,file='Data/edgar.RData')
