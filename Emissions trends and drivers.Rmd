@@ -423,6 +423,9 @@ p4 <- region %>%
 #ggarrange(p1, p2, p3, p4, nrow=2,ncol=2)
 ggarrange(p3,p4,nrow=1,ncol=2)
 
+xlsx::write.xlsx(as.data.frame(region),file=paste("Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName = "per_capita_trends",append=T,row.names=FALSE)
+
+
 ```
 
 
