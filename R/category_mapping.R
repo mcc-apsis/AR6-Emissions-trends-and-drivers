@@ -30,8 +30,7 @@ edgar_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR GHG.xlsx',
 
 edgar_Fgas <- edgar_Fgas[1:58]
 edgar_Fgas <- gather(edgar_Fgas,Year,Value,'1970':'2017')%>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,Gas,Fgas = Value) #%>% 
-mutate(Fgas = as.numeric(Fgas))
+  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,Gas,Fgas = Value)
 
 ########### merge all Fgas into single indicator ########### 
 edgar_Fgas <- edgar_Fgas %>% 
@@ -50,8 +49,8 @@ rm(edgar_CO2,edgar_CH4,edgar_Fgas,edgar_N2O)
 ########### we use 3: the edgar database, IPCC AR5 and IPCC AR2 ########### 
 
 edgar_categories <- edgar_GHG %>% 
-  filter(ISO_A3=="USA",Year==2017) %>% 
-  select(code=IPCC.detailed,EDGAR_description=IPCC_detailed_description)
+  select(code=IPCC.detailed,EDGAR_description=IPCC_detailed_description) %>% 
+  distinct(code,.keep_all = TRUE)
 
 ipcc_ar2_categories <- read.xlsx('Data/IPCC_AR4_2_sector_mapping.xlsx',sheetName='1996') %>% 
   select(IPCC.1996.Code,IPCC.1996.Name) %>% 
@@ -67,12 +66,17 @@ ipcc_ar5_categories <- read.xlsx('Data/IPCC_AR5_sector_mapping.xlsx',sheetName='
 master_list <- full_join(ipcc_ar2_categories,edgar_categories,by=("code"="code"))
 master_list <- full_join(master_list,ipcc_ar5_categories,by=("code"="code"))
 
-z <- master_list %>% 
-  select(code,IPCC_AR2_description,EDGAR_description,IPCC_AR5_description,IPCC_AR5_sector,IPCC_AR5_chapter) %>% 
+### join the editable list with chapter allocations for AR6
+
+ipcc_ar6_chapters <- read.xlsx('Data/IPCC_categories_and_chapters_EDITABLE.xlsx',sheetName = 'code_comparisons') %>% 
+  select(code,IPCC_AR6_chapter)
+
+master_list <- full_join(master_list,ipcc_ar6_chapters,by=("code"="code")) %>% 
+  select(code,IPCC_AR6_chapter,everything()) %>% 
   arrange(code)
 
 file.remove('Results/IPCC_master_categories.xlsx')
-openxlsx::write.xlsx(z,'Results/IPCC_master_categories.xlsx',sheetName='code_comparisons',row.names = FALSE)
+openxlsx::write.xlsx(master_list %>% select(-source),'Results/IPCC_master_categories.xlsx',sheetName='code_comparisons',row.names = FALSE)
 
 master_list <- master_list %>% 
   mutate(category=ifelse(is.na(EDGAR_description),IPCC_AR2_description,EDGAR_description)) %>% 
@@ -80,7 +84,7 @@ master_list <- master_list %>%
   mutate(category=ifelse(is.na(category),IPCC_AR5_description,category)) %>% 
   mutate(source=ifelse(is.na(IPCC_AR2_description)&is.na(IPCC_AR5_description),"EDGAR_2018",source)) %>% 
   arrange(code) %>% 
-  select(code,IPCC_AR2_description,IPCC_AR5_description,EDGAR_description,combined_category=category,source)
+  select(code,IPCC_AR6_chapter,IPCC_AR2_description,IPCC_AR5_description,EDGAR_description,combined_category=category,source)
 
 diss_list <- master_list %>% 
   select(code,combined_category,source)
@@ -127,7 +131,11 @@ diss_list <- left_join(diss_list,category_6,by=c("handle_6"="code"))
 ipcc_categories <- diss_list %>% 
   select(-handle_1,-handle_2,-handle_3,-handle_4,-handle_5,-handle_6)
 
-write.xlsx(master_list,'Results/IPCC_master_categories.xlsx',sheetName='full_list',row.names = FALSE,append=T)
-write.xlsx(diss_list,'Results/IPCC_master_categories.xlsx',sheetName='split_list',row.names = FALSE,append=T)
+ipcc_categories <- left_join(ipcc_categories,master_list %>% select(code,IPCC_AR6_chapter),by=("code"="code")) %>%
+  select(code,IPCC_AR6_chapter,description=combined_category,description_source=source,everything()) %>% 
+  arrange(IPCC_AR6_chapter)
+
+write.xlsx(ipcc_categories,'Results/IPCC_master_categories.xlsx',sheetName='chapter_list',row.names = FALSE,append=T)
+
 
 save(ipcc_categories,file='Data/ipcc_categories.RData')

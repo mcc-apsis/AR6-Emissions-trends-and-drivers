@@ -42,8 +42,7 @@ edgar_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR GHG.xlsx',
 
 edgar_Fgas <- edgar_Fgas[1:58]
 edgar_Fgas <- gather(edgar_Fgas,Year,Value,'1970':'2017')%>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,Gas,Fgas = Value) #%>% 
-  mutate(Fgas = as.numeric(Fgas))
+  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,Gas,Fgas = Value)
 
 ########### merge all Fgas into single indicator ########### 
 edgar_Fgas <- edgar_Fgas %>% 
@@ -75,10 +74,10 @@ rm(edgar_CH4,edgar_CO2,edgar_Fgas,edgar_N2O)
 
 load('Data/ipcc_categories.RData')
 
-edgar_GHG <- left_join(edgar_GHG,ipcc_categories %>% select(code,combined_category,category_1,category_2,category_3),by=c("IPCC.detailed"="code"))
+edgar_GHG <- left_join(edgar_GHG,ipcc_categories %>% select(code,description,category_1,category_2,category_3,IPCC_AR6_chapter),by=c("IPCC.detailed"="code"))
 
 edgar_GHG <- edgar_GHG %>% 
-  select(ISO=ISO_A3,sector_code=IPCC.detailed,category_final=combined_category,category_1,category_2,category_3,Year,everything(),-IPCC_detailed_description)
+  select(ISO=ISO_A3,sector_code=IPCC.detailed,chapter=IPCC_AR6_chapter,description,category_1,category_2,category_3,Year,everything(),-IPCC_detailed_description)
 
 ########### join World Bank income classification and categories developed by Jan ########### 
 
@@ -87,11 +86,6 @@ edgar_GHG <- left_join(edgar_GHG,codes %>% select(Country,Code,WB.income),by=c("
 edgar_GHG$WB.income <- as.factor(edgar_GHG$WB.income)
 edgar_GHG$WB.income <- factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
 rm(codes)
-
-chapters <- openxlsx::read.xlsx('Results/IPCC_master_categories_and_chapters.xlsx',sheet='code_comparisons',cols = 1:6) %>%
-  select(code,IPCC_AR5_chapter,IPCC_AR5_sector)
-
-edgar_GHG <- left_join(edgar_GHG,chapters,by=c("sector_code"="code"))
 
 ########### allocate World Bank NAs to low income ########### 
 

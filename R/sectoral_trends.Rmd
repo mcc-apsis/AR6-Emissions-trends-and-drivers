@@ -1,12 +1,30 @@
 ---
 title: "Emissions trends and drivers: sectoral trends"
 author: "William F. Lamb, Jan C. Minx"
-output: word_document
-date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
+output: 
+  word_document:
+    toc: yes
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
 ---
+# Summary
+This document provides an overview and breakdown of emissions trends by IPCC chapter. We have compiled a consistent allocation of emissions categories to sectors using the EDGAR emissions database. We propose to use this allocation and the following figures across the main sectoral chapters (#6 Energy systems, #7 AFOLU, #9 Buildings, #10 Transport, #11 Industry).
 
+The following supporting information is available online: 
+- our code in R
+- the sector categorisations
+- the figure files
+- the data files for each figure (the full EDGAR database must remain private)
+- this document and any updates
+Please find these at: https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers
+
+Latest update: `r format(Sys.time(), '%d %B, %Y, %H:%M')`
+
+**Author information**
+
+William F. Lamb - Mercator Research Institute on Global Commons and Climate Change (MCC); School of Earth and Environment, University of Leeds; Contributing Author in Chapter 2 of the Working Group III Report (Emissions Trends and Drivers); lamb@mcc-berlin.net
+
+Jan C. Minx - Mercator Research Institute on Global Commons and Climate Change (MCC); School of Earth and Environment, University of Leeds; Lead Author in Chapter 2 of the Working Group III Report (Emissions Trends and Drivers); minx@mcc-berlin.net
 
 
 ```{r setup, include=FALSE}
@@ -19,13 +37,35 @@ library(xlsx)
 
 ```
 
+# Classification of emissions sources
+
+```{r classification, echo=FALSE, warning=FALSE}
+
+load('../Data/ipcc_categories.RData')
+load('../Data/edgar.RData')
+library(flextable)
+
+categories <- ipcc_categories %>% 
+  select(Code=code,Chapter=IPCC_AR6_chapter,Description=description,Cat1=category_1,Cat2=category_2,Cat3=category_3)
+categories$Chapter <- as.factor(categories$Chapter)
+
+myft <- flextable(categories,col_keys=names(categories))
+myft
+
+```
+
+
+
+
+
 ```{r edgar_prep,include=FALSE}
 
-sector=7
+sector=8
 gas="GHG"
 time_start=2010
-category="IPCC_AR5_chapter"
+category="chapter"
 rate_or_abs="rate"
+
 
 library(openxlsx)
 
@@ -37,9 +77,9 @@ edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs) {
   
   ##############  calculate growth rates in given time period ############## 
   
-  sector_code <- edgar_GHG %>%
-    filter_at(vars(category),all_vars(.==sector))
-  sector_code <- substr(sector_code$sector_code[[1]],1,as.numeric(str_sub(category,-1)))
+  #sector_code <- edgar_GHG %>%
+  #  filter_at(vars(category),all_vars(.==sector))
+  #sector_code <- substr(sector_code$sector_code[[1]],1,as.numeric(str_sub(category,-1)))
   
   rates <- edgar_GHG %>% 
     filter_at(vars(category),all_vars(.==sector)) %>% 
@@ -173,7 +213,7 @@ edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs) {
 
 ```
 
-### Total sector trends & rates of change
+# Total sector trends & rates of change
 
 
 ```{r total_sector_trends,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
@@ -197,7 +237,7 @@ p <- edgar_emissions_plot(2010,"sector_code","Total","GHG",'rate')
 p$plot
 rm(edgar_GHG)
 
-write.xlsx(p$data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName="Total_GHGs_2010",append=TRUE)
+#write.xlsx(p$data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName="Total_GHGs_2010",append=TRUE)
 
 
 ```
@@ -214,28 +254,35 @@ c=1
 data = data.frame()
 plot_list = list()
 time_start = 2010
-category = 'IPCC_AR5_chapter'
+category = 'chapter'
 gas = 'GHG'
 
-for (i in 7:11) {
+for (i in 6:7) {
   
   p <- edgar_emissions_plot(time_start,category,i,gas,'rate')
-  
   plot_list[[c]] <- p$plot
   
-  if (c==1) {
-    data <- p$data %>% 
-      mutate(run=paste(category,i,gas,time_start,sep="_"))
-  } else {
-    data <- rbind(data,p$data %>% mutate(run=paste(category,i,gas,time_start,sep="_")))
-  }
+  #if (c==1) {
+  #  data <- p$data %>% 
+  #    mutate(run=paste(category,i,gas,time_start,sep="_"))
+  #} else {
+  #  data <- rbind(data,p$data %>% mutate(run=paste(category,i,gas,time_start,sep="_")))
+  #}
   
   c=c+1
   
 }
+for (i in 9:11) {
+  
+  p <- edgar_emissions_plot(time_start,category,i,gas,'rate')
+  plot_list[[c]] <- p$plot
+  c=c+1
+  
+}
+
 plot_list
 
-write.xlsx(data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName=paste(category,gas,time_start,sep="_"),append=TRUE)
+#write.xlsx(data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName=paste(category,gas,time_start,sep="_"),append=TRUE)
 
 
 ```
@@ -246,31 +293,31 @@ write.xlsx(data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Da
 ```{r edgar_plots_abs,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 ########### absolute growth: sectors 7-11
-c=1
-data = data.frame()
-plot_list = list()
-time_start = 2010
-category = 'IPCC_AR5_chapter'
-gas = 'GHG'
-
-for (i in 7:11) {
-  
-  p <- edgar_emissions_plot(time_start,category,i,gas,'abs_growth')
-  
-  plot_list[[c]] <- p$plot
-  
-  if (c==1) {
-    data <- p$data %>% 
-      mutate(run=paste(category,i,gas,time_start,sep="_"))
-  } else {
-    data <- rbind(data,p$data %>% mutate(run=paste(category,i,gas,time_start,sep="_")))
-  }
-  
-  c=c+1
-  
-}
-plot_list
-
+# c=1
+# data = data.frame()
+# plot_list = list()
+# time_start = 2010
+# category = 'chapter'
+# gas = 'GHG'
+# 
+# for (i in 7:11) {
+#   
+#   p <- edgar_emissions_plot(time_start,category,i,gas,'abs_growth')
+#   
+#   plot_list[[c]] <- p$plot
+#   
+#   if (c==1) {
+#     data <- p$data %>% 
+#       mutate(run=paste(category,i,gas,time_start,sep="_"))
+#   } else {
+#     data <- rbind(data,p$data %>% mutate(run=paste(category,i,gas,time_start,sep="_")))
+#   }
+#   
+#   c=c+1
+#   
+# }
+# plot_list
+# 
 
 
 ```
