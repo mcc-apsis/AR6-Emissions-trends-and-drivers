@@ -18,6 +18,85 @@ write.xlsx(z,'Results/IPCC_master_categories.xlsx',sheetName='code_comparisons',
 
 
 
+### Regional trends & rates of change by IPCC sector
+
+
+```{r edgar_plots_rates,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+
+########### rates of change: sectors 7-11
+load('../Data/edgar.RData')
+c=1
+data = data.frame()
+plot_list = list()
+time_start = 2010
+category = 'chapter'
+gas = 'GHG'
+
+for (i in 6:7) {
+  
+  p <- edgar_emissions_plot(time_start,category,i,gas,'rate')
+  plot_list[[c]] <- p$plot
+  
+  #if (c==1) {
+  #  data <- p$data %>% 
+  #    mutate(run=paste(category,i,gas,time_start,sep="_"))
+  #} else {
+  #  data <- rbind(data,p$data %>% mutate(run=paste(category,i,gas,time_start,sep="_")))
+  #}
+  
+  c=c+1
+  
+}
+# for (i in 9:11) {
+#   
+#   p <- edgar_emissions_plot(time_start,category,i,gas,'rate')
+#   plot_list[[c]] <- p$plot
+#   c=c+1
+#   
+# }
+
+plot_list
+
+#write.xlsx(data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName=paste(category,gas,time_start,sep="_"),append=TRUE)
+
+
+```
+
+
+
+```{r edgar_plots_abs,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+########### absolute growth: sectors 7-11
+# c=1
+# data = data.frame()
+# plot_list = list()
+# time_start = 2010
+# category = 'chapter'
+# gas = 'GHG'
+# 
+# for (i in 7:11) {
+#   
+#   p <- edgar_emissions_plot(time_start,category,i,gas,'abs_growth')
+#   
+#   plot_list[[c]] <- p$plot
+#   
+#   if (c==1) {
+#     data <- p$data %>% 
+#       mutate(run=paste(category,i,gas,time_start,sep="_"))
+#   } else {
+#     data <- rbind(data,p$data %>% mutate(run=paste(category,i,gas,time_start,sep="_")))
+#   }
+#   
+#   c=c+1
+#   
+# }
+# plot_list
+# 
+
+
+```
+
 
 
 

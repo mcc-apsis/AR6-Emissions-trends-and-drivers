@@ -137,5 +137,4 @@ ipcc_categories <- left_join(ipcc_categories,master_list %>% select(code,IPCC_AR
 
 write.xlsx(ipcc_categories,'Results/IPCC_master_categories.xlsx',sheetName='chapter_list',row.names = FALSE,append=T)
 
-
 save(ipcc_categories,file='Data/ipcc_categories.RData')

@@ -8,14 +8,16 @@ knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
 ---
 # Summary
-This document provides an overview and breakdown of emissions trends by IPCC chapter. We have compiled a consistent allocation of emissions categories to sectors using the EDGAR emissions database. We propose to use this allocation and the following figures across the main sectoral chapters (#6 Energy systems, #7 AFOLU, #9 Buildings, #10 Transport, #11 Industry).
+This document provides an overview and breakdown of emissions trends by IPCC chapter. We have compiled a consistent allocation of emissions categories to sectors using the EDGAR emissions database. We propose to use this allocation and the following figures across the main sectoral chapters of AR6.
 
 The following supporting information is available online: 
-- our code in R
-- the sector categorisations
-- the figure files
-- the data files for each figure (the full EDGAR database must remain private)
-- this document and any updates
+
+* our code in R
+* the sector categorisations
+* the figure files
+* the data files for each figure
+* this document and any updates
+
 Please find these at: https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers
 
 Latest update: `r format(Sys.time(), '%d %B, %Y, %H:%M')`
@@ -34,28 +36,9 @@ library(tidyverse)
 library(ggpubr)
 library(gganimate)
 library(xlsx)
-
-```
-
-# Classification of emissions sources
-
-```{r classification, echo=FALSE, warning=FALSE}
-
-load('../Data/ipcc_categories.RData')
-load('../Data/edgar.RData')
 library(flextable)
 
-categories <- ipcc_categories %>% 
-  select(Code=code,Chapter=IPCC_AR6_chapter,Description=description,Cat1=category_1,Cat2=category_2,Cat3=category_3)
-categories$Chapter <- as.factor(categories$Chapter)
-
-myft <- flextable(categories,col_keys=names(categories))
-myft
-
 ```
-
-
-
 
 
 ```{r edgar_prep,include=FALSE}
@@ -73,7 +56,7 @@ library(openxlsx)
 
 load('../Data/edgar.RData')
 
-edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs) {
+edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs,title) {
   
   ##############  calculate growth rates in given time period ############## 
   
@@ -189,7 +172,7 @@ edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs) {
           legend.title=element_blank(),
           axis.title.x = element_blank()) +
     ylab(paste(gas,"Emissions, Gg CO2eq")) +
-    ggtitle(paste("IPCC Sector ",sector,", ",gas," Emissions",sep=""))
+    ggtitle(title)
   
   
   ############## plot absolute values ############## 
@@ -213,16 +196,29 @@ edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs) {
 
 ```
 
-# Total sector trends & rates of change
+``` {r make_table, include=FALSE}
 
+make_table <- function(data) {
+  
+  ft <- flextable(data,col_keys=names(data))
+  ft <- autofit(ft)
+  ft <- fontsize(ft, size = 8,part="all")
+  ft <- height_all(ft,0.1)
+  ft <- width(ft,j=3,width=5)
+  ft <- align(ft,align="left",part="all")
+  
+  return(ft)
+}
+
+
+```
+
+
+# 1. All sectors
 
 ```{r total_sector_trends,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
-########### total sector emissions
-
-
-
-########### create totals
+########### create totals ###########
 load('../Data/edgar.RData')
 totals <- edgar_GHG %>% 
   group_by(ISO,Year,WB.income,Country) %>% 
@@ -233,8 +229,16 @@ totals <- edgar_GHG %>%
 edgar_GHG <- edgar_GHG %>% 
   bind_rows(totals)
 
-p <- edgar_emissions_plot(2010,"sector_code","Total","GHG",'rate')
+########### prepare plot ###########
+p <- edgar_emissions_plot(2010,"sector_code","Total","GHG",'rate',"All sectors, GHG Emissions")
 p$plot
+
+########### calc overall trend ###########
+
+trend <- edgar_GHG %>% 
+  group_by(Year) %>% 
+  summarise(total=sum(GHG))
+
 rm(edgar_GHG)
 
 #write.xlsx(p$data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName="Total_GHGs_2010",append=TRUE)
@@ -242,82 +246,115 @@ rm(edgar_GHG)
 
 ```
 
-### Regional trends & rates of change by IPCC sector
+# 2. Energy systems (Ch.6)
 
+```{r energy_systems,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
-```{r edgar_plots_rates,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
-
-
-########### rates of change: sectors 7-11
 load('../Data/edgar.RData')
-c=1
-data = data.frame()
-plot_list = list()
-time_start = 2010
-category = 'chapter'
-gas = 'GHG'
 
-for (i in 6:7) {
-  
-  p <- edgar_emissions_plot(time_start,category,i,gas,'rate')
-  plot_list[[c]] <- p$plot
-  
-  #if (c==1) {
-  #  data <- p$data %>% 
-  #    mutate(run=paste(category,i,gas,time_start,sep="_"))
-  #} else {
-  #  data <- rbind(data,p$data %>% mutate(run=paste(category,i,gas,time_start,sep="_")))
-  #}
-  
-  c=c+1
-  
-}
-for (i in 9:11) {
-  
-  p <- edgar_emissions_plot(time_start,category,i,gas,'rate')
-  plot_list[[c]] <- p$plot
-  c=c+1
-  
-}
+## plot
+p <- edgar_emissions_plot(2010,'chapter',6,'GHG','rate','Energy systems, GHG Emissions')
+p$plot
 
-plot_list
+
+categories <- edgar_GHG %>% 
+  select(chapter,sector_code,description) %>% 
+  distinct(.keep_all = TRUE) %>% 
+  filter(chapter==6)
+categories$chapter <- as.factor(categories$chapter)
+
+table <- make_table(categories)
+table
+
+```
+
+# 2. AFOLU (Ch.7)
+
+```{r AFOLU,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+load('../Data/edgar.RData')
+
+## plot
+p <- edgar_emissions_plot(2010,'chapter',7,'GHG','rate','AFOLU, GHG Emissions')
+p$plot
+
+
+categories <- edgar_GHG %>% 
+  select(chapter,sector_code,description) %>% 
+  distinct(.keep_all = TRUE) %>% 
+  filter(chapter==7)
+categories$chapter <- as.factor(categories$chapter)
+
+table <- make_table(categories)
+table
 
 #write.xlsx(data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName=paste(category,gas,time_start,sep="_"),append=TRUE)
 
 
 ```
 
-### Regional trends & absolute change by IPCC sector
+# 4. Buildings (Ch.9)
+
+```{r buildings,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+load('../Data/edgar.RData')
+
+## plot
+p <- edgar_emissions_plot(2010,'chapter',9,'GHG','rate','AFOLU, GHG Emissions')
+p$plot
 
 
-```{r edgar_plots_abs,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+categories <- edgar_GHG %>% 
+  select(chapter,sector_code,description) %>% 
+  distinct(.keep_all = TRUE) %>% 
+  filter(chapter==9)
+categories$chapter <- as.factor(categories$chapter)
 
-########### absolute growth: sectors 7-11
-# c=1
-# data = data.frame()
-# plot_list = list()
-# time_start = 2010
-# category = 'chapter'
-# gas = 'GHG'
-# 
-# for (i in 7:11) {
-#   
-#   p <- edgar_emissions_plot(time_start,category,i,gas,'abs_growth')
-#   
-#   plot_list[[c]] <- p$plot
-#   
-#   if (c==1) {
-#     data <- p$data %>% 
-#       mutate(run=paste(category,i,gas,time_start,sep="_"))
-#   } else {
-#     data <- rbind(data,p$data %>% mutate(run=paste(category,i,gas,time_start,sep="_")))
-#   }
-#   
-#   c=c+1
-#   
-# }
-# plot_list
-# 
+table <- make_table(categories)
+table
 
+```
+
+# 5. Transport (Ch.10)
+
+```{r transport,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+load('../Data/edgar.RData')
+
+## plot
+p <- edgar_emissions_plot(2010,'chapter',10,'GHG','rate','AFOLU, GHG Emissions')
+p$plot
+
+
+categories <- edgar_GHG %>% 
+  select(chapter,sector_code,description) %>% 
+  distinct(.keep_all = TRUE) %>% 
+  filter(chapter==10)
+categories$chapter <- as.factor(categories$chapter)
+
+table <- make_table(categories)
+table
+
+```
+
+# 6. Industry (Ch.11)
+
+```{r industry,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+load('../Data/edgar.RData')
+
+## plot
+p <- edgar_emissions_plot(2010,'chapter',11,'GHG','rate','AFOLU, GHG Emissions')
+p$plot
+
+
+categories <- edgar_GHG %>% 
+  select(chapter,sector_code,description) %>% 
+  distinct(.keep_all = TRUE) %>% 
+  filter(chapter==11)
+categories$chapter <- as.factor(categories$chapter)
+
+table <- make_table(categories)
+table
 
 ```
