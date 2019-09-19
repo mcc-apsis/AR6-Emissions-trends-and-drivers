@@ -1,5 +1,6 @@
 ---
-title: "Emissions trends and drivers"
+title: "Emissions trends and drivers: overview"
+author: "William F. Lamb"
 output: html_document
 ---
 

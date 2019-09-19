@@ -1,8 +1,12 @@
 ---
-title: "Sector rates and trends"
-author: "William F. Lamb"
-output: html_document
+title: "Emissions trends and drivers: sectoral trends"
+author: "William F. Lamb, Jan C. Minx"
+output: word_document
+date: "`r format(Sys.time(), '%d %B, %Y, %H:%M')`"
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
 ---
+
 
 
 ```{r setup, include=FALSE}
@@ -27,7 +31,7 @@ library(openxlsx)
 
 ######### load edgar data ######### 
 
-load('Data/edgar.RData')
+load('../Data/edgar.RData')
 
 edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs) {
   
@@ -172,14 +176,14 @@ edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs) {
 ### Total sector trends & rates of change
 
 
-```{r total_sector_trends,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="Plots/",dev=c('png','pdf')}
+```{r total_sector_trends,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 ########### total sector emissions
 
 
 
 ########### create totals
-load('Data/edgar.RData')
+load('../Data/edgar.RData')
 totals <- edgar_GHG %>% 
   group_by(ISO,Year,WB.income,Country) %>% 
   summarise(CO2=sum(CO2,rm.na=T),CH4=sum(CH4,rm.na=T),N2O=sum(N2O,rm.na=T),Fgas=sum(Fgas,rm.na=T),GHG=sum(GHG,rm.na=T)) %>% 
@@ -193,7 +197,7 @@ p <- edgar_emissions_plot(2010,"sector_code","Total","GHG",'rate')
 p$plot
 rm(edgar_GHG)
 
-write.xlsx(p$data %>% select(-Year),file=paste("Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName="Total_GHGs_2010",append=TRUE)
+write.xlsx(p$data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName="Total_GHGs_2010",append=TRUE)
 
 
 ```
@@ -201,11 +205,11 @@ write.xlsx(p$data %>% select(-Year),file=paste("Results/IPCC_plot_data_",Sys.Dat
 ### Regional trends & rates of change by IPCC sector
 
 
-```{r edgar_plots_rates,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="Plots/",dev=c('png','pdf')}
+```{r edgar_plots_rates,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 
 ########### rates of change: sectors 7-11
-load('Data/edgar.RData')
+load('../Data/edgar.RData')
 c=1
 data = data.frame()
 plot_list = list()
@@ -231,7 +235,7 @@ for (i in 7:11) {
 }
 plot_list
 
-write.xlsx(data %>% select(-Year),file=paste("Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName=paste(category,gas,time_start,sep="_"),append=TRUE)
+write.xlsx(data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName=paste(category,gas,time_start,sep="_"),append=TRUE)
 
 
 ```
@@ -239,7 +243,7 @@ write.xlsx(data %>% select(-Year),file=paste("Results/IPCC_plot_data_",Sys.Date(
 ### Regional trends & absolute change by IPCC sector
 
 
-```{r edgar_plots_abs,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="Plots/",dev=c('png','pdf')}
+```{r edgar_plots_abs,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 ########### absolute growth: sectors 7-11
 c=1
