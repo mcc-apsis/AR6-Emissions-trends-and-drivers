@@ -3,3 +3,8 @@
 .RData
 .Ruserdata
 Data/
+Writing/
+.csync_journal.db
+.csync_journal.db-shm
+.csync_journal.db-wal
+.owncloudsync.log
