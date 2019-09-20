@@ -37,32 +37,60 @@ library(ggpubr)
 library(gganimate)
 library(xlsx)
 library(flextable)
+library(openxlsx)
+
+
+```
+
+``` {r trend_figure,include=FALSE}
+
+trend_figure <- function(time_start,category,sector,gas) {
+  
+  data <- edgar_GHG %>%
+    filter_at(vars(category),all_vars(.==sector)) %>% 
+    filter(!is.na(WB.income)) %>% 
+    filter(Country!="World") %>% 
+    filter(Year>1979 & Year<2018) %>% 
+    #filter(cutoff==0) %>% 
+    group_by(WB.income,Year) %>% 
+    summarise_at(gas,sum,na.rm=TRUE) %>% 
+    rename_at(gas,funs(sprintf('value')))
+  
+  rect <- data.frame(xmin=time_start, xmax=2017, ymin=-Inf, ymax=Inf)
+  
+  p <- data %>%
+    ggplot(.,aes(x=Year,y=value/1e6,fill=WB.income)) +
+    geom_area() +
+    geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
+              fill="grey20",
+              alpha=0.35,
+              inherit.aes = FALSE) +
+    theme_bw() +
+    theme(legend.position='bottom',
+          legend.title=element_blank(),
+          axis.title.x = element_blank()) +
+    ylab(bquote(.(gas) ~" Emissions (Gt" ~CO[2]* "eq)"))
+
+  return(list("plot"=p,"data"=data))
+  
+}
+
+
 
 ```
 
 
-```{r edgar_prep,include=FALSE}
 
-sector=8
+```{r decomp_figure,include=FALSE}
+
+sector=6
 gas="GHG"
 time_start=2010
 category="chapter"
-rate_or_abs="rate"
 
-
-library(openxlsx)
-
-######### load edgar data ######### 
-
-load('../Data/edgar.RData')
-
-edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs,title) {
+decomp_figure <- function(time_start,category,sector,gas) {
   
   ##############  calculate growth rates in given time period ############## 
-  
-  #sector_code <- edgar_GHG %>%
-  #  filter_at(vars(category),all_vars(.==sector))
-  #sector_code <- substr(sector_code$sector_code[[1]],1,as.numeric(str_sub(category,-1)))
   
   rates <- edgar_GHG %>% 
     filter_at(vars(category),all_vars(.==sector)) %>% 
@@ -133,64 +161,35 @@ edgar_emissions_plot <- function(time_start,category,sector,gas,rate_or_abs,titl
   
   ### join and plot
   rates <- rbind(rates %>% filter(cutoff==1) %>% select(-cutoff),blarg)
+  rates <- gather(rates %>% mutate(rate=rate*100),var,value,rate:abs_growth)
   
-    rates <- gather(rates %>% mutate(rate=rate*100),var,value,rate:abs_growth)
   
-  p2 <- rates %>% 
-    filter(var==rate_or_abs) %>% 
+  #rate
+  p1 <- rates %>% 
+    filter(var=="rate") %>% 
     ggplot(.,aes(x = reorder(Country,value),y = value, fill=WB.income)) +
     geom_bar(stat='identity') + 
-    ylab(paste(ifelse(rate_or_abs=="rate","Rate of","Absolute")," change in ",gas," emissions (Sector ",sector,") ",time_start,"-2017\n (Countries responsible for 80% of sector emissions are shown)",sep="")) +
+    ylab(bquote(atop("Rate of change in" ~.(gas) ~ " Emissions","(Gt" ~CO[2]* "eq),"~.(time_start)*"-2017"))) +
+    #ylab(paste("Rate of change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
+    coord_flip() +
+    theme_bw() +
+    theme(legend.position="none",
+          axis.title.y = element_blank()) 
+  
+  
+  #absolute
+  p2 <- rates %>% 
+    filter(var=="abs_growth") %>% 
+    ggplot(.,aes(x = reorder(Country,value),y = value/1e6, fill=WB.income)) +
+    geom_bar(stat='identity') + 
+    ylab(bquote(atop("Absolute change in" ~.(gas) ~ " Emissions","(Gt" ~CO[2]* "eq),"~.(time_start)*"-2017"))) +
+    #ylab(paste("Absolute change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
     coord_flip() +
     theme_bw() +
     theme(legend.position="none",
           axis.title.y = element_blank()) 
 
-  regions <- left_join(edgar_GHG,country_list,by=c("Country"="Country")) %>%
-    filter_at(vars(category),all_vars(.==sector)) %>% 
-    filter(!is.na(WB.income)) %>% 
-    filter(Country!="World") %>% 
-    filter(Year>1979 & Year<2018) %>% 
-    filter(cutoff==0) %>% 
-    group_by(WB.income,Year) %>% 
-    summarise_at(gas,sum,na.rm=TRUE) %>% 
-    mutate(Country=paste(WB.income,"(rest)")) %>% 
-    ungroup() %>% 
-    rename_at(gas,funs(sprintf('value')))
-  
-  rect <- data.frame(xmin=time_start, xmax=2017, ymin=-Inf, ymax=Inf)
-  
-  p1 <-regions %>%
-    ggplot(.,aes(x=Year,y=value,fill=WB.income)) +
-    geom_area() +
-    geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
-              fill="grey20",
-              alpha=0.35,
-              inherit.aes = FALSE) +
-    theme_bw() +
-    theme(legend.position='bottom',
-          legend.title=element_blank(),
-          axis.title.x = element_blank()) +
-    ylab(paste(gas,"Emissions, Gg CO2eq")) +
-    ggtitle(title)
-  
-  
-  ############## plot absolute values ############## 
-  
-  countries <- left_join(edgar_GHG,country_list,by=c("Country"="Country")) %>%
-    filter_at(vars(category),all_vars(.==sector)) %>% 
-    filter(!is.na(WB.income)) %>% 
-    filter(Country!="World") %>% 
-    filter(Year>1979 & Year<2018) %>% 
-    filter(cutoff==1) %>% 
-    group_by(Country,Year,WB.income) %>% 
-    summarise_at(gas,sum,na.rm=TRUE) %>% 
-    ungroup() %>% 
-    rename_at(gas,funs(sprintf('value')))
-  
-  
-  p4 <- ggarrange(p1,p2,ncol=1,nrow=2)
-  return(list("plot"=p4,"data"=rates))
+  return(list("rate_plot"=p1,"abs_plot"=p2,"data"=rates))
 }
 
 
@@ -229,15 +228,20 @@ totals <- edgar_GHG %>%
 edgar_GHG <- edgar_GHG %>% 
   bind_rows(totals)
 
-########### prepare plot ###########
-p <- edgar_emissions_plot(2010,"sector_code","Total","GHG",'rate',"All sectors, GHG Emissions")
-p$plot
+########### Trend figure ###########
 
-########### calc overall trend ###########
+trend <- trend_figure(2010,"sector_code","Total","GHG")
+p1 <- trend$plot
+p1 <- p1 + ggtitle("All sectors, GHG Emissions")
+d1 <- trend$data
 
-trend <- edgar_GHG %>% 
-  group_by(Year) %>% 
-  summarise(total=sum(GHG))
+########### Decomposition figure ###########
+
+decomp <- decomp_figure(2010,'sector_code','Total','GHG')
+p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+
+plot <- ggarrange(p1,p2,ncol=1,nrow=2)
+plot
 
 rm(edgar_GHG)
 
@@ -252,15 +256,28 @@ rm(edgar_GHG)
 
 load('../Data/edgar.RData')
 
-## plot
-p <- edgar_emissions_plot(2010,'chapter',6,'GHG','rate','Energy systems, GHG Emissions')
-p$plot
+########### Trend figure ###########
 
+ch = 6
 
+trend <- trend_figure(2010,'chapter',ch,'GHG')
+p1 <- trend$plot
+p1 <- p1 + ggtitle("Energy systems, GHG Emissions")
+d1 <- trend$data
+
+########### Decomposition figure ###########
+
+decomp <- decomp_figure(2010,'chapter',ch,'GHG')
+p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+
+plot <- ggarrange(p1,p2,ncol=1,nrow=2)
+plot
+
+###### document emissions categories #####
 categories <- edgar_GHG %>% 
   select(chapter,sector_code,description) %>% 
   distinct(.keep_all = TRUE) %>% 
-  filter(chapter==6)
+  filter(chapter==ch)
 categories$chapter <- as.factor(categories$chapter)
 
 table <- make_table(categories)
@@ -274,22 +291,32 @@ table
 
 load('../Data/edgar.RData')
 
-## plot
-p <- edgar_emissions_plot(2010,'chapter',7,'GHG','rate','AFOLU, GHG Emissions')
-p$plot
+########### Trend figure ###########
 
+ch = 7
 
+trend <- trend_figure(2010,'chapter',ch,'GHG')
+p1 <- trend$plot
+p1 <- p1 + ggtitle("AFOLU, GHG Emissions")
+d1 <- trend$data
+
+########### Decomposition figure ###########
+
+decomp <- decomp_figure(2010,'chapter',ch,'GHG')
+p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+
+plot <- ggarrange(p1,p2,ncol=1,nrow=2)
+plot
+
+###### document emissions categories #####
 categories <- edgar_GHG %>% 
   select(chapter,sector_code,description) %>% 
   distinct(.keep_all = TRUE) %>% 
-  filter(chapter==7)
+  filter(chapter==ch)
 categories$chapter <- as.factor(categories$chapter)
 
 table <- make_table(categories)
 table
-
-#write.xlsx(data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName=paste(category,gas,time_start,sep="_"),append=TRUE)
-
 
 ```
 
@@ -297,17 +324,31 @@ table
 
 ```{r buildings,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
+
 load('../Data/edgar.RData')
 
-## plot
-p <- edgar_emissions_plot(2010,'chapter',9,'GHG','rate','AFOLU, GHG Emissions')
-p$plot
+########### Trend figure ###########
 
+ch = 9
 
+trend <- trend_figure(2010,'chapter',ch,'GHG')
+p1 <- trend$plot
+p1 <- p1 + ggtitle("Buildings, GHG Emissions")
+d1 <- trend$data
+
+########### Decomposition figure ###########
+
+decomp <- decomp_figure(2010,'chapter',ch,'GHG')
+p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+
+plot <- ggarrange(p1,p2,ncol=1,nrow=2)
+plot
+
+###### document emissions categories #####
 categories <- edgar_GHG %>% 
   select(chapter,sector_code,description) %>% 
   distinct(.keep_all = TRUE) %>% 
-  filter(chapter==9)
+  filter(chapter==ch)
 categories$chapter <- as.factor(categories$chapter)
 
 table <- make_table(categories)
@@ -319,17 +360,31 @@ table
 
 ```{r transport,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
+
 load('../Data/edgar.RData')
 
-## plot
-p <- edgar_emissions_plot(2010,'chapter',10,'GHG','rate','AFOLU, GHG Emissions')
-p$plot
+########### Trend figure ###########
 
+ch = 10
 
+trend <- trend_figure(2010,'chapter',ch,'GHG')
+p1 <- trend$plot
+p1 <- p1 + ggtitle("Transport, GHG Emissions")
+d1 <- trend$data
+
+########### Decomposition figure ###########
+
+decomp <- decomp_figure(2010,'chapter',ch,'GHG')
+p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+
+plot <- ggarrange(p1,p2,ncol=1,nrow=2)
+plot
+
+###### document emissions categories #####
 categories <- edgar_GHG %>% 
   select(chapter,sector_code,description) %>% 
   distinct(.keep_all = TRUE) %>% 
-  filter(chapter==10)
+  filter(chapter==ch)
 categories$chapter <- as.factor(categories$chapter)
 
 table <- make_table(categories)
@@ -341,17 +396,31 @@ table
 
 ```{r industry,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
+
 load('../Data/edgar.RData')
 
-## plot
-p <- edgar_emissions_plot(2010,'chapter',11,'GHG','rate','AFOLU, GHG Emissions')
-p$plot
+########### Trend figure ###########
 
+ch = 11
 
+trend <- trend_figure(2010,'chapter',ch,'GHG')
+p1 <- trend$plot
+p1 <- p1 + ggtitle("Industry, GHG Emissions")
+d1 <- trend$data
+
+########### Decomposition figure ###########
+
+decomp <- decomp_figure(2010,'chapter',ch,'GHG')
+p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+
+plot <- ggarrange(p1,p2,ncol=1,nrow=2)
+plot
+
+###### document emissions categories #####
 categories <- edgar_GHG %>% 
   select(chapter,sector_code,description) %>% 
   distinct(.keep_all = TRUE) %>% 
-  filter(chapter==11)
+  filter(chapter==ch)
 categories$chapter <- as.factor(categories$chapter)
 
 table <- make_table(categories)
