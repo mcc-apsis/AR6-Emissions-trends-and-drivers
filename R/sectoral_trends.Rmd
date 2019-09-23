@@ -66,12 +66,14 @@ trend_figure <- function(time_start,category,sector,gas) {
     #          alpha=0.35,
     #          inherit.aes = FALSE) +
     theme_bw() +
+    ggtitle("B. Sector trend and income classification") +
     theme(legend.justification=c(0,1), 
           legend.position=c(0.05, 0.97),
           legend.title=element_blank(),
           legend.background = element_blank(),
           legend.spacing.x = unit(0.2,'cm'),
-          axis.title.x = element_blank()) +
+          axis.title.x = element_blank(),
+          plot.title = element_text(size = 12)) +
     ylab(bquote(.(gas) ~" Emissions (Gt" ~CO[2]* "eq)"))
 
   return(list("plot"=p,"data"=data))
@@ -187,7 +189,8 @@ decomp_figure <- function(time_start,category,sector,gas) {
     coord_flip() +
     theme_bw() +
     theme(legend.position="none",
-          axis.title.y = element_blank()) 
+          axis.title.y = element_blank(),
+          plot.title = element_text(size = 12)) 
   
   
   #absolute
@@ -245,7 +248,7 @@ bar_figure <- function(category,sector,gas) {
   
   data <- data %>% 
     mutate(fraction=round(GHG/total*100)) %>% 
-    mutate(alpha=if_else(chapter==ch,TRUE,FALSE))
+    mutate(alpha=if_else(chapter==sector,TRUE,FALSE))
   
   data <- data %>% 
     mutate(title=if_else(chapter==6,"Energy","title")) %>% 
@@ -262,13 +265,17 @@ bar_figure <- function(category,sector,gas) {
     coord_flip() +
     geom_text(aes(label = paste0(title," - ",fraction,"%")), 
               position = position_stack(vjust = 0.5),alpha=1) +
-    ylab("Fraction of total emissions") +
-    xlab(" ") +
+    #ylab("Fraction of total emissions") +
+    ggtitle("A. Sector contribution to total emissions") +
     theme(legend.position="none",
           axis.text.y = element_blank(),
           axis.ticks.y = element_blank(),
+          axis.title.y = element_blank(),
           axis.text.x = element_blank(),
-          axis.ticks.x = element_blank())
+          axis.ticks.x = element_blank(),
+          axis.title.x = element_blank(),
+          plot.title = element_text(size = 12))
+    
   
   return(p)
   
@@ -295,7 +302,7 @@ edgar_GHG <- edgar_GHG %>%
 
 trend <- trend_figure(2010,"sector_code","Total","GHG")
 p1 <- trend$plot
-p1 <- p1 + ggtitle("All sectors, GHG Emissions")
+#p1 <- p1 + ggtitle("All sectors, GHG Emissions")
 d1 <- trend$data
 
 ########### Decomposition figure ###########
@@ -315,7 +322,7 @@ rm(edgar_GHG)
 
 # 2. Energy systems (Ch.6)
 
-```{r energy_systems,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+```{r energy_systems,echo=FALSE,warning=FALSE,fig.width=8,fig.height=11,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 load('../Data/edgar.RData')
 ch = 6
@@ -329,20 +336,18 @@ bar <- bar_figure("chapter",ch,"GHG")
 trend <- trend_figure(2010,'chapter',ch,'GHG')
 p1 <- trend$plot
 
-p1 <- ggarrange(trend$plot,bar,nrow=2,ncol=1,heights = c(0.8,0.2))
-#p1 <- p1 + ggtitle("Energy systems, GHG Emissions")
+p1 <- ggarrange(bar,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
 d1 <- trend$data
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'chapter',ch,'GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+p2 <- annotate_figure(p2,
+  top = text_grob("C. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
 
-plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.5,0.5))
-plot <- annotate_figure(plot,
-  top = text_grob("Energy systems, GHG Emissions", size = 14,hjust=1.32))
+plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
 plot
-
 
 ###### document emissions categories #####
 categories <- edgar_GHG %>% 
@@ -372,20 +377,18 @@ bar <- bar_figure("chapter",ch,"GHG")
 trend <- trend_figure(2010,'chapter',ch,'GHG')
 p1 <- trend$plot
 
-p1 <- ggarrange(trend$plot,bar,nrow=2,ncol=1,heights = c(0.8,0.2))
-#p1 <- p1 + ggtitle("Energy systems, GHG Emissions")
+p1 <- ggarrange(bar,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
 d1 <- trend$data
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'chapter',ch,'GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+p2 <- annotate_figure(p2,
+  top = text_grob("C. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
 
-plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.5,0.5))
-plot <- annotate_figure(plot,
-  top = text_grob("AFOLU, GHG Emissions", size = 14,hjust=1.32))
+plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
 plot
-
 
 ###### document emissions categories #####
 categories <- edgar_GHG %>% 
@@ -415,20 +418,18 @@ bar <- bar_figure("chapter",ch,"GHG")
 trend <- trend_figure(2010,'chapter',ch,'GHG')
 p1 <- trend$plot
 
-p1 <- ggarrange(trend$plot,bar,nrow=2,ncol=1,heights = c(0.8,0.2))
-#p1 <- p1 + ggtitle("Energy systems, GHG Emissions")
+p1 <- ggarrange(bar,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
 d1 <- trend$data
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'chapter',ch,'GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+p2 <- annotate_figure(p2,
+  top = text_grob("C. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
 
-plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.5,0.5))
-plot <- annotate_figure(plot,
-  top = text_grob("Buildings, GHG Emissions", size = 14,hjust=1.32))
+plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
 plot
-
 
 ###### document emissions categories #####
 categories <- edgar_GHG %>% 
@@ -458,20 +459,18 @@ bar <- bar_figure("chapter",ch,"GHG")
 trend <- trend_figure(2010,'chapter',ch,'GHG')
 p1 <- trend$plot
 
-p1 <- ggarrange(trend$plot,bar,nrow=2,ncol=1,heights = c(0.8,0.2))
-#p1 <- p1 + ggtitle("Energy systems, GHG Emissions")
+p1 <- ggarrange(bar,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
 d1 <- trend$data
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'chapter',ch,'GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+p2 <- annotate_figure(p2,
+  top = text_grob("C. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
 
-plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.5,0.5))
-plot <- annotate_figure(plot,
-  top = text_grob("Transport, GHG Emissions", size = 14,hjust=1.32))
+plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
 plot
-
 
 ###### document emissions categories #####
 categories <- edgar_GHG %>% 
@@ -501,20 +500,18 @@ bar <- bar_figure("chapter",ch,"GHG")
 trend <- trend_figure(2010,'chapter',ch,'GHG')
 p1 <- trend$plot
 
-p1 <- ggarrange(trend$plot,bar,nrow=2,ncol=1,heights = c(0.8,0.2))
-#p1 <- p1 + ggtitle("Energy systems, GHG Emissions")
+p1 <- ggarrange(bar,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
 d1 <- trend$data
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'chapter',ch,'GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+p2 <- annotate_figure(p2,
+  top = text_grob("C. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
 
-plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.5,0.5))
-plot <- annotate_figure(plot,
-  top = text_grob("Industry, GHG Emissions", size = 14,hjust=1.32))
+plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
 plot
-
 
 ###### document emissions categories #####
 categories <- edgar_GHG %>% 
