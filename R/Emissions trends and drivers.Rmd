@@ -11,7 +11,7 @@ library(tidyverse)
 library(ggpubr)
 library(gganimate)
 library(xlsx)
-load('Data/edgar.RData')
+load('../Data/edgar.RData')
 
 
 ######### load basic development and emissions data ######### 
@@ -42,7 +42,7 @@ load('Data/edgar.RData')
 
 ```{r ghgs_total_income, echo=FALSE,warning=FALSE,fig.width=8,fig.path="Results/Plots/",dev=c('png','pdf')}
 
-load('Data/edgar.RData')
+load('../Data/edgar.RData')
 
 plot_data <- edgar_GHG %>%
   group_by(Year,WB.income) %>% 
@@ -71,7 +71,7 @@ plot_data %>%
 
 plot_data <- spread(plot_data,Year,total_ghg)
 
-xlsx::write.xlsx(as.data.frame(plot_data),file=paste("Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName = "Total_GHGs_Income",row.names=FALSE)
+xlsx::write.xlsx(as.data.frame(plot_data),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName = "Total_GHGs_Income",row.names=FALSE)
 
 ```
 
