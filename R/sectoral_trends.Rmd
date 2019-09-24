@@ -39,6 +39,7 @@ library(xlsx)
 library(flextable)
 library(openxlsx)
 
+sectors = data.frame(key=c(6,7,9,10,11),value=c("Energy systems","AFOLU","Buildings","Transport","Industry"))
 
 ```
 
@@ -83,7 +84,7 @@ trend_figure <- function(time_start,category,sector,gas) {
     geom_text(data=shares,aes(x=Year,y=location,label=paste(round(fractions,0),"%",sep="")))+
     geom_vline(xintercept=c(1970,1980,1990,2000,2010,2017),alpha=0.3,linetype="dashed") +
     theme_bw() +
-    ggtitle("B. Sector trend and income classification") +
+    ggtitle("B. Sector trend by income group") +
     theme(legend.justification=c(0,1), 
           legend.position=c(0.05, 0.97),
           legend.title=element_blank(),
@@ -100,8 +101,6 @@ trend_figure <- function(time_start,category,sector,gas) {
 
 
 ```
-
-
 
 ```{r decomp_figure,include=FALSE}
 
@@ -126,7 +125,7 @@ decomp_figure <- function(time_start,category,sector,gas) {
   ####### CHECK DATA HERE FOR ZEROS AND NANS ####### 
   
   
-  # what is 80% of the emissions?
+  # what is 75% of the emissions?
   blarg <- rates %>%
     filter(Year==2017)
   threshold <- sum(blarg$value,na.rm=T)*0.75
@@ -264,7 +263,7 @@ bar_figure <- function(category,sector,gas) {
   total = sum(data$GHG)
   
   data <- data %>% 
-    mutate(fraction=round(GHG/total*100)) %>% 
+    mutate(fraction=round(GHG/total*100,2)) %>% 
     mutate(alpha=if_else(chapter==sector,TRUE,FALSE))
   
   data <- data %>% 
@@ -275,9 +274,10 @@ bar_figure <- function(category,sector,gas) {
     mutate(title=if_else(chapter==11,"Industry",title))
   
   p <- data %>% 
+    mutate(fraction=round(fraction)) %>% 
     ggplot(.,aes(y=reorder(fraction,fraction),x=as.factor(1),alpha=alpha)) +
     geom_bar(stat='identity',size=0.5,fill="#252525",color="#737373",width=0.9)  +
-    scale_alpha_discrete(range = c(0.25, 0.6)) +
+    scale_alpha_discrete(range = c(0.25, 0.50)) +
     theme_bw() +
     coord_flip() +
     geom_text(aes(label = paste0(title,"\n(",fraction,"%)")), 
@@ -291,11 +291,34 @@ bar_figure <- function(category,sector,gas) {
           axis.ticks.x = element_blank(),
           axis.title.x = element_blank(),
           plot.title = element_text(size = 12))
+  
+  fraction <- data %>% 
+    filter(alpha==TRUE) %>% 
+    select(value=fraction)
     
-  
-  return(p)
-  
+  return(list("plot"=p,"fraction"=fraction))
 }
+
+```
+
+```{r summary_text, include = FALSE}
+
+summary_text <- function(ch,fraction,trend) {
+
+
+  total <- trend %>% ungroup() %>% filter(Year==2017) %>% summarise(sum=sum(value))
+  growth <- trend %>% 
+    ungroup() %>% 
+    group_by(Year) %>% 
+    summarise(value=sum(value))
+  compound <- ((tail(growth$value,1)/growth$value[1])^(1/length(growth$Year))-1)*100
+  growth <- ((tail(growth$value,1)-growth$value[1])/growth$value[1])*100
+  
+  text <- paste0(sectors$value[sectors$key==ch]," emissions were ",round(total$sum,2), "Gt CO2 in 2017, ",fraction$value,"% of total GHG emissions from all sectors. ",sectors$value[sectors$key==ch]," emissions have grown by ",round(growth,2),"% between 1970 and 2017.")
+  
+  return(text)
+}
+
 
 ```
 
@@ -318,15 +341,15 @@ edgar_GHG <- edgar_GHG %>%
 
 trend <- trend_figure(2010,"sector_code","Total","GHG")
 p1 <- trend$plot
-p1 <- p1 + theme(
-  plot.title = element_blank()
-)
+p1 <- p1 + ggtitle("A. Trend in total emissions and income classification ")
 d1 <- trend$data
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'sector_code','Total','GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+p2 <- annotate_figure(p2,
+  top = text_grob("B. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
 
 plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
 plot
@@ -334,7 +357,6 @@ plot
 rm(edgar_GHG)
 
 #write.xlsx(p$data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName="Total_GHGs_2010",append=TRUE)
-
 
 ```
 
@@ -353,16 +375,16 @@ bar <- bar_figure("chapter",ch,"GHG")
 
 trend <- trend_figure(2010,'chapter',ch,'GHG')
 p1 <- trend$plot
+p1 <- ggarrange(bar$plot,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
 
-p1 <- ggarrange(bar,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
-
+text <- summary_text(ch,bar$fraction,trend$data)
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'chapter',ch,'GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
 p2 <- annotate_figure(p2,
-  top = text_grob("C. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
+  top = text_grob("C. Relative and absolute changes amoung countries responsible for 75% of emissions",size = 12,hjust=0.57))
 
 plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.45,0.55))
 plot
@@ -375,9 +397,11 @@ categories <- edgar_GHG %>%
 categories$chapter <- as.factor(categories$chapter)
 
 table <- make_table(categories)
-table
 
 ```
+
+`r text`
+`r table`
 
 # 2. AFOLU (Ch.7)
 
@@ -394,16 +418,16 @@ bar <- bar_figure("chapter",ch,"GHG")
 
 trend <- trend_figure(2010,'chapter',ch,'GHG')
 p1 <- trend$plot
+p1 <- ggarrange(bar$plot,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
 
-p1 <- ggarrange(bar,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
-
+text <- summary_text(ch,bar$fraction,trend$data)
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'chapter',ch,'GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
 p2 <- annotate_figure(p2,
-  top = text_grob("C. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
+  top = text_grob("C. Relative and absolute changes amoung countries responsible for 75% of emissions",size = 12,hjust=0.57))
 
 plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.45,0.55))
 plot
@@ -416,9 +440,12 @@ categories <- edgar_GHG %>%
 categories$chapter <- as.factor(categories$chapter)
 
 table <- make_table(categories)
-table
+
 
 ```
+
+`r text`
+`r table`
 
 # 4. Buildings (Ch.9)
 
@@ -435,16 +462,16 @@ bar <- bar_figure("chapter",ch,"GHG")
 
 trend <- trend_figure(2010,'chapter',ch,'GHG')
 p1 <- trend$plot
+p1 <- ggarrange(bar$plot,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
 
-p1 <- ggarrange(bar,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
-
+text <- summary_text(ch,bar$fraction,trend$data)
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'chapter',ch,'GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
 p2 <- annotate_figure(p2,
-  top = text_grob("C. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
+  top = text_grob("C. Relative and absolute changes amoung countries responsible for 75% of emissions",size = 12,hjust=0.57))
 
 plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.45,0.55))
 plot
@@ -457,8 +484,12 @@ categories <- edgar_GHG %>%
 categories$chapter <- as.factor(categories$chapter)
 
 table <- make_table(categories)
-table
+
+
 ```
+
+`r text`
+`r table`
 
 # 5. Transport (Ch.10)
 
@@ -476,16 +507,16 @@ bar <- bar_figure("chapter",ch,"GHG")
 
 trend <- trend_figure(2010,'chapter',ch,'GHG')
 p1 <- trend$plot
+p1 <- ggarrange(bar$plot,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
 
-p1 <- ggarrange(bar,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
-
+text <- summary_text(ch,bar$fraction,trend$data)
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'chapter',ch,'GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
 p2 <- annotate_figure(p2,
-  top = text_grob("C. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
+  top = text_grob("C. Relative and absolute changes amoung countries responsible for 75% of emissions",size = 12,hjust=0.57))
 
 plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.45,0.55))
 plot
@@ -498,9 +529,11 @@ categories <- edgar_GHG %>%
 categories$chapter <- as.factor(categories$chapter)
 
 table <- make_table(categories)
-table
 
 ```
+
+`r text`
+`r table`
 
 # 6. Industry (Ch.11)
 
@@ -517,16 +550,16 @@ bar <- bar_figure("chapter",ch,"GHG")
 
 trend <- trend_figure(2010,'chapter',ch,'GHG')
 p1 <- trend$plot
+p1 <- ggarrange(bar$plot,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
 
-p1 <- ggarrange(bar,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
-
+text <- summary_text(ch,bar$fraction,trend$data)
 
 ########### Decomposition figure ###########
 
 decomp <- decomp_figure(2010,'chapter',ch,'GHG')
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
 p2 <- annotate_figure(p2,
-  top = text_grob("C. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
+  top = text_grob("C. Relative and absolute changes amoung countries responsible for 75% of emissions",size = 12,hjust=0.57))
 
 plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.45,0.55))
 plot
@@ -539,6 +572,9 @@ categories <- edgar_GHG %>%
 categories$chapter <- as.factor(categories$chapter)
 
 table <- make_table(categories)
-table
+
 
 ```
+
+`r text`
+`r table`
