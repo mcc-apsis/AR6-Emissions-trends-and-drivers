@@ -42,6 +42,7 @@ sectors = data.frame(key=c(6,7,9,10,11),value=c("Energy systems","AFOLU","Buildi
 source("small_figures.R")
 source("decomp_figure_countries.R")
 source("decomp_figure_sectors.R")
+
 ```
 
 ```{r summary_text, include = FALSE}
@@ -144,23 +145,23 @@ for (i in 1:length(sectors$key)) {
   cat('  \n',text, '  \n')
   
   
-  ## Sector decomposition
-  
-  # trend
-  trend <- trend_figure_sectors(2010,'chapter',ch,'GHG',edgar_GHG)
-  
-  # decomposition
-  decomp <- decomp_figure_sectors(2010,'chapter',ch,'GHG',edgar_GHG)
-  p_decomp <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
-  p_decomp <- annotate_figure(p_decomp,
-    top = text_grob("B. Relative and absolute changes amoung sectors responsible for 90% of emissions",size = 12,hjust=0.57))
-  
-  ## Plot everything
-  p_decomp_sectors <- ggarrange(trend$plot,p_decomp,ncol=1,nrow=2,heights=c(0.4,0.6))
-  
-  cat('  \n')
-  print(p_decomp_sectors)
-  cat('  \n')
+  # ## Sector decomposition
+  # 
+  # # trend
+  # trend <- trend_figure_sectors(2010,'chapter',ch,'GHG',edgar_GHG)
+  # 
+  # # decomposition
+  # decomp <- decomp_figure_sectors(2010,'chapter',ch,'GHG',edgar_GHG)
+  # p_decomp <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+  # p_decomp <- annotate_figure(p_decomp,
+  #   top = text_grob("B. Relative and absolute changes amoung sectors responsible for 90% of emissions",size = 12,hjust=0.57))
+  # 
+  # ## Plot everything
+  # p_decomp_sectors <- ggarrange(trend$plot,p_decomp,ncol=1,nrow=2,heights=c(0.4,0.6))
+  # 
+  # cat('  \n')
+  # print(p_decomp_sectors)
+  # cat('  \n')
   
 }
 

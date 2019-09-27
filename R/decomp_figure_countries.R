@@ -89,8 +89,8 @@ decomp_figure_countries <- function(time_start,category,sector,gas,edgar_GHG) {
     filter(var=="rate") %>% 
     ggplot(.,aes(x = reorder(Country,value),y = value, fill=WB.income)) +
     geom_bar(stat='identity') + 
-    ylab(bquote(atop("Rate of change in" ~.(gas) ~ "Emissions","(Gt" ~CO[2]* "eq),"~.(time_start)*"-2017"))) +
-    #ylab(paste("Rate of change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
+    ylab(bquote(atop("Rate of change in" ~.(gas) ~ "Emissions","(%),"~.(time_start)*"-2017"))) +
+    #ylab(paste("Rate of change in ",gas," Emissions (%),\n",time_start,"-2017",sep="")) +
     coord_flip() +
     theme_bw() +
     theme(legend.position="none",

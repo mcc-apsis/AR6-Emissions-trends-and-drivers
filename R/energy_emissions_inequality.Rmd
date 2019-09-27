@@ -1,0 +1,132 @@
+---
+title: "International energy and emissions inequality"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+
+rm(list = ls())
+library(tidyverse)
+library(xlsx)
+
+load('../Data/basic.RData')
+
+data <- read.xlsx('../Data/confidential_yannick_oswald_data.xlsx',sheetName='data') %>% 
+  select(vars=country.Code.,everything())
+
+data <- gather(data,country,value,-vars)
+
+data <- data %>% 
+  filter(vars!="country ID") %>% 
+  filter(vars!="region code") %>% 
+  group_by(country) %>% 
+  mutate(region=nth(value,1)) %>% 
+  mutate(income_category=nth(value,2)) %>% 
+  mutate(pop=nth(value,3)) %>% 
+  mutate(energy_use=nth(value,4)) %>% 
+  select(ISO=country,everything()) %>%
+  select(-vars,-value) %>% 
+  distinct()
+
+data$ISO <- gsub(".1","",data$ISO)
+data$ISO <- gsub(".2","",data$ISO)
+data$ISO <- gsub(".3","",data$ISO)
+data$ISO <- gsub(".4","",data$ISO)
+data$ISO <- gsub(".5","",data$ISO)
+data$ISO <- gsub("USA.","USA",data$ISO)
+data$income_category <- gsub(" ","",data$income_category)
+
+#data <- data %>% 
+ # filter(!income_category %in% c("Q1","Q2","Q3","Q4","Q5"))
+
+data$income_category <- as.factor(data$income_category)
+data$energy_use <- as.numeric(data$energy_use)
+
+data <- left_join(data,basic %>% filter(Year==2015) %>% select(ISO,Country,RCP5),by=c("ISO"="ISO"))
+
+### change country names
+data$Country <- gsub("'","",data$Country)
+data$Country <- gsub('Lao Peoples Democratic Republic','Laos',data$Country)
+data$Country <- gsub('United Republic of Tanzania','Tanzania',data$Country)
+levels(data$Country) <- c(levels(data$Country),'Bolivia')
+data$Country[data$ISO=="BOL"] <- 'Bolivia'
+
+### change a few regions
+
+
+
+```
+
+
+
+
+```{r energy_inequality,echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+data %>% 
+  ggplot(.,aes(x=reorder(Country, desc(Country)),y=energy_use,color=income_category)) +
+  geom_point(size=2.5) +
+  coord_flip() +
+  ylim(0,300) +
+  theme_bw() +
+  facet_grid(RCP5~.,space = 'free',scales = 'free') +
+  ylab("Energy use (GJ/cap)") +
+  theme(
+    axis.title.y = element_blank(),
+    legend.position = 'bottom'
+  )
+
+data %>% 
+  ggplot(.,aes(x=reorder(Country, desc(Country)),y=energy_use,color=income_category)) +
+  geom_point(size=2.5) +
+  coord_flip() +
+  #ylim(0,300) +
+  theme_bw() +
+  facet_grid(RCP5~.,space = 'free',scales = 'free') +
+  ylab("Energy use (GJ/cap)") +
+  theme(
+    axis.title.y = element_blank(),
+    legend.position = 'bottom'
+  )
+
+
+```
+
+
+```{r clustering,echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+z <- data %>% 
+  filter(income_category=="lowest"|income_category =="high"|income_category=="Q1"|income_category=="Q4") %>% 
+  select(-pop) %>% 
+  ungroup()
+
+z$income_category[z$income_category=="Q1"] <- "lowest"
+z$income_category[z$income_category=="Q4"] <- "high"
+
+z$energy_use[z$ISO=="ARM"] <- NA
+
+z <- spread(z,income_category,energy_use) %>% 
+  select(ISO,Country,high,lowest) %>% 
+  na.omit
+
+
+blarg <- kmeans(z %>% select(-ISO,-Country),5)
+cluster <- blarg$cluster
+z <- cbind(z,cluster)
+
+new_data <- left_join(data,z %>% select(ISO,cluster),by=c("ISO"="ISO"))
+
+new_data %>% 
+  ggplot(.,aes(x=reorder(Country, desc(Country)),y=energy_use,color=income_category)) +
+  geom_point(size=2.5) +
+  coord_flip() +
+  ylim(0,500) +
+  theme_bw() +
+  facet_grid(cluster~.,space = 'free',scales = 'free') +
+  ylab("Energy use (GJ/cap)") +
+  theme(
+    axis.title.y = element_blank(),
+    legend.position = 'bottom'
+  )
+
+```
