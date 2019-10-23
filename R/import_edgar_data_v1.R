@@ -3,44 +3,51 @@ rm(list = ls())
 library(xlsx)
 library(tidyverse)
 
+##### import data from matlab
+
+# file.copy('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/MATLAB/Data shop/Aggregation/Basic data/basic.xls','Data/',overwrite=TRUE)
+# 
+# basic<-read.xlsx('Data/basic.xls','data_full')
+# save(basic,file='Data/basic.RData')
+
+# 
+# z<- read.delim('Data/labels_T.txt',sep = '\t',header = FALSE)
+# blarg <- data.frame(unique(z$V1))
+
+
 ### EDGAR data
 
 ########### load sheets ########### 
 
-edgar_CO2 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR_v5.0_FT2018_CO2_GHG_AR4.xlsx',
-                                 sheet='CO2_FT2018',startRow=6)
-names(edgar_CO2) <- gsub(x = names(edgar_CO2), pattern = "Y_", replacement = "")  
-
+edgar_CO2 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
+                                 sheet='CO2',startRow=10)
+edgar_CO2 <- edgar_CO2[1:57]
 edgar_CO2 <- gather(edgar_CO2,Year,Value,'1970':'2017') %>% 
-  select(ISO_A3=Country_code_A3,Year,IPCC.detailed=IPCC_for_std_report_detailed,IPCC_detailed_description=IPCC_for_std_report_detailed_desc,CO2 = Value)
+  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,CO2 = Value)
 
+edgar_CH4 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
+                                 sheet='CH4',startRow=10)
+edgar_CH4 <- edgar_CH4[1:57]
+edgar_CH4 <- gather(edgar_CH4,Year,Value,'1970':'2017') %>% 
+  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,CH4 = Value)
 
+edgar_N2O <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
+                                 sheet='N2O',startRow=10)
+edgar_N2O <- edgar_N2O[1:58]
+edgar_N2O <- gather(edgar_N2O,Year,Value,'1970':'2017') %>% 
+  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,N2O = Value)
 
-edgar_CH4 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR_v5.0_FT2018_CO2_GHG_AR4.xlsx',
-                                 sheet='GWP_100_AR4_CH4',startRow=5)
-names(edgar_CH4) <- gsub(x = names(edgar_CH4), pattern = "Y_", replacement = "")  
+edgar_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR GHG.xlsx',
+                                  sheet='Fgas2',rows=10:1717)
 
-edgar_CH4 <- gather(edgar_CH4,Year,Value,'1970':'2015') %>% 
-  select(ISO_A3=Country_code_A3,Year,IPCC.detailed=IPCC_for_std_report_detailed,IPCC_detailed_description=IPCC_for_std_report_detailed_desc,CH4 = Value)
+edgar_Fgas <- edgar_Fgas[1:58]
+edgar_Fgas <- gather(edgar_Fgas,Year,Value,'1970':'2017')%>% 
+  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,Gas,Fgas = Value)
 
-
-
-edgar_N2O <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR_v5.0_FT2018_CO2_GHG_AR4.xlsx',
-                                 sheet='GWP_100_AR4_N2O',startRow=5)
-names(edgar_N2O) <- gsub(x = names(edgar_N2O), pattern = "Y_", replacement = "")  
-
-edgar_N2O <- gather(edgar_N2O,Year,Value,'1970':'2015') %>% 
-  select(ISO_A3=Country_code_A3,Year,IPCC.detailed=IPCC_for_std_report_detailed,IPCC_detailed_description=IPCC_for_std_report_detailed_desc,N2O = Value)
-
-
-
-edgar_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR_v5.0_FT2018_CO2_GHG_AR4.xlsx',
-                                  sheet='GWP_100_AR4_F-gases',startRow=5)
-names(edgar_Fgas) <- gsub(x = names(edgar_Fgas), pattern = "Y_", replacement = "")  
-
-edgar_Fgas <- gather(edgar_Fgas,Year,Value,'1970':'2015')%>% 
-  select(ISO_A3=Country_code_A3,Year,IPCC.detailed=IPCC_for_std_report_detailed,IPCC_detailed_description=IPCC_for_std_report_detailed_desc,Fgas = Value)
-
+########### merge all Fgas into single indicator ########### 
+edgar_Fgas <- edgar_Fgas %>% 
+  group_by(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description) %>% 
+  summarise(Fgas=sum(Fgas))
 
 ########### join sheets ########### 
 
@@ -50,12 +57,9 @@ edgar_GHG <- full_join(edgar_GHG,edgar_Fgas)
 
 ########### apply updated GWPs to CH4 and N2O ########### 
 
-# edgar_GHG <- edgar_GHG %>% 
-#   mutate(CH4 = CH4 *28/25) %>% 
-#   mutate(N2O = N2O *265/298)
-
-# 1/GWP
-
+edgar_GHG <- edgar_GHG %>% 
+  mutate(CH4 = CH4 *28/25) %>% 
+  mutate(N2O = N2O *265/298)
 
 ########### calculate total GHG ########### 
 edgar_GHG <- edgar_GHG %>% 

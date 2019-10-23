@@ -71,14 +71,15 @@ summary_text <- function(ch,fraction,trend) {
 
 ########### create totals ###########
 load('../Data/edgar.RData')
-totals <- edgar_GHG %>% 
-  group_by(ISO,Year,WB.income,Country) %>% 
-  summarise(CO2=sum(CO2,rm.na=T),CH4=sum(CH4,rm.na=T),N2O=sum(N2O,rm.na=T),Fgas=sum(Fgas,rm.na=T),GHG=sum(GHG,rm.na=T)) %>% 
-  mutate(sector_code="Total",category_final="Total",category_1="Total",category_2="Total",category_3="Total",IPCC_AR5_chapter=0,IPCC_AR5_sector=0) %>% 
-  select(ISO,sector_code,category_final,category_1,category_2,category_3,Year,CO2,CH4,N2O,Fgas,GHG,Country,WB.income,IPCC_AR5_chapter,IPCC_AR5_sector)
 
-edgar_GHG <- edgar_GHG %>% 
-  bind_rows(totals)
+# totals <- edgar_GHG %>% 
+#   group_by(ISO,Year,WB.income,Country) %>% 
+#   summarise(CO2=sum(CO2,rm.na=T),CH4=sum(CH4,rm.na=T),N2O=sum(N2O,rm.na=T),Fgas=sum(Fgas,rm.na=T),GHG=sum(GHG,rm.na=T)) %>% 
+#   mutate(sector_code="Total",category_final="Total",category_1="Total",category_2="Total",category_3="Total",IPCC_AR5_chapter=0,IPCC_AR5_sector=0) %>% 
+#   select(ISO,sector_code,category_final,category_1,category_2,category_3,Year,CO2,CH4,N2O,Fgas,GHG,Country,WB.income,IPCC_AR5_chapter,IPCC_AR5_sector)
+# 
+# edgar_GHG <- edgar_GHG %>% 
+#   bind_rows(totals)
 
 ########### Trend figure ###########
 
