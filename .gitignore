@@ -4,6 +4,7 @@
 .Ruserdata
 Data/
 Writing/
+Results/Data/
 .csync_journal.db
 .csync_journal.db-shm
 .csync_journal.db-wal

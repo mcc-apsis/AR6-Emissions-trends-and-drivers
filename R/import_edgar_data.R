@@ -54,6 +54,7 @@ edgar_GHG <- full_join(edgar_GHG,edgar_Fgas)
 #   mutate(CH4 = CH4 *28/25) %>% 
 #   mutate(N2O = N2O *265/298)
 
+# to get 
 # 1/GWP
 
 
@@ -102,5 +103,9 @@ totals <- edgar_GHG %>%
 edgar_GHG <- edgar_GHG %>% 
   bind_rows(totals)
 
+############## tidying up 
+
+edgar_GHG <- edgar_GHG %>% 
+  select(ISO,country=Country,year=Year,region_wb=WB.income,chapter,sector_code,description,category_1,category_2,category_3,CO2:GHG)
 
 save(edgar_GHG,file='Data/edgar.RData')
