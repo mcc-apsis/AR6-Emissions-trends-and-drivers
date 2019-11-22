@@ -16,9 +16,9 @@
    version="1.1"
    inkscape:version="0.91 r13725"
    sodipodi:docname="Goldemberg's corner.svg"
-   inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Projects\Climate-and-development-data\Plots\Goldemberg's Corner.png"
-   inkscape:export-xdpi="400"
-   inkscape:export-ydpi="400">
+   inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\goldembergs corner.png"
+   inkscape:export-xdpi="799.9021"
+   inkscape:export-ydpi="799.9021">
   <defs
      id="defs4">
     <inkscape:path-effect
@@ -413,6 +413,222 @@
        effect="spiro"
        id="path-effect7296-1"
        is_visible="true" />
+    <clipPath
+       id="clipPath4602"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4604-4"
+         d="m 0,1.2207e-4 720,0 0,539.99999793 -720,0 L 0,1.2207e-4 Z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4618"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4620-8"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4630"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4632-8"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4642"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4644-1"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4654"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4656-4"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4670"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4672"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4682"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4684"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4698"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4700"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4710"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4712"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4736"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4738"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4748"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4750-3"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <clipPath
+       id="clipPath4760"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4762"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <linearGradient
+       id="linearGradient4770"
+       spreadMethod="pad"
+       gradientUnits="userSpaceOnUse"
+       y2="148.74001"
+       x2="278.76001"
+       y1="148.74001"
+       x1="153.96001"
+       gradientTransform="matrix(1.25,0,0,-1.25,-1014.6432,760.48536)">
+      <stop
+         id="stop4772"
+         offset="0"
+         style="stop-opacity:1;stop-color:#e1e8f5" />
+      <stop
+         id="stop4774"
+         offset="0.25"
+         style="stop-opacity:1;stop-color:#c2d1ed" />
+      <stop
+         id="stop4776"
+         offset="0.5"
+         style="stop-opacity:1;stop-color:#9ab5e4" />
+      <stop
+         id="stop4778"
+         offset="0.75"
+         style="stop-opacity:1;stop-color:#c2d1ed" />
+      <stop
+         id="stop4780"
+         offset="1"
+         style="stop-opacity:1;stop-color:#e1e8f5" />
+    </linearGradient>
+    <clipPath
+       id="clipPath4788"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4790"
+         d="M -3.0518e-5,540 720,540 720,6.1035e-5 -6.1035e-5,1.2207e-4" />
+    </clipPath>
+    <linearGradient
+       id="linearGradient4792"
+       spreadMethod="pad"
+       gradientUnits="userSpaceOnUse"
+       y2="319.56"
+       x2="485.70001"
+       y1="410.28"
+       x1="485.70001"
+       gradientTransform="translate(138.99699,-158.39192)">
+      <stop
+         id="stop4794"
+         offset="0"
+         style="stop-opacity:1;stop-color:#e1e8f5" />
+      <stop
+         id="stop4796"
+         offset="0.25"
+         style="stop-opacity:1;stop-color:#c2d1ed" />
+      <stop
+         id="stop4798"
+         offset="0.5"
+         style="stop-opacity:1;stop-color:#9ab5e4" />
+      <stop
+         id="stop4800"
+         offset="0.75"
+         style="stop-opacity:1;stop-color:#c2d1ed" />
+      <stop
+         id="stop4802"
+         offset="1"
+         style="stop-opacity:1;stop-color:#e1e8f5" />
+    </linearGradient>
+    <clipPath
+       id="clipPath4818"
+       clipPathUnits="userSpaceOnUse">
+      <path
+         style="clip-rule:evenodd"
+         inkscape:connector-curvature="0"
+         id="path4820"
+         d="M 1.0729e-5,0 720.00001,0 l 0,540 -719.999999271,0 0,-540 z" />
+    </clipPath>
+    <linearGradient
+       id="linearGradient4832"
+       spreadMethod="pad"
+       gradientUnits="userSpaceOnUse"
+       y2="148.98"
+       x2="133.2"
+       y1="148.98"
+       x1="60"
+       gradientTransform="matrix(1.25,0,0,-1.25,-1014.6432,760.48536)">
+      <stop
+         id="stop4834"
+         offset="0"
+         style="stop-opacity:1;stop-color:#e1e8f5" />
+      <stop
+         id="stop4836"
+         offset="0.25"
+         style="stop-opacity:1;stop-color:#c2d1ed" />
+      <stop
+         id="stop4838"
+         offset="0.5"
+         style="stop-opacity:1;stop-color:#9ab5e4" />
+      <stop
+         id="stop4840"
+         offset="0.75"
+         style="stop-opacity:1;stop-color:#c2d1ed" />
+      <stop
+         id="stop4842"
+         offset="1"
+         style="stop-opacity:1;stop-color:#e1e8f5" />
+    </linearGradient>
   </defs>
   <sodipodi:namedview
      id="base"
@@ -421,9 +637,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="550.03118"
-     inkscape:cy="230.0992"
+     inkscape:zoom="0.7"
+     inkscape:cx="-687.37598"
+     inkscape:cy="78.422085"
      inkscape:document-units="px"
      inkscape:current-layer="layer3"
      showgrid="false"
@@ -2471,5 +2687,389 @@
          id="tspan4587"
          x="49.02446"
          y="44.240219">Corner</tspan></text>
+    <path
+       d="m -1021.8894,164.24546 181.95,0 0,-180.15 -181.95,0 0,180.15 z"
+       style="fill:#f2f2f2;fill-opacity:1;fill-rule:evenodd;stroke:none"
+       id="path4608-6"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -1070.1894,458.98921 0,-492.40625 -3.75,0 0,492.40625 3.75,0 z m 6.3075,-482.10625 -8.1825,-14.025 -8.1825,14.025 c -0.5213,0.9 -0.2188,2.05 0.675,2.575 0.895,0.5125 2.0425,0.2125 2.565,-0.675 l 0,0 6.5625,-11.25 -3.24,0 6.5625,11.25 c 0.5225,0.8875 1.67,1.1875 2.565,0.675 0.8937,-0.525 1.1925,-1.675 0.675,-2.575 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       id="path4610-3"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -1072.0644,457.04546 682.95,0 0,3.75 -682.95,0 0,-3.75 z m 672.6375,-6.3075 14.025,8.1825 -14.025,8.1825 c -0.9,0.52125 -2.05,0.21875 -2.5625,-0.675 -0.525,-0.895 -0.225,-2.0425 0.675,-2.565 l 11.25,-6.5625 0,3.24 -11.25,-6.5625 c -0.9,-0.5225 -1.2,-1.67 -0.675,-2.565 0.5125,-0.89375 1.6625,-1.19625 2.5625,-0.675 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       id="path4612-5"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <g
+       clip-path="url(#clipPath4618)"
+       id="g4616"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4622"
+         style="font-variant:normal;font-weight:bold;font-size:18px;font-family:Helvetica;-inkscape-font-specification:'Helvetica Bold';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(-4.4e-8,1,1,4.4e-8,69.288,243.77)">
+        <tspan
+           id="tspan4624"
+           sodipodi:role="line"
+           y="0"
+           x="0 16.686001 26.694 31.698">Well</tspan>
+      </text>
+    </g>
+    <g
+       clip-path="url(#clipPath4630)"
+       id="g4628"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4634"
+         style="font-variant:normal;font-weight:bold;font-size:18px;font-family:Helvetica;-inkscape-font-specification:'Helvetica Bold';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(-4.4e-8,1,1,4.4e-8,69.288,280.51)">
+        <tspan
+           id="tspan4636"
+           y="0"
+           x="0">-</tspan>
+      </text>
+    </g>
+    <g
+       clip-path="url(#clipPath4642)"
+       id="g4640"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4646"
+         style="font-variant:normal;font-weight:bold;font-size:18px;font-family:Helvetica;-inkscape-font-specification:'Helvetica Bold';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(-4.4e-8,1,1,4.4e-8,69.288,286.51)">
+        <tspan
+           id="tspan4648"
+           sodipodi:role="line"
+           y="0"
+           x="0 10.998 21.006001 26.01 37.062">being</tspan>
+      </text>
+    </g>
+    <g
+       clip-path="url(#clipPath4654)"
+       id="g4652"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4658-1"
+         style="font-variant:normal;font-weight:bold;font-size:18px;font-family:Helvetica;-inkscape-font-specification:'Helvetica Bold';writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(1,0,0,-1,447.07,50.976)">
+        <tspan
+           id="tspan4660-4"
+           sodipodi:role="line"
+           y="0"
+           x="0 12.006 28.007999 33.012001 42.966 52.973999 57.978001 68.975998 80.028 90.036003 95.040001 106.038 116.046 122.994 127.998 138.006 147.96001 158.95799 164.01601 170.00999">Emissions per capita</tspan>
+      </text>
+    </g>
+    <path
+       inkscape:connector-curvature="0"
+       id="path4664"
+       style="fill:none;stroke:#4a7ebb;stroke-width:0.90000004;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:7.2, 2.7;stroke-dashoffset:0;stroke-opacity:1"
+       d="m -839.9394,458.95171 0.4,-474.85625"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <g
+       clip-path="url(#clipPath4670)"
+       id="g4668"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4674-9"
+         style="font-variant:normal;font-weight:normal;font-size:15.96000004px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(1,0,0,-1,114.79,53.544)">
+        <tspan
+           id="tspan4676-6"
+           sodipodi:role="line"
+           y="0"
+           x="0 9.7515602 13.29468 22.16844 31.0422">Floor</tspan>
+      </text>
+    </g>
+    <g
+       clip-path="url(#clipPath4682)"
+       id="g4680"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4686-1"
+         style="font-variant:normal;font-weight:normal;font-size:15.98400021px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(1,0,0,-1,254.21,53.784)">
+        <tspan
+           id="tspan4688-3"
+           sodipodi:role="line"
+           y="0"
+           x="0 11.540448 20.427551 23.976 27.588385 31.1688 40.055904">Ceiling</tspan>
+      </text>
+    </g>
+    <path
+       inkscape:connector-curvature="0"
+       id="path4692"
+       style="fill:none;stroke:#4a7ebb;stroke-width:0.90000004;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:7.2, 2.7;stroke-dashoffset:0;stroke-opacity:1"
+       d="m -1073.0394,164.24546 602.425,0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <g
+       clip-path="url(#clipPath4698)"
+       id="g4696"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4702-7"
+         style="font-variant:normal;font-weight:normal;font-size:18px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(1,0,0,-1,151.08,447.17)">
+        <tspan
+           id="tspan4704-9"
+           sodipodi:role="line"
+           y="0"
+           x="0 14.004 24.011999 28.007999 37.925999 47.933998 62.928001 72.846001 82.853996 88.848 98.765999 102.366">Goldemberg’s</tspan>
+      </text>
+    </g>
+    <g
+       clip-path="url(#clipPath4710)"
+       id="g4708"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4714-4"
+         style="font-variant:normal;font-weight:normal;font-size:18px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(1,0,0,-1,179.4,425.57)">
+        <tspan
+           id="tspan4716-2"
+           sodipodi:role="line"
+           y="0"
+           x="0 12.996 22.914 28.908001 38.916 48.834">Corner</tspan>
+      </text>
+    </g>
+    <path
+       d="m -1000.2519,259.43296 -1.65,-120.925 2.85,-0.0375 1.65,120.925 -2.85,0.0375 z m -6.3375,-113.025 6.075,-10.75 6.3625,10.575 c 0.4125,0.675 0.1875,1.55 -0.4875,1.9625 -0.675,0.4 -1.55,0.1875 -1.95,-0.4875 l 0,0 -5.1125,-8.4875 2.4625,-0.025 -4.8625,8.6125 c -0.3875,0.6875 -1.2625,0.925 -1.95,0.5375 -0.675,-0.3875 -0.925,-1.25 -0.5375,-1.9375 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       id="path4718"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -666.3144,119.69546 c 0,-8.825 7.9625,-15.975 17.775,-15.975 9.8125,0 17.775,7.15 17.775,15.975 0,8.825 -7.9625,15.975 -17.775,15.975 -9.8125,0 -17.775,-7.15 -17.775,-15.975 z"
+       style="fill:#253494;fill-opacity:1;fill-rule:evenodd;stroke:none"
+       id="path4720"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -666.3144,119.69546 c 0,-8.825 7.9625,-15.975 17.775,-15.975 9.8125,0 17.775,7.15 17.775,15.975 0,8.825 -7.9625,15.975 -17.775,15.975 -9.8125,0 -17.775,-7.15 -17.775,-15.975 z"
+       style="fill:none;stroke:#10253f;stroke-width:2.54999995;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       id="path4722"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -684.1269,113.85796 -195.675,-36.125 0.525,-2.8 195.6625,36.125 -0.5125,2.8 z m -188.8375,-29.9875 -9.3625,-8.05 11.6125,-4.175 c 0.75,-0.275 1.5625,0.1125 1.825,0.85 0.275,0.7375 -0.1125,1.5625 -0.85,1.825 l -9.3125,3.35 0.4375,-2.4125 7.5125,6.45 c 0.5875,0.5125 0.6625,1.4125 0.15,2.0125 -0.525,0.6 -1.4125,0.6625 -2.0125,0.15 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       id="path4724"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -794.5644,266.77046 c 0,-8.7875 7.9625,-15.9 17.775,-15.9 9.8125,0 17.775,7.1125 17.775,15.9 0,8.7875 -7.9625,15.9 -17.775,15.9 -9.8125,0 -17.775,-7.1125 -17.775,-15.9 z"
+       style="fill:#41b6c4;fill-opacity:1;fill-rule:evenodd;stroke:none"
+       id="path4726"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -794.5644,266.77046 c 0,-8.7875 7.9625,-15.9 17.775,-15.9 9.8125,0 17.775,7.1125 17.775,15.9 0,8.7875 -7.9625,15.9 -17.775,15.9 -9.8125,0 -17.775,-7.1125 -17.775,-15.9 z"
+       style="fill:none;stroke:#10253f;stroke-width:2.54999995;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       id="path4728"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -798.4144,249.74546 -118.5625,-126.9375 2.075,-1.95 118.5625,126.9375 -2.075,1.95 z m -116.725,-117.95 -2.725,-12.025 11.8125,3.5375 c 0.7625,0.225 1.1875,1.025 0.9625,1.775 -0.225,0.7625 -1.025,1.1875 -1.775,0.9625 l -9.4875,-2.85 1.8,-1.675 2.2,9.65 c 0.1625,0.7625 -0.3125,1.525 -1.075,1.7 -0.775,0.175 -1.5375,-0.3 -1.7125,-1.075 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       id="path4730"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <g
+       clip-path="url(#clipPath4736)"
+       id="g4734"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4740"
+         style="font-variant:normal;font-weight:bold;font-size:24px;font-family:Helvetica;-inkscape-font-specification:'Helvetica Bold';writing-mode:lr-tb;fill:#0070c0;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(1,0,0,-1,165.46,233.64)">
+        <tspan
+           id="tspan4742"
+           y="0"
+           x="0">A</tspan>
+      </text>
+    </g>
+    <g
+       clip-path="url(#clipPath4748)"
+       id="g4746"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4752"
+         style="font-variant:normal;font-weight:bold;font-size:24px;font-family:Helvetica;-inkscape-font-specification:'Helvetica Bold';writing-mode:lr-tb;fill:#0070c0;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(1,0,0,-1,307.8,281.64)">
+        <tspan
+           id="tspan4754"
+           y="0"
+           x="0">B</tspan>
+      </text>
+    </g>
+    <g
+       clip-path="url(#clipPath4760)"
+       id="g4758"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4764"
+         style="font-variant:normal;font-weight:bold;font-size:24px;font-family:Helvetica;-inkscape-font-specification:'Helvetica Bold';writing-mode:lr-tb;fill:#0070c0;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(1,0,0,-1,382.66,375.53)">
+        <tspan
+           id="tspan4766"
+           y="0"
+           x="0">C</tspan>
+      </text>
+    </g>
+    <path
+       inkscape:connector-curvature="0"
+       id="path4782"
+       style="fill:url(#linearGradient4770);fill-opacity:1;fill-rule:evenodd;stroke:none"
+       d="m -839.9394,388.98296 -53.175,0 0,12.4125 -24.825,-24.825 24.825,-24.825 0,12.4125 53.175,0 0,24.825 z"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <g
+       clip-path="url(#clipPath4788)"
+       id="g4786"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <path
+         inkscape:connector-curvature="0"
+         id="path4804"
+         style="fill:url(#linearGradient4792);fill-opacity:1;fill-rule:evenodd;stroke:none"
+         d="m 475.77,319.56 0,25.5 -9.93,0 19.86,19.86 19.86,-19.86 -9.93,0 0,-25.5 -19.86,0 z" />
+    </g>
+    <path
+       d="m -1016.5644,288.67046 c 0,-8.7875 7.925,-15.9 17.7,-15.9 9.775,0 17.7,7.1125 17.7,15.9 0,8.7875 -7.925,15.9 -17.7,15.9 -9.775,0 -17.7,-7.1125 -17.7,-15.9 z"
+       style="fill:#ffffcc;fill-opacity:1;fill-rule:evenodd;stroke:none"
+       id="path4806"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -1016.5644,288.67046 c 0,-8.7875 7.925,-15.9 17.7,-15.9 9.775,0 17.7,7.1125 17.7,15.9 0,8.7875 -7.925,15.9 -17.7,15.9 -9.775,0 -17.7,-7.1125 -17.7,-15.9 z"
+       style="fill:none;stroke:#10253f;stroke-width:2.54999995;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       id="path4808-4"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -968.5644,94.12046 c 0,-8.7875 7.925,-15.9 17.7,-15.9 9.775,0 17.7,7.1125 17.7,15.9 0,8.7875 -7.925,15.9 -17.7,15.9 -9.775,0 -17.7,-7.1125 -17.7,-15.9 z"
+       style="fill:#a1dab4;fill-opacity:1;fill-rule:evenodd;stroke:none"
+       id="path4810"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -968.5644,94.12046 c 0,-8.7875 7.925,-15.9 17.7,-15.9 9.775,0 17.7,7.1125 17.7,15.9 0,8.7875 -7.925,15.9 -17.7,15.9 -9.775,0 -17.7,-7.1125 -17.7,-15.9 z"
+       style="fill:none;stroke:#10253f;stroke-width:2.54999995;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       id="path4812"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <g
+       clip-path="url(#clipPath4818)"
+       id="g4816"
+       transform="matrix(1.25,0,0,-1.25,-1188.3894,562.49546)"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799">
+      <text
+         id="text4822"
+         style="font-variant:normal;font-weight:bold;font-size:24px;font-family:Helvetica;-inkscape-font-specification:'Helvetica Bold';writing-mode:lr-tb;fill:#0070c0;fill-opacity:1;fill-rule:nonzero;stroke:none"
+         transform="matrix(1,0,0,-1,156.55,388.7)">
+        <tspan
+           id="tspan4824"
+           y="0"
+           x="0">D</tspan>
+      </text>
+    </g>
+    <path
+       inkscape:connector-curvature="0"
+       id="path4828"
+       style="fill:none;stroke:#4a7ebb;stroke-width:0.90000004;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:7.2, 2.7;stroke-dashoffset:0;stroke-opacity:1"
+       d="m -1021.8019,458.95171 -0.087,-474.85625"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       inkscape:connector-curvature="0"
+       id="path4844"
+       style="fill:url(#linearGradient4832);fill-opacity:1;fill-rule:evenodd;stroke:none"
+       d="m -1021.8894,388.68296 -22.875,0 0,12.4125 -22.875,-24.825 22.875,-24.825 0,12.4125 22.875,0 0,24.825 z"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
+    <path
+       d="m -978.8394,90.44546 -27.25,0 0,2.85 27.25,0 0,-2.85 z m -19.425,-4.7875 -10.6625,6.2125 10.6625,6.2125 c 0.6875,0.4 1.55,0.175 1.95,-0.5125 0.4,-0.675 0.175,-1.55 -0.5125,-1.9375 l -8.55,-4.9875 0,2.45 8.55,-4.9875 c 0.6875,-0.3875 0.9125,-1.2625 0.5125,-1.9375 -0.4,-0.6875 -1.2625,-0.9125 -1.95,-0.5125 z"
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       id="path4846"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Publications\Commentary - Timmons et al\well-being pathways.png"
+       inkscape:export-xdpi="799"
+       inkscape:export-ydpi="799" />
   </g>
 </svg>

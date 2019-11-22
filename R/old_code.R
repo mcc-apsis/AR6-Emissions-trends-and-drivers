@@ -1,3 +1,62 @@
+### Regional per capita trends (Figure 6)
+
+```{r percapita_trends, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="Results/Plots/",dev=c('png','pdf')}
+
+######
+# load('../Data/edgar.RData')
+# load('../Data/basic.RData')
+# 
+# edgar_GHG <- left_join(edgar_GHG,basic %>% select(ISO,pop_UN,Year,gdp_real_WB),by=c("ISO"="ISO","year"="Year"))
+# 
+# ######
+# 
+# region <- edgar_GHG %>% 
+#   filter(year>1969 & year<2018) %>% 
+#   select(year,region_wb,country,GHG,gdp_real_WB,pop_UN) %>% 
+#   group_by(year,country,region_wb) %>% 
+#   summarise(GHG=sum(GHG,na.rm=T),pop_UN=first(pop_UN),gdp_real_WB=first(gdp_real_WB)) %>% 
+#   group_by(year,region_wb) %>% 
+#   summarise(ghg_total = sum(GHG,na.rm=T)*1000,pop=sum(pop_UN,na.rm=T),gdp=sum(gdp_real_WB,na.rm=T)) %>% 
+#   mutate(ghg_pc = ghg_total/pop,ghg_gdp = ghg_total/gdp)
+#   
+# ## per capita ghg emissions (line chart)
+# p3 <- region %>% 
+#   filter(!is.na(region_wb)) %>% 
+#   ggplot(.,aes(x=year,y=ghg_pc,colour=region_wb)) +
+#   ylab('GHG Emissions per capita (tCO2eq/capita/yr)') +
+#   geom_path(size=1) +
+#   theme_bw() +
+#   theme(legend.position = c(0.12,0.8),
+#         legend.title=element_blank(),
+#         legend.background = element_blank(),
+#         axis.title.x = element_blank())
+# 
+# ## ghg emissions per gdp (line chart)
+# p4 <- region %>% 
+#   filter(!is.na(region_wb)) %>% 
+#   ggplot(.,aes(x=year,y=ghg_gdp,colour=region_wb)) +
+#   ylab('GHG Emissions per $GDP (tCO2eq/$/yr)') +
+#   theme_bw() +
+#   geom_path(size=1) +
+#   theme(legend.title = element_blank(), legend.position = "none",
+#         axis.title.x = element_blank())
+# 
+# 
+# #ggarrange(p1, p2, p3, p4, nrow=2,ncol=2)
+# ggarrange(p3,p4,nrow=1,ncol=2)
+# 
+# xlsx::write.xlsx(as.data.frame(region),file=paste("Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName = "per_capita_trends",append=T,row.names=FALSE)
+
+
+```
+
+
+
+
+
+
+
+
 
 ## this was in category_mapping, not sure what for
 

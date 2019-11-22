@@ -7,35 +7,40 @@ library(tidyverse)
 
 ########### load sheets ########### 
 
-edgar_CO2 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
-                                 sheet='CO2',startRow=10)
-edgar_CO2 <- edgar_CO2[1:57]
+edgar_CO2 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/INPUT_IPCC_WG3_EDGAR_v5.0_FT2018_CO2_GHG_AR4_AR5.xlsx',
+                                 sheet='CO2_FT2018',startRow=5)
+names(edgar_CO2) <- gsub(x = names(edgar_CO2), pattern = "Y_", replacement = "")  
+
 edgar_CO2 <- gather(edgar_CO2,Year,Value,'1970':'2017') %>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,CO2 = Value)
+  select(ISO_A3=Country_code_A3,Year,IPCC.detailed=IPCC_for_std_report_detailed,IPCC_detailed_description=IPCC_for_std_report_detailed_desc,CO2 = Value)
 
-edgar_CH4 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
-                                 sheet='CH4',startRow=10)
-edgar_CH4 <- edgar_CH4[1:57]
-edgar_CH4 <- gather(edgar_CH4,Year,Value,'1970':'2017') %>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,CH4 = Value)
 
-edgar_N2O <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
-                                 sheet='N2O',startRow=10)
-edgar_N2O <- edgar_N2O[1:58]
-edgar_N2O <- gather(edgar_N2O,Year,Value,'1970':'2017') %>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,N2O = Value)
 
-edgar_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR GHG.xlsx',
-                                  sheet='Fgas2',rows=10:1717)
+edgar_CH4 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/INPUT_IPCC_WG3_EDGAR_v5.0_FT2018_CO2_GHG_AR4_AR5.xlsx',
+                                 sheet='CH4',startRow=5)
+names(edgar_CH4) <- gsub(x = names(edgar_CH4), pattern = "Y_", replacement = "")  
 
-edgar_Fgas <- edgar_Fgas[1:58]
-edgar_Fgas <- gather(edgar_Fgas,Year,Value,'1970':'2017')%>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,Gas,Fgas = Value)
+edgar_CH4 <- gather(edgar_CH4,Year,Value,'1970':'2015') %>% 
+  select(ISO_A3=Country_code_A3,Year,IPCC.detailed=IPCC_for_std_report_detailed,IPCC_detailed_description=IPCC_for_std_report_detailed_desc,CH4 = Value)
 
-########### merge all Fgas into single indicator ########### 
-edgar_Fgas <- edgar_Fgas %>% 
-  group_by(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description) %>% 
-  summarise(Fgas=sum(Fgas))
+
+
+edgar_N2O <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/INPUT_IPCC_WG3_EDGAR_v5.0_FT2018_CO2_GHG_AR4_AR5.xlsx',
+                                 sheet='N2O',startRow=5)
+names(edgar_N2O) <- gsub(x = names(edgar_N2O), pattern = "Y_", replacement = "")  
+
+edgar_N2O <- gather(edgar_N2O,Year,Value,'1970':'2015') %>% 
+  select(ISO_A3=Country_code_A3,Year,IPCC.detailed=IPCC_for_std_report_detailed,IPCC_detailed_description=IPCC_for_std_report_detailed_desc,N2O = Value)
+
+
+
+edgar_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/INPUT_IPCC_WG3_EDGAR_v5.0_FT2018_CO2_GHG_AR4_AR5.xlsx',
+                                  sheet='GWP_100_AR5_Fgases',startRow=5)
+names(edgar_Fgas) <- gsub(x = names(edgar_Fgas), pattern = "Y_", replacement = "")  
+
+edgar_Fgas <- gather(edgar_Fgas,Year,Value,'1990':'2015')%>% 
+  select(ISO_A3=Country_code_A3,Year,IPCC.detailed=IPCC_for_std_report_detailed,IPCC_detailed_description=IPCC_for_std_report_detailed_desc,Fgas = Value)
+
 
 ########### join sheets ########### 
 
@@ -51,6 +56,9 @@ rm(edgar_CO2,edgar_CH4,edgar_Fgas,edgar_N2O)
 edgar_categories <- edgar_GHG %>% 
   select(code=IPCC.detailed,EDGAR_description=IPCC_detailed_description) %>% 
   distinct(code,.keep_all = TRUE)
+
+edgar_categories <- edgar_categories %>% 
+  arrange(code)
 
 ipcc_ar2_categories <- read.xlsx('Data/IPCC_AR4_2_sector_mapping.xlsx',sheetName='1996') %>% 
   select(IPCC.1996.Code,IPCC.1996.Name) %>% 
@@ -131,8 +139,12 @@ diss_list <- left_join(diss_list,category_6,by=c("handle_6"="code"))
 ipcc_categories <- diss_list %>% 
   select(-handle_1,-handle_2,-handle_3,-handle_4,-handle_5,-handle_6)
 
+ipcc_categories <- ipcc_categories %>% 
+  distinct(code,.keep_all = TRUE)
+
 ipcc_categories <- left_join(ipcc_categories,master_list %>% select(code,IPCC_AR6_chapter),by=("code"="code")) %>%
   select(code,IPCC_AR6_chapter,description=combined_category,description_source=source,everything()) %>% 
+  distinct(code,.keep_all=TRUE) %>% 
   arrange(IPCC_AR6_chapter)
 
 write.xlsx(ipcc_categories,'Results/IPCC_master_categories.xlsx',sheetName='chapter_list',row.names = FALSE,append=T)

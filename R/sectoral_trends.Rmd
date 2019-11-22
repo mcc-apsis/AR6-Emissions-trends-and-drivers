@@ -69,21 +69,19 @@ summary_text <- function(ch,fraction,trend) {
 
 ```{r total_sector_trends,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
-########### create totals ###########
 load('../Data/edgar.RData')
-
-# totals <- edgar_GHG %>% 
-#   group_by(ISO,Year,WB.income,Country) %>% 
-#   summarise(CO2=sum(CO2,rm.na=T),CH4=sum(CH4,rm.na=T),N2O=sum(N2O,rm.na=T),Fgas=sum(Fgas,rm.na=T),GHG=sum(GHG,rm.na=T)) %>% 
-#   mutate(sector_code="Total",category_final="Total",category_1="Total",category_2="Total",category_3="Total",IPCC_AR5_chapter=0,IPCC_AR5_sector=0) %>% 
-#   select(ISO,sector_code,category_final,category_1,category_2,category_3,Year,CO2,CH4,N2O,Fgas,GHG,Country,WB.income,IPCC_AR5_chapter,IPCC_AR5_sector)
-# 
-# edgar_GHG <- edgar_GHG %>% 
-#   bind_rows(totals)
 
 ########### Trend figure ###########
 
-trend <- trend_figure(2010,"sector_code","Total","GHG",edgar_GHG)
+totals <- edgar_GHG %>% 
+  filter(year>1989) %>% 
+  filter(year<2018) %>% 
+  group_by(ISO,country,year,region_ar6_5,region_ar6_10,region_ar6_22,region_ar6_dev) %>% 
+  summarise_at(c("CO2","CH4","N2O","Fgas","GHG"),sum,na.rm=TRUE) %>% 
+  mutate(chapter=0,sector_code="Total",description="Total",category_1="Total",category_2="Total",category_3="Total")
+
+  
+trend <- trend_figure(2010,"sector_code","Total","GHG",totals,big_trend_theme)
 p1 <- trend$plot
 p1 <- p1 + ggtitle("A. Trend in total emissions and income classification ")
 d1 <- trend$data

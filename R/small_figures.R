@@ -8,7 +8,7 @@
 bar_figure <- function(category,sector,gas,edgar_GHG) {
   
   data <- edgar_GHG %>% 
-    filter(Year==2017) %>% 
+    filter(year==2017) %>% 
     group_by(chapter) %>% 
     summarise_at(gas,sum) %>% 
     filter(!is.na(chapter)) %>% 
@@ -69,53 +69,121 @@ make_table <- function(data) {
 }
 
 
+######## location of % shares in stacked figures
+
+locate_shares <- function(data,grouping,years){
+
+  shares <- data %>%
+    arrange_at(vars(`year`,grouping)) %>%
+    mutate(location=value/2)
+  
+  z = nrow(unique(shares[,grouping]))
+  
+  for (j in seq(0,z*(years-1),z)) {
+    # for every region
+    for (i in 1:z) {
+      if (i != z) {
+        shares$location[i+j] = shares$location[i+j] + sum(shares$value[i+1+j:(z-i+j-1)])
+        #shares$location[i] = shares$location[i] + sum(shares$value[i+1:(z-i))])
+        
+      }
+    }
+  }
+
+  return(shares)
+}
+
+
+######## set themes
+
+big_trend_theme <- theme_bw() +
+  theme(axis.title.x = element_blank(),
+        text = element_text(size=11),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        plot.title = element_text(size = 12))
+
+
+addLevel <- function(x, newlevel=NULL) {
+  if(is.factor(x)) {
+    if (is.na(match(newlevel, levels(x))))
+      return(factor(x, levels=c(levels(x), newlevel)))
+  }
+  return(x)
+}
+
+
 
 ######## trend figure
 
-trend_figure <- function(time_start,category,sector,gas,edgar_GHG) {
+time_start=2010
+category = "sector_code"
+sector="Total"
+gas="GHG"
+region="region_ar6_5"
+
+
+
+
+trend_figure <- function(time_start,category,sector,gas,edgar_GHG,big_trend_theme) {
   
-  data <- edgar_GHG %>%
+  data <- totals %>%
     filter_at(vars(category),all_vars(.==sector)) %>% 
-    filter(!is.na(WB.income)) %>%
-    group_by(WB.income,Year) %>% 
+    filter(!is.na(region_ar6_5)) %>%
+    group_by(year,region_ar6_5) %>% 
     summarise_at(gas,sum,na.rm=TRUE) %>% 
     rename_at(gas,funs(sprintf('value'))) %>% 
     mutate(value=value/1e6)
   
-  shares <- data %>% 
-    filter(Year %in% c(1970,1980,1990,2000,2010,2017)) %>% 
-    group_by(Year) %>% 
-    mutate(totals=sum(value)) %>% 
-    ungroup() %>% 
-    group_by(Year,WB.income) %>% 
-    mutate(fractions=(value/totals)*100)
   
-  shares <- shares %>%
-    arrange(Year)
   
-  for (i in seq(1,24,4)) {
-    
-    shares$location[i] = (shares$value[i]/2) + shares$value[i+1] + shares$value[i+2] + shares$value[i+3]
-    shares$location[i+1] = (shares$value[i+1]/2) + shares$value[i+2] + shares$value[i+3]
-    shares$location[i+2] = (shares$value[i+2]/2) + shares$value[i+3]
-    shares$location[i+3] = (shares$value[i+3]/2)
-    
-  }
+  # shares <- data %>% 
+  #   filter(year %in% c(1990,2000,2010,2017)) %>% 
+  #   group_by(year) %>% 
+  #   mutate(totals=sum(value)) %>% 
+  #   ungroup() %>% 
+  #   group_by(year,region_ar6_5) %>%  
+  #   mutate(fractions=(value/totals)*100)
+  # 
+  # shares <- shares %>%
+  #   arrange(year) %>%
+  #   mutate(location=value/2)
+  # 
+  # z = length(unique(shares$region_ar6_5))
+  # 
+  # for (j in seq(0,z*4,z)) {
+  #  # for every region
+  #   for (i in 1:z) {
+  #       if (i != seq(z,z*4,z)) {
+  #         shares$location[i+j] = shares$location[i+j] + sum(shares$value[i+1+j:(z-i+j-1)])
+  #         #shares$location[i] = shares$location[i] + sum(shares$value[i+1:(z-i))])
+  # 
+  #       }
+  #   }
+  # }
+  
+  
+  # for (i in seq(1,24,4)) {
+  #   
+  #   shares$location[i] = (shares$value[i]/2) + shares$value[i+1] + shares$value[i+2] + shares$value[i+3]
+  #   shares$location[i+1] = (shares$value[i+1]/2) + shares$value[i+2] + shares$value[i+3]
+  #   shares$location[i+2] = (shares$value[i+2]/2) + shares$value[i+3]
+  #   shares$location[i+3] = (shares$value[i+3]/2)
+  #   
+  # }
   
   p <- data %>%
-    ggplot(.,aes(x=Year,y=value,fill=WB.income)) +
+    ggplot(.,aes(x=year,y=value,fill=region_ar6_5)) +
     geom_area(color='#737373') +
-    geom_text(data=shares,aes(x=Year,y=location,label=paste(round(fractions,0),"%",sep="")))+
-    geom_vline(xintercept=c(1970,1980,1990,2000,2010,2017),alpha=0.3,linetype="dashed") +
-    theme_bw() +
+    #geom_text(data=shares,aes(x=year,y=location,label=paste(round(fractions,0),"%",sep="")))+
+    geom_vline(xintercept=c(1990,2000,2010,2017),alpha=0.3,linetype="dashed") +
+    big_trend_theme +
     ggtitle("B. Sector trend by income group") +
     theme(legend.justification=c(0,1), 
           legend.position=c(0.05, 0.97),
           legend.title=element_blank(),
           legend.background = element_blank(),
-          legend.spacing.x = unit(0.2,'cm'),
-          axis.title.x = element_blank(),
-          plot.title = element_text(size = 12)) +
+          legend.spacing.x = unit(0.2,'cm')) +
     ylab(bquote(.(gas) ~" Emissions (Gt" ~CO[2]* "eq)"))
   
   return(list("plot"=p,"data"=data))

@@ -19,34 +19,34 @@ library(tidyverse)
 
 ########### load sheets ########### 
 
-edgar_CO2 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
+edgar_CO2 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/dump/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
                                  sheet='CO2',startRow=10)
 edgar_CO2 <- edgar_CO2[1:57]
 edgar_CO2 <- gather(edgar_CO2,Year,Value,'1970':'2017') %>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,CO2 = Value)
+  select(ISO_A3,Year,EDGAR_country=Name,IPCC.detailed,IPCC_detailed_description,CO2 = Value)
 
-edgar_CH4 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
+edgar_CH4 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/dump/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
                                  sheet='CH4',startRow=10)
 edgar_CH4 <- edgar_CH4[1:57]
 edgar_CH4 <- gather(edgar_CH4,Year,Value,'1970':'2017') %>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,CH4 = Value)
+  select(ISO_A3,Year,EDGAR_country=Name,IPCC.detailed,IPCC_detailed_description,CH4 = Value)
 
-edgar_N2O <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
+edgar_N2O <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/dump/19-06-14-v2fin-EDGAR GHG FT2017, main tables for IPCC.XLSX',
                                  sheet='N2O',startRow=10)
 edgar_N2O <- edgar_N2O[1:58]
 edgar_N2O <- gather(edgar_N2O,Year,Value,'1970':'2017') %>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,N2O = Value)
+  select(ISO_A3,Year,EDGAR_country=Name,IPCC.detailed,IPCC_detailed_description,N2O = Value)
 
-edgar_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR GHG.xlsx',
+edgar_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/dump/EDGAR GHG.xlsx',
                                   sheet='Fgas2',rows=10:1717)
 
 edgar_Fgas <- edgar_Fgas[1:58]
 edgar_Fgas <- gather(edgar_Fgas,Year,Value,'1970':'2017')%>% 
-  select(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description,Gas,Fgas = Value)
+  select(ISO_A3,Year,EDGAR_country=Name,IPCC.detailed,IPCC_detailed_description,Gas,Fgas = Value)
 
 ########### merge all Fgas into single indicator ########### 
 edgar_Fgas <- edgar_Fgas %>% 
-  group_by(ISO_A3,Year,IPCC.detailed,IPCC_detailed_description) %>% 
+  group_by(ISO_A3,Year,EDGAR_country,IPCC.detailed,IPCC_detailed_description) %>% 
   summarise(Fgas=sum(Fgas))
 
 ########### join sheets ########### 
@@ -61,6 +61,13 @@ edgar_GHG <- edgar_GHG %>%
   mutate(CH4 = CH4 *28/25) %>% 
   mutate(N2O = N2O *265/298)
 
+### convert to tCO2
+edgar_GHG <- edgar_GHG %>% 
+  mutate(CO2 = CO2*1000) %>% 
+  mutate(CH4 = CH4*1000) %>% 
+  mutate(N2O = N2O*1000) %>% 
+  mutate(Fgas = Fgas*1000)
+
 ########### calculate total GHG ########### 
 edgar_GHG <- edgar_GHG %>% 
   group_by(ISO_A3,Year,IPCC.detailed) %>% 
@@ -70,7 +77,8 @@ edgar_GHG <- edgar_GHG %>%
 
 rm(edgar_CH4,edgar_CO2,edgar_Fgas,edgar_N2O)
 
-########### join categories to EDGAR ########### 
+
+########### join source categories from compilation (see category_mapping.R) ########### 
 
 load('Data/ipcc_categories.RData')
 
@@ -79,14 +87,24 @@ edgar_GHG <- left_join(edgar_GHG,ipcc_categories %>% select(code,description,cat
 edgar_GHG <- edgar_GHG %>% 
   select(ISO=ISO_A3,sector_code=IPCC.detailed,chapter=IPCC_AR6_chapter,description,category_1,category_2,category_3,Year,everything(),-IPCC_detailed_description)
 
-########### join World Bank income classification and categories developed by Jan ########### 
+########### join country names and World Bank income classification ########### 
 
 codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
-edgar_GHG <- left_join(edgar_GHG,codes %>% select(Country,Code,WB.income),by=c("ISO"="Code"))
+edgar_GHG <- left_join(edgar_GHG,codes %>% select(name,alpha.3,WB.income),by=c("ISO"="alpha.3"))
 edgar_GHG$WB.income <- as.factor(edgar_GHG$WB.income)
 edgar_GHG$WB.income <- factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
-rm(codes)
 
+## identify additional countries in EDGAR
+
+missing <- edgar_GHG %>% 
+  filter(is.na(name)) %>% 
+  select(ISO) %>% 
+  unique()
+
+edgar_GHG <- edgar_GHG %>% 
+  mutate(name=ifelse(is.na(name),EDGAR_country,name))
+
+rm(codes)
 ########### allocate World Bank NAs to low income ########### 
 
 edgar_GHG <- edgar_GHG %>% 
@@ -95,16 +113,39 @@ edgar_GHG <- edgar_GHG %>%
 edgar_GHG$WB.income = factor(edgar_GHG$WB.income,levels(edgar_GHG$WB.income)[c(1,4,3,2)])
 
 
-########### calculate total sector emissions ########### 
 
-totals <- edgar_GHG %>% 
-  group_by(ISO,Year,WB.income,Country) %>% 
-  summarise(CO2=sum(CO2,rm.na=T),CH4=sum(CH4,rm.na=T),N2O=sum(N2O,rm.na=T),Fgas=sum(Fgas,rm.na=T),GHG=sum(GHG,rm.na=T)) %>% 
-  mutate(sector_code="Total",category_final="Total",category_1="Total",category_2="Total",category_3="Total",IPCC_AR5_chapter=0,IPCC_AR5_sector=0) %>% 
-  select(ISO,sector_code,category_final,category_1,category_2,category_3,Year,CO2,CH4,N2O,Fgas,GHG,Country,WB.income,IPCC_AR5_chapter,IPCC_AR5_sector)
+########### join country categorisation from WGIII TSU ###########
+
+load('Data/tsu_codes.R')
+
+edgar_GHG <- left_join(edgar_GHG,tsu_codes %>% select(-name),by=c("ISO"="ISO"))
+
+missing <- edgar_GHG %>% 
+  filter(is.na(region_ar6_5) | is.na(region_ar6_10) | is.na(region_ar6_22) | is.na(region_ar6_dev)) #%>% 
+#  select(ISO,name) %>% 
+#  unique()
 
 edgar_GHG <- edgar_GHG %>% 
-  bind_rows(totals)
+  mutate(region_ar6_5 = as.character(region_ar6_5)) %>% 
+  mutate(region_ar6_10 = as.character(region_ar6_10)) %>% 
+  mutate(region_ar6_22 = as.character(region_ar6_22)) %>% 
+  mutate(region_ar6_dev = as.character(region_ar6_dev)) 
+
+edgar_GHG$region_ar6_5[edgar_GHG$ISO=="AIR"] <- "Intl. Aviation"
+edgar_GHG$region_ar6_10[edgar_GHG$ISO=="AIR"] <- "Intl. Aviation"
+edgar_GHG$region_ar6_22[edgar_GHG$ISO=="AIR"] <- "Intl. Aviation"
+edgar_GHG$region_ar6_dev[edgar_GHG$ISO=="AIR"] <- "Intl. Aviation"
+
+edgar_GHG$region_ar6_5[edgar_GHG$ISO=="SEA"] <- "Intl. Shipping"
+edgar_GHG$region_ar6_10[edgar_GHG$ISO=="SEA"] <- "Intl. Shipping"
+edgar_GHG$region_ar6_22[edgar_GHG$ISO=="SEA"] <- "Intl. Shipping"
+edgar_GHG$region_ar6_dev[edgar_GHG$ISO=="SEA"] <- "Intl. Shipping"
 
 
-save(edgar_GHG,file='Data/edgar.RData')
+############## tidying up 
+
+edgar_GHG_old <- edgar_GHG %>% 
+  select(ISO,country=name,region_ar6_5,region_ar6_10,region_ar6_22,region_ar6_dev,year=Year,chapter,sector_code,description,category_1,category_2,category_3,CO2:GHG)
+
+
+save(edgar_GHG_old,file='Data/edgar_old.RData')
