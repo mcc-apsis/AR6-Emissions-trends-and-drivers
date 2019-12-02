@@ -38,7 +38,10 @@ edgar_GHG$region_ar6_5_short <- as.factor(edgar_GHG$region_ar6_5_short)
 edgar_GHG$region_ar6_5_short <- factor(edgar_GHG$region_ar6_5_short,levels(edgar_GHG$region_ar6_5_short)[c(1,7,2,3,4,5,6)])
 
 # set palette
-ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+#ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+ipcc_palette <- c("#737373","#737373","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854");
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_plot_data_",Sys.Date()))
 
 
 ```
@@ -47,7 +50,7 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2"
 
 ### Figure 1: GHG emissions by gas
 
-```{r Fig1_trend, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="Results/Plots/",dev=c('png','pdf')}
+```{r Fig1_trend, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 ######### load Jan data ######### 
 
@@ -188,9 +191,9 @@ plot <- ggarrange(p1,p3,p4,nrow=1,ncol=3,widths = c(0.8,0.1,0.1),align = "h")
 plot <- ggarrange(plot,p2,nrow=2,ncol=1,heights = c(0.7,0.3),align="v")
 plot 
 
-#plot_data <- spread(plot_data,year,value)
 
-#xlsx::write.xlsx(as.data.frame(plot_data),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName = "Total_GHG_gas",append=T,row.names=FALSE)
+openxlsx::addWorksheet(wb,"Fig1_trend")
+openxlsx::writeData(wb, sheet = "Fig1_trend", spread(plot_data,year,value), colNames = T, rowNames = F)
 
 
 ```
@@ -198,7 +201,7 @@ plot
 ### Figure 2: Long term CO2 emissions sources and sinks
 
 
-```{r Fig2_budget, echo=FALSE,warning=FALSE,fig.width=10,fig.height=6,fig.path="Results/Plots/",dev=c('png','pdf')}
+```{r Fig2_budget, echo=FALSE,warning=FALSE,fig.width=10,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 ######### load the global carbon budget ######### 
 
@@ -299,19 +302,25 @@ p4<- ggarrange(p2,p3,ncol=2,widths=c(1,2))
 p <- ggarrange(p1,p4,nrow=2)
 p
 
-#budget_data <- spread(budget_data,year,value)
 
-#xlsx::write.xlsx(as.data.frame(budget_data),file=paste("Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName = "CO2_budget",append=T,row.names=FALSE)
+
+openxlsx::addWorksheet(wb,"Fig2_budget")
+openxlsx::writeData(wb, sheet = "Fig2_budget", spread(budget_data,year,value), colNames = T, rowNames = F)
+
 
 ```
 
 
 ### Figure 5: Total GHGs, split by region
 
-```{r Fig5_ghgs_region, echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="Results/Plots/",dev=c('png','pdf')}
+```{r Fig5_ghgs_region, echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+source("decomp_figure_countries.R")
+ipcc_palette <- c("#737373","#737373","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854");
+
 
 plot_data <- edgar_GHG %>%
-  group_by(year,region_ar6_5_short) %>% 
+  group_by(year,region_ar6_5) %>% 
   summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
   filter(year>1989) %>% 
   filter(year<2018)
@@ -321,41 +330,38 @@ shares <- plot_data %>%
   group_by(year) %>% 
   mutate(totals=sum(value)) %>% 
   ungroup() %>% 
-  group_by(year,region_ar6_5_short) %>% 
+  group_by(year,region_ar6_5) %>% 
   mutate(fractions=(value/totals)*100)
 
-shares <- locate_shares(shares,"region_ar6_5_short",4)
+shares <- locate_shares(shares,"region_ar6_5",4)
 
 p1 <- plot_data %>%
-  ggplot(.,aes(x=year,y=value,fill=region_ar6_5_short)) +
+  ggplot(.,aes(x=year,y=value,fill=region_ar6_5)) +
+  scale_fill_manual(values=ipcc_palette) +
+  scale_color_manual(values=ipcc_palette) +
   geom_area() +
   geom_text(data=shares,aes(x=year,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
+  geom_text(data=shares %>% filter(year==2017),aes(x=2018,y=location,label=region_ar6_5,color=region_ar6_5,hjust=0)) +
   geom_vline(xintercept=c(1990,2000,2010,2017),alpha=0.3,linetype="dashed") +
   
   labs(fill="Gas") +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
-  scale_x_continuous(breaks=c(1990,2000,2010,2017)) +
-  
+  scale_x_continuous(breaks=c(1990,2000,2010,2017),limits = c(1990,2025)) +
   big_trend_theme +
-  theme(legend.justification=c(0,1), 
-        legend.position=c(0.05, 0.97),
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.spacing.x = unit(0.2,'cm')) +
-  ylab('GHG Emissions \n(GtCO2eq/yr)')
+  theme(legend.position="none") +
+  #      legend.justification=c(0,1), 
+  #      legend.position=c(0.05, 0.97),
+  #      legend.title=element_blank(),
+  #      legend.background = element_blank(),
+  #      legend.spacing.x = unit(0.2,'cm')) +
+  ylab('GHG Emissions (GtCO2eq/yr)')
   
 
 ########### Decomposition figure ###########
 
-totals <- edgar_GHG %>% 
-  filter(year>1989) %>% 
-  filter(year<2018) %>% 
-  group_by(ISO,country,year,region_ar6_5,region_ar6_10,region_ar6_22,region_ar6_dev,region_ar6_5_short) %>% 
-  summarise_at(c("CO2","CH4","N2O","Fgas","GHG"),sum,na.rm=TRUE) %>% 
-  mutate(chapter=0,sector_code="Total",description="Total",category_1="Total",category_2="Total",category_3="Total")
 
 load('../Data/basic.RData')
-decomp <- decomp_figure_countries(2010,'sector_code','Total','GHG',totals,basic)
+decomp <- decomp_figure_countries(2010,'GHG',edgar_GHG,basic)
 
 
 
@@ -365,30 +371,27 @@ p3 <- ggarrange(decomp$pc_plot,decomp$pgdp_plot,ncol=2,nrow=1)
 # p2 <- annotate_figure(p2,
 #   top = text_grob("B. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
 
-plot <- ggarrange(p1,p2,p3,ncol=1,nrow=3,heights=c(0.2,0.3,0.3))
+plot <- ggarrange(p1,p2,p3,ncol=1,nrow=3,heights=c(0.3,0.35,0.35))
 plot
 
 
 ##########
 
+openxlsx::addWorksheet(wb,"Fig5_ghgs_region")
+openxlsx::writeData(wb, sheet = "Fig5_ghgs_region", spread(plot_data,year,value), colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,"Fig5_ghgs_countries")
+openxlsx::writeData(wb, sheet = "Fig5_ghgs_countries", decomp$data, colNames = T, rowNames = F)
 
-
-
-
-#plot_data <- spread(plot_data,year,value)
-
-#xlsx::write.xlsx(as.data.frame(plot_data),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName = "Total_GHGs_Income",row.names=FALSE)
 
 ```
 
 
-
-
 ### Figure 9: Total GHGs, split by sector
 
-```{r Fig9_sectors, echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="Results/Plots/",dev=c('png','pdf')}
+```{r Fig9_sectors, echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 load('../Data/edgar.RData')
+source("decomp_figure_sectors.R")
 
 edgar_GHG <- left_join(edgar_GHG,sectors %>% select(chapter_title=value,everything()),by=c("chapter"="key"))
 
@@ -437,18 +440,19 @@ p1 <- plot_data %>%
   ggplot(.,aes(x=year,y=value,fill=chapter_title)) +
   geom_area() +
   geom_text(data=shares,aes(x=year,y=location,label=paste(round(fractions,0),"%",sep="")))+
+  geom_text(data=shares %>% filter(year==2017),aes(x=2018,y=location,label=chapter_title,color=chapter_title,hjust=0)) +
   geom_vline(xintercept=c(1990,2000,2010,2017),alpha=0.3,linetype="dashed") +
   ylab("GHG emissions (GtCO2eq/yr)") +
   
   labs(fill="Sector") +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
-  scale_x_continuous(breaks=c(1990,2000,2010,2017)) +
+  scale_x_continuous(breaks=c(1990,2000,2010,2017),limits=c(1990,2023)) +
+  
+  scale_fill_manual(values=ipcc_palette[3:7]) +
+  scale_color_manual(values=ipcc_palette[3:7]) +
   
   big_trend_theme +
-  theme(axis.title.x = element_blank(),
-          legend.position = c(0.12,0.8),
-        legend.title=element_blank(),
-        legend.background = element_blank())
+  theme(legend.position="none")
 
 
 ######## subsectors
@@ -457,17 +461,91 @@ decomp <- decomp_figure_sectors(2010,'GHG',edgar_GHG)
 
 
   
-p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=1,nrow=2)
 
-plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
+plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.3,0.7))
 plot
 
-  
-# xlsx::write.xlsx(as.data.frame(plot_data),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName = "Total_GHGs_Sector",append=TRUE,row.names=FALSE)
+
+openxlsx::addWorksheet(wb,"Fig9_sectors")
+openxlsx::writeData(wb, sheet = "Fig9_sectors", spread(plot_data,year,value), colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,"Fig9_subsectors")
+openxlsx::writeData(wb, sheet = "Fig9_subsectors", decomp$data, colNames = T, rowNames = F)
 
 
 ```
 
+### Figure PROPOSAL: Individual gases, split by region
+
+```{r Figx_region_gas, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 
+plot_data <- edgar_GHG %>% 
+  filter(year>1989) %>% 
+  filter(year<2018) %>% 
+  filter(region_ar6_5!="Intl. Aviation") %>% 
+  filter(region_ar6_5!="Intl. Shipping") %>% 
+  group_by(year,region_ar6_5) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=TRUE)
 
+plot_data <- gather(plot_data,key,value,CO2:GHG) %>% 
+  mutate(value=value/1e9)
+
+# plot_data %>% 
+#   ggplot(.,aes(x=year,y=value,color=key)) +
+#   geom_line(size=1) +
+#   theme_bw +
+#   ylab("GHG Emissions (Gt CO2eq)") +
+#   facet_grid(key~region_ar6_5,scales="free",labeller = label_wrap_gen(width=12)) +
+#   theme(axis.title.x = element_blank(),
+#         legend.position="none",
+#         axis.title.y = element_text(margin = margin(r = 10)))
+  
+plot_data %>% 
+  ggplot(.,aes(x=year,y=value,color=key)) +
+  geom_line(size=1) +
+  theme_bw +
+  ylab("GHG Emissions (Gt CO2eq)") +
+  facet_wrap(region_ar6_5~.,scales="free",labeller = label_wrap_gen(width=20),nrow=2) +
+  theme(axis.title.x = element_blank(),
+        legend.position = c(0.8,0.2),
+        axis.title.y = element_text(margin = margin(r = 10)))
+  
+
+
+```
+
+### Figure PROPOSAL: GHGs by sector, split by region
+
+```{r Figx_region_sector, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+
+plot_data <- edgar_GHG %>% 
+  filter(year>1989) %>% 
+  filter(year<2018) %>% 
+  filter(region_ar6_5!="Intl. Aviation") %>% 
+  filter(region_ar6_5!="Intl. Shipping") %>% 
+  group_by(year,region_ar6_5,chapter) %>% 
+  summarise_at(vars(GHG),sum,na.rm=TRUE) %>% 
+  mutate(GHG=GHG/1e9)
+
+plot_data <- left_join(plot_data,sectors %>% select(chapter_title=value,everything()),by=c("chapter"="key"))
+
+plot_data %>% 
+  ggplot(.,aes(x=year,y=GHG,color=chapter_title)) +
+  geom_line(size=1) +
+  theme_bw +
+  ylab("GHG Emissions (Gt CO2eq)") +
+  facet_wrap(region_ar6_5~.,scales="free",labeller = label_wrap_gen(width=20),nrow=2) +
+  theme(axis.title.x = element_blank(),
+        legend.position = c(0.8,0.3),
+        axis.title.y = element_text(margin = margin(r = 10)))
+  
+```
+
+``` {r write_data,include=FALSE,echo=FALSE}
+
+openxlsx::saveWorkbook(wb,"../Results/Data/ipcc_plot_data.xlsx",overwrite=T)
+
+
+```

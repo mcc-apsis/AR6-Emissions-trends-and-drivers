@@ -1,22 +1,16 @@
 ######## decomposition figure (BY COUNTRIES)
 
-# time_start=2010
-# category='sector_code'
-# sector='Total'
-# gas='GHG'
-# edgar_GHG <- totals
+time_start=2010
+gas='GHG'
 
-decomp_figure_countries <- function(time_start,category,sector,gas,edgar_GHG,basic) {
+
+decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
   
-  # set palette
-  ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
-  
+  ipcc_palette <- c("#737373","#737373","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854");
   
   ##############  calculate growth rates in given time period ############## 
   
   rates <- edgar_GHG %>% 
-    filter_at(vars(category),all_vars(.==sector)) %>% 
-    filter(!is.na(region_ar6_5_short)) %>% 
     filter(year>=time_start & year<2018) %>% 
     group_by(country,ISO,year,region_ar6_5_short) %>% 
     summarise_at(gas,sum,na.rm=TRUE) %>% 
@@ -117,31 +111,43 @@ decomp_figure_countries <- function(time_start,category,sector,gas,edgar_GHG,bas
   rates <- rates %>% 
     ungroup()
   
+  plot_theme <- theme_bw() +
+    theme(axis.title.y = element_blank(),
+          axis.title.x = element_blank(),
+          plot.title = element_text(size = 11,color="#737373"),
+          panel.grid.minor.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          legend.position="none",
+          text = element_text(size=11,color="#737373"))
+  
   #rate
   p1 <- rates %>% 
     filter(var=="rate") %>% 
     ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_5_short)) +
     geom_bar(stat='identity') + 
-    ylab(bquote(atop("Rate of change in" ~.(gas) ~ "Emissions","(%),"~.(time_start)*"-2017"))) +
+    #ylab(bquote(atop("Rate of change in" ~.(gas) ~ "Emissions","(%),"~.(time_start)*"-2017"))) +
     #ylab(paste("Rate of change in ",gas," Emissions (%),\n",time_start,"-2017",sep="")) +
     coord_flip() +
-    theme_bw() +
-    theme(legend.position="none",
-          axis.title.y = element_blank(),
-          plot.title = element_text(size = 12)) 
-  
+    scale_fill_manual(values = ipcc_palette) +
+    annotate(geom = 'text', label = 'Years: 2010-2017',
+             x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#737373") +
+    plot_theme +
+    ggtitle("GHG emissions growth (%)")
+    
   
   #absolute
   p2 <- rates %>% 
     filter(var=="abs_growth") %>% 
-    ggplot(.,aes(x = reorder(country,value),y = value/1e6, fill=region_ar6_5_short)) +
+    ggplot(.,aes(x = reorder(country,value),y = value/1e9, fill=region_ar6_5_short)) +
     geom_bar(stat='identity') + 
-    ylab(bquote(atop("Absolute change in" ~.(gas) ~ "Emissions","(Gt" ~CO[2]* "eq),"~.(time_start)*"-2017"))) +
+    #ylab(bquote(atop("Absolute change in" ~.(gas) ~ "Emissions","(Gt" ~CO[2]* "eq),"~.(time_start)*"-2017"))) +
     #ylab(paste("Absolute change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
     coord_flip() +
-    theme_bw() +
-    theme(legend.position="none",
-          axis.title.y = element_blank()) 
+    scale_fill_manual(values = ipcc_palette) +
+    plot_theme +
+    ggtitle("GHG emissions growth (Gt CO2eq)") +
+    annotate(geom = 'text', label = 'Years: 2010-2017',
+             x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#737373")
   
   #pc
   p3 <- rates %>% 
@@ -150,26 +156,31 @@ decomp_figure_countries <- function(time_start,category,sector,gas,edgar_GHG,bas
     filter(region_ar6_5_short!="SEA") %>% 
     ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_5_short)) +
     geom_bar(stat='identity') + 
-    ylab(bquote(atop( ~.(gas) ~ "Emissions per capita","(t" ~CO[2]* "eq), 2017"))) +
+    #ylab(bquote(atop( ~.(gas) ~ "Emissions per capita","(t" ~CO[2]* "eq), 2017"))) +
     #ylab(paste("Absolute change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
     coord_flip() +
-    theme_bw() +
-    theme(legend.position="none",
-          axis.title.y = element_blank()) 
+    scale_fill_manual(values = ipcc_palette[3:7]) +
+    plot_theme +
+    ggtitle("GHG emissions per capita (tCO2/cap)") +
+    annotate(geom = 'text', label = 'Year: 2017',
+             x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#737373")
   
   #pgdp
   p4 <- rates %>% 
     filter(var=="emissions_pgdp") %>% 
     filter(region_ar6_5_short!="AIR") %>% 
     filter(region_ar6_5_short!="SEA") %>% 
-    ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_5_short)) +
+    ggplot(.,aes(x = reorder(country,value),y = value*1000, fill=region_ar6_5_short)) +
     geom_bar(stat='identity') + 
-    ylab(bquote(atop( ~.(gas) ~ "Emissions per $GDP","(t/$GDP), 2017"))) +
+    #ylab(bquote(atop( ~.(gas) ~ "Emissions per $GDP","(t/$GDP), 2017"))) +
     #ylab(paste("Absolute change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
     coord_flip() +
-    theme_bw() +
-    theme(legend.position="none",
-          axis.title.y = element_blank()) 
+    scale_fill_manual(values = ipcc_palette[3:7]) +
+    plot_theme +
+    ggtitle("GHG emissions intensity (kgCO2/$)") +
+    annotate(geom = 'text', label = 'Year: 2017',
+             x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#737373")
+  
   
   
   return(list("rate_plot"=p1,"abs_plot"=p2,"pc_plot"=p3,"pgdp_plot"=p4,"data"=rates))
