@@ -1,0 +1,318 @@
+---
+title: "data_checking"
+author: "William F. Lamb"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
+  
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
+
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+
+load('../Data/edgar_data_gwp_ar5.RData')
+load('../Data/dump/edgar.RData')
+
+```
+
+```{r industry,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
+
+data <- edgar_GHG_ar5 %>% 
+  filter(chapter_title=="Industry") %>%
+  filter(year>1989) %>% 
+  group_by(year,sector_code,description) %>% 
+  summarise(value=sum(GHG,na.rm=T))
+  
+
+data %>%
+  filter(str_detect(sector_code, "^2F") | str_detect(sector_code, "^2E")) %>% 
+#  filter(sector_code=="2F1-4" | sector_code=="2F9" | sector_code=="2E1") %>% 
+  ggplot(.,aes(x=year,y=value,colour=sector_code)) +
+  geom_path() +
+  facet_wrap(~sector_code,ncol=4,scales='free',labeller = label_wrap_gen(width=15)) +
+  theme(legend.position = "none")
+
+
+```
+```{r double_counting,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
+
+data <- edgar_GHG_ar5 %>% 
+  filter(year==2018) %>% 
+  #filter(str_detect(sector_code, "^1A")) %>% 
+  group_by(year,sector_code,description) %>% 
+  summarise(value=sum(GHG,na.rm=T))
+  
+
+data %>%
+  filter(str_detect(sector_code, "^2F") | str_detect(sector_code, "^2E")) %>% 
+  ggplot(.,aes(x=year,y=value,colour=sector_code)) +
+  geom_path() +
+  facet_wrap(~sector_code,ncol=4,scales='free',labeller = label_wrap_gen(width=15)) +
+  theme(legend.position = "none")
+
+
+```
+
+## differences by gas
+
+
+```{r total_gas_checks,fig.width=8,fig.height=6}
+
+divide.by <- function(x, na.rm=FALSE) (x/1e9)
+
+totals_new <- edgar_GHG_ar5 %>% 
+  group_by(year) %>% 
+  mutate_at(vars(CO2:GHG),divide.by) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T)
+
+totals_old <- edgar_GHG %>% 
+  group_by(year) %>% 
+  mutate_at(vars(CO2:GHG),divide.by) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T) %>% 
+  ungroup()
+
+totals_new <- gather(totals_new,key,value_new,CO2:GHG)
+totals_old <- gather(totals_old,key,value_old,CO2:GHG)
+
+totals <- left_join(totals_new,totals_old)
+
+totals$key=as.factor(totals$key)
+totals$key <- factor(totals$key,levels(totals$key)[c(2,1,5,3,4)])
+
+
+totals <- totals %>% 
+  mutate(difference=(value_new-value_old)/value_new) %>% 
+  filter(year!=2018)
+
+totals %>% ggplot(.,aes(x=year,y=difference,fill=key)) +
+  geom_bar(stat='identity') +
+  facet_wrap(~key,scales='free',nrow = 2) +
+  ylab("Difference in emissions (as % of the new data in that year)") +
+  theme(legend.position="bottom",
+        axis.title.x=element_blank(),
+        legend.title=element_blank())
+
+
+```
+
+## differences by chapter
+
+
+```{r total_chapter_checks,fig.width=8,fig.height=12}
+
+divide.by <- function(x, na.rm=FALSE) (x/1e9)
+
+totals_new <- edgar_GHG_ar5 %>% 
+  group_by(year,chapter) %>% 
+  mutate_at(vars(CO2:GHG),divide.by) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T)
+
+totals_old <- edgar_GHG %>% 
+  group_by(year,chapter) %>% 
+  mutate_at(vars(CO2:GHG),divide.by) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T) %>% 
+  ungroup()
+
+totals_new <- gather(totals_new,key,value_new,CO2:GHG)
+totals_old <- gather(totals_old,key,value_old,CO2:GHG)
+
+totals <- left_join(totals_new,totals_old)
+
+totals$key=as.factor(totals$key)
+totals$key <- factor(totals$key,levels(totals$key)[c(2,1,5,3,4)])
+
+
+totals <- totals %>% 
+  mutate(difference=value_new-value_old) %>% 
+  filter(year!=2018) %>% 
+  filter(year>1989)
+
+#totals <- totals %>% 
+ # group_by(chapter,key) %>% 
+  #filter(any(difference!=0))
+  
+
+totals %>% ggplot(.,aes(x=year,y=difference,fill=key)) +
+  geom_bar(stat='identity') +
+  facet_grid(chapter~key,scales='free') +
+  ylab("Difference in emissions (GtCO2eq)") +
+  theme(legend.position="bottom",
+        axis.title.x=element_blank(),
+        legend.title=element_blank())
+
+```
+
+
+## differences by individual sector
+
+
+```{r total_sector_checks,fig.width=8,fig.height=12}
+
+divide.by <- function(x, na.rm=FALSE) (x/1e9)
+
+totals_new <- edgar_GHG_ar5 %>% 
+  group_by(year,sector_code,description) %>% 
+  mutate_at(vars(CO2:GHG),divide.by) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T)
+
+totals_old <- edgar_GHG %>% 
+  group_by(year,sector_code,description) %>% 
+  mutate_at(vars(CO2:GHG),divide.by) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T) %>% 
+  ungroup()
+
+totals_new <- gather(totals_new,key,value_new,CO2:GHG)
+totals_old <- gather(totals_old,key,value_old,CO2:GHG)
+
+totals <- left_join(totals_new,totals_old)
+
+totals$key=as.factor(totals$key)
+totals$key <- factor(totals$key,levels(totals$key)[c(2,1,5,3,4)])
+
+totals <- totals %>% 
+  filter(year>1989) %>% 
+  filter(key!="GHG") %>% 
+  group_by(sector_code,description,key) %>% 
+  summarise_at(vars(value_new:value_old),sum,na.rm=T) %>% 
+  mutate(difference=(value_new-value_old)/value_new)
+
+totals <- totals %>% 
+  filter(!is.na(difference)) %>% 
+  filter(difference!=0) %>% 
+  filter(difference>0.09 | difference< -0.09) %>% 
+  arrange(desc(difference))
+
+totals %>% 
+  ggplot(.,aes(x=reorder(description,difference),y=difference,fill=key)) +
+  geom_bar(stat='identity') +
+  coord_flip() +
+  facet_wrap(~key,scales='free',ncol=1) +
+  ylab("Relative increase (%) in emissions of new data, averaged 1990-2017") +
+  theme(legend.position="bottom",
+        axis.title.x=element_blank(),
+        legend.title=element_blank())
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+## new data - sector trends
+
+
+```{r sector_checks,fig.width=8,fig.height=6}
+
+totals <- edgar_GHG_ar5 %>% 
+  group_by(year,chapter_title) %>% 
+  summarise_at(vars(CO2:Fgas),sum,na.rm=T)
+
+totals <- gather(totals,key,value,CO2:Fgas)
+
+totals <- totals %>% 
+  group_by(chapter_title) %>% 
+  mutate(nor=value/max(value)) %>% 
+  arrange(year) %>% 
+  group_by(chapter_title,key) %>% 
+  mutate(nor_x=nor+(1-nth(nor,n=1)))
+
+
+totals %>% ggplot(.,aes(x=year,y=nor_x,color=key)) +
+  geom_line() +
+  facet_wrap(~chapter_title,scales='free',nrow = 2) +
+  theme(legend.position="bottom",
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        legend.title=element_blank())
+
+
+
+```
+
+## new data - region trends  
+
+```{r region_checks,fig.width=8,fig.height=6}
+
+totals <- edgar_GHG_ar5 %>% 
+  group_by(year,region_ar6_5) %>% 
+  summarise_at(vars(CO2:Fgas),sum,na.rm=T)
+
+totals <- gather(totals,key,value,CO2:Fgas)
+
+totals <- totals %>% 
+  group_by(region_ar6_5) %>% 
+  mutate(nor=value/max(value)) %>% 
+  arrange(year) %>% 
+  group_by(region_ar6_5,key) %>% 
+  mutate(nor_x=nor+(1-nth(nor,n=1)))
+
+
+totals %>% ggplot(.,aes(x=year,y=nor_x,color=key)) +
+  geom_line() +
+  facet_wrap(~region_ar6_5,scales='free',ncol=4,labeller = label_wrap_gen(width=18)) +
+  theme(legend.position="bottom",
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        legend.title=element_blank())
+
+
+```
+
+
+## new data - high emitting country trends
+
+```{r country_checks,fig.width=8,fig.height=6}
+
+totals <- edgar_GHG_ar5 %>% 
+  group_by(year,country) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T)
+
+countries <- totals %>%
+  ungroup() %>% 
+  filter(year==2018) %>% 
+  arrange(desc(GHG)) %>% 
+  mutate(include=0)
+countries$include[1:10] <- 1
+countries <- countries %>% 
+  select(country,include)
+
+totals <- left_join(totals,countries,by=c("country"="country"))
+
+totals <- gather(totals,key,value,CO2:Fgas)
+totals <- totals %>% 
+  filter(include==1) %>% 
+  group_by(country,year) %>% 
+  arrange(desc(value))
+
+totals <- totals %>% 
+  group_by(country) %>% 
+  mutate(nor=value/max(value)) %>% 
+  arrange(year) %>% 
+  group_by(country,key) %>% 
+  mutate(nor_x=nor+(1-nth(nor,n=1)))
+
+
+totals %>% ggplot(.,aes(x=year,y=nor_x,color=key)) +
+  geom_line() +
+  facet_wrap(~country,scales='free',ncol=4,labeller = label_wrap_gen(width=18)) +
+  theme(legend.position="bottom",
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        legend.title=element_blank())
+
+
+```

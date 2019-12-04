@@ -15,27 +15,17 @@ library(tidyverse)
 library(ggpubr)
 library(gganimate)
 library(xlsx)
-load('../Data/edgar.RData')
 
 source("small_figures.R")
 source("decomp_figure_countries.R")
 source("decomp_figure_sectors.R")
 
-sectors = data.frame(key=c(6,7,9,10,11),value=c("Energy systems","AFOLU","Buildings","Transport","Industry"))
+load('../Data/edgar_data_gwp_ar5.RData')
+load('../Data/gwps.RData')
 
-edgar_GHG <- edgar_GHG %>% 
-  mutate(region_ar6_5_short=ifelse(region_ar6_5=="Developed Countries","DEV",NA)) %>% 
-  mutate(region_ar6_5_short=ifelse(region_ar6_5=="Latin America and Caribbean","LAM",region_ar6_5_short)) %>% 
-  mutate(region_ar6_5_short=ifelse(region_ar6_5=="Africa and Middle East","AME",region_ar6_5_short)) %>% 
-  mutate(region_ar6_5_short=ifelse(region_ar6_5=="Eastern Europe and West-Central Asia","EEA",region_ar6_5_short)) %>% 
-  mutate(region_ar6_5_short=ifelse(region_ar6_5=="Asia and developing Pacific","APC",region_ar6_5_short)) %>% 
-  mutate(region_ar6_5_short=ifelse(region_ar6_5=="Intl. Shipping","SEA",region_ar6_5_short)) %>% 
-  mutate(region_ar6_5_short=ifelse(region_ar6_5=="Intl. Aviation","AIR",region_ar6_5_short))
+edgar_GHG_ar5$region_ar6_5_short <- as.factor(edgar_GHG_ar5$region_ar6_5_short)
 
-
-edgar_GHG$region_ar6_5_short <- as.factor(edgar_GHG$region_ar6_5_short)
-
-edgar_GHG$region_ar6_5_short <- factor(edgar_GHG$region_ar6_5_short,levels(edgar_GHG$region_ar6_5_short)[c(1,7,2,3,4,5,6)])
+edgar_GHG_ar5$region_ar6_5_short <- factor(edgar_GHG_ar5$region_ar6_5_short,levels(edgar_GHG_ar5$region_ar6_5_short)[c(1,7,2,3,4,5,6)])
 
 # set palette
 #ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
@@ -52,34 +42,35 @@ wb <- openxlsx::createWorkbook(title = paste("ipcc_plot_data_",Sys.Date()))
 
 ```{r Fig1_trend, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
-######### load Jan data ######### 
 
-
-plot_data <- edgar_GHG %>% 
+plot_data <- edgar_GHG_ar5 %>% 
   filter(year>1989) %>% 
-  filter(year<2018) %>% 
+  filter(year<2019) %>% 
   group_by(year) %>% 
   summarise(CO2=sum(CO2,na.rm=T)/1e9,CH4=sum(CH4,na.rm=T)/1e9,N2O=sum(N2O,na.rm=T)/1e9,Fgas=sum(Fgas,na.rm=T)/1e9)
 
-land_data <- xlsx::read.xlsx('../Data/data from Jan.xlsx',sheetIndex = "EDGAR gas - Figure 1",startRow = 10,endRow = 16,check.names=FALSE)
 
-land_data <- gather(land_data,year,value,-source,-gas) %>% 
-  mutate(year=as.numeric(year)) %>% 
-  filter(!is.na(value)) %>%
-  filter(gas=="CO2 landuse") %>% 
-  select(year,CO2_Landuse=value) 
+######### load data from global carbon budget ######### 
+
+land_data <- openxlsx::read.xlsx('../Data/Global_Carbon_Budget_2019v1.0.xlsx',sheet="Global Carbon Budget",rows=19:79,cols=2:4) %>% 
+  select(year=Year,CO2_landuse="land-use.change.emissions")
+
+#### convert from C to CO2
+
+land_data <- land_data %>% 
+  mutate(CO2_landuse=CO2_landuse*(44/12))
 
 plot_data <- left_join(plot_data,land_data,by=c("year"="year"))
 plot_data<- gather(plot_data,gas,value,-year) 
 plot_data <- plot_data %>% 
   mutate(gas=ifelse(gas=="CO2","CO2 FFI",gas)) %>% 
-  mutate(gas=ifelse(gas=="CO2_Landuse","CO2 FOLU",gas))
+  mutate(gas=ifelse(gas=="CO2_landuse","CO2 FOLU",gas))
 
 plot_data$gas <- as.factor(plot_data$gas)
 plot_data$gas <-  factor(plot_data$gas,levels(plot_data$gas)[c(4,5,1,3,2)])
 
 shares <- plot_data %>% 
-  filter(year %in% c(1990,2000,2010,2017)) %>% 
+  filter(year %in% c(1990,2000,2010,2018)) %>% 
   group_by(year) %>% 
   mutate(totals=sum(value)) %>% 
   ungroup() %>% 
@@ -88,15 +79,27 @@ shares <- plot_data %>%
 
 shares <- locate_shares(shares,"gas",4)
 
+line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2018,2018),y=c(0,60))
+
+
 p1 <- plot_data %>% 
   ggplot(.,aes(x=year,y=value,fill=gas)) +
-  geom_area() +
-  geom_text(data=shares,aes(x=year,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
-  geom_vline(xintercept=c(1990,2000,2010,2017),alpha=0.3,linetype="dashed") +
-  ylab('GHG Emissions \n(GtCO2eq/yr)') +
+  geom_area(colour="#737373") +
+  
+  geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+  
+  #geom_vline(xintercept=c(1990,2000,2010,2018),alpha=0.3,linetype="dashed") +
+  
+  #### text with the shares
+  geom_text(data=shares,aes(x=year+0.75,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
+  
+  #### text with the totals
+  geom_text(data=shares %>% filter(gas=="Fgas"),aes(x=year,y=62,label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
+  
+  ylab('GHG Emissions (GtCO2eq/yr)') +
   labs(fill="Gas") +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
-  scale_x_continuous(breaks=c(1990,2000,2010,2017)) +
+  scale_x_continuous(breaks=c(1990,2000,2010,2018)) +
   big_trend_theme +
   theme(legend.position = c(0.225,0.85),
         legend.background = element_rect(linetype = 1, size = 0.5, colour = "#525252"),
@@ -108,7 +111,18 @@ p1 <- plot_data %>%
          color = guide_legend(override.aes = list(size = 0.5)))
 
 
-p2 <- plot_data %>%
+#########
+
+plot_data_nogwp <- plot_data %>% 
+  filter(gas!="Fgas")
+  
+plot_data_nogwp <- left_join(plot_data_nogwp,gwps %>% select(gas,gwp_ar5),by=c("gas"="gas"))
+
+plot_data_nogwp <- plot_data_nogwp %>% 
+  mutate(gwp_ar5=ifelse(is.na(gwp_ar5),1,gwp_ar5)) %>% 
+  mutate(value=value/gwp_ar5)
+
+p2 <- plot_data_nogwp %>%
   ggplot(.,aes(x=year,y=value,color=gas)) +
   geom_line() +
   scale_x_continuous(breaks=c(1995,2010)) +
@@ -123,7 +137,7 @@ p2 <- plot_data %>%
         panel.grid.minor.y = element_blank())
   
 
-###### waterfall
+###### waterfall AR5 GWPs
 
 waterfall <- plot_data %>%
   filter(year==2017) %>% 
@@ -135,23 +149,13 @@ waterfall$end <- cumsum(waterfall$value)
 waterfall$start <- c(0, head(waterfall$end, -1))
 waterfall <- cbind(waterfall,id=c(5,4,3,2,1))
 
-second_waterfall <- plot_data %>%
-  filter(year==2017) %>% 
-  group_by(gas) %>%
-  summarise(value=sum(value)) %>% 
-  arrange(desc(gas))
-
-second_waterfall$end <- cumsum(second_waterfall$value)
-second_waterfall$start <- c(0, head(second_waterfall$end, -1))
-second_waterfall <- cbind(second_waterfall,id=c(5,4,3,2,1))
-
 p3 <- waterfall %>%
   ggplot(.,aes(fill=gas)) +
   geom_rect(aes(x = gas,
                 xmin = id - 0.4,
                 xmax = id + 0.4,
                 ymin = start,
-                ymax = end)) +
+                ymax = end),colour="#737373") +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
   theme_bw() +
   theme(legend.position = "none",
@@ -166,13 +170,36 @@ p3 <- waterfall %>%
         panel.grid.major.x = element_blank(),
         panel.border = element_blank())
 
+###### waterfall AR6 GWPs
+
+second_waterfall <- plot_data %>%
+  filter(year==2017) %>% 
+  group_by(gas) %>%
+  summarise(value=sum(value))%>% 
+  arrange(desc(gas))
+
+second_waterfall <- left_join(second_waterfall,gwps,by=c("gas"="gas"))
+
+second_waterfall$gas <- as.factor(second_waterfall$gas)
+second_waterfall$gas <-  factor(second_waterfall$gas,levels(second_waterfall$gas)[c(4,5,1,3,2)])
+
+
+second_waterfall <- second_waterfall %>% 
+  mutate(value=ifelse(gas=="CH4",(value/gwp_ar5)*gwp_ar6,value)) %>% 
+  mutate(value=ifelse(gas=="N2O",(value/gwp_ar5)*gwp_ar6,value)) %>% 
+  select(gas,value)
+
+second_waterfall$end <- cumsum(second_waterfall$value)
+second_waterfall$start <- c(0, head(second_waterfall$end, -1))
+second_waterfall <- cbind(second_waterfall,id=c(5,4,3,2,1))
+
 p4 <- second_waterfall %>%
   ggplot(.,aes(fill=gas)) +
   geom_rect(aes(x = gas,
                 xmin = id - 0.4,
                 xmax = id + 0.4,
                 ymin = start,
-                ymax = end)) +
+                ymax = end),colour="#737373") +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
   theme_bw() +
   theme(legend.position = "none",
@@ -195,6 +222,13 @@ plot
 openxlsx::addWorksheet(wb,"Fig1_trend")
 openxlsx::writeData(wb, sheet = "Fig1_trend", spread(plot_data,year,value), colNames = T, rowNames = F)
 
+waterfall_data <- waterfall %>% 
+  select(gas,value_gwp_ar5=value)
+waterfall_data <- left_join(waterfall_data,second_waterfall %>% select(gas,value_gwp_ar6=value))
+
+openxlsx::addWorksheet(wb,"Fig1_waterfall")
+openxlsx::writeData(wb, sheet = "Fig1_waterfall", waterfall_data, colNames = T, rowNames = F)
+
 
 ```
 
@@ -205,10 +239,9 @@ openxlsx::writeData(wb, sheet = "Fig1_trend", spread(plot_data,year,value), colN
 
 ######### load the global carbon budget ######### 
 
-gcb <- xlsx::read.xlsx('../Data/data from Jan.xlsx',sheetIndex = "CDIAC CO2 - Figure 2",startRow = 3,endRow = 270,colIndex=1:9)
+gcb <- openxlsx::read.xlsx('../Data/CDIAC_fossilfuel_updated_GCP2019.xlsx',sheet="CDIAC CO2",rows=3:271,cols=1:9)
 names(gcb) <- c("Year","Total","Gas","Oil","Coal","Cement","Flaring","Net land-use","Total_CO2")
 
-# fft <- read.xlsx('Data/Global_Carbon_Budget_2018v1.0.xlsx',sheetIndex = 'Fossil Emissions by Fuel Type',startRow = 13,endRow = 2017,colIndex = 1:8)
 
 budget_data <- gather(gcb,key,value,-Year) %>% 
   filter(key!="Total_CO2",key!="Total") %>% 
@@ -219,7 +252,7 @@ budget_data$key <- as.factor(budget_data$key)
 budget_data$key <- factor(budget_data$key,levels(budget_data$key)[c(1,2,3,4,6,5)])
 
 shares <- budget_data %>% 
-  filter(year %in% c(1850,1900,1950,2000)) %>% 
+  filter(year %in% c(1850,1900,1950,2000,2018)) %>% 
   group_by(year) %>% 
   mutate(totals=sum(value)) %>% 
   ungroup() %>% 
@@ -227,13 +260,23 @@ shares <- budget_data %>%
   mutate(fractions=(value/totals)*100)
 
 
-shares <- locate_shares(shares,"key",4)
+shares <- locate_shares(shares,"key",5)
+
+
+line_data <- data.frame(x=c(1850,1850,1900,1900,1950,1950,2000,2000,2018,2018),y=c(0,45))
+
 
 p1 <- budget_data %>% 
   ggplot(.,aes(x=year,y=value,fill=key,color=key)) + 
-  geom_area() +
-  geom_text(data=shares,aes(x=year,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
-  geom_vline(xintercept=c(1850,1900,1950,2000),alpha=0.3,linetype="dashed") +
+  geom_area(colour="#737373") +
+  
+  geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+  
+  geom_text(data=shares,aes(x=year+3.5,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
+  
+  geom_text(data=shares %>% filter(key=="Cement"),
+            aes(x=year,y=47,label=paste(round(totals,0),"Gt")),size=3.5,colour="#252525")+
+  
   ylab("Carbon emissions (GtCO2/yr)") +
   big_trend_theme +
   theme(legend.position = c(0.15,0.7),
@@ -244,13 +287,9 @@ p1 <- budget_data %>%
 date_data <- gcb %>% 
   select(Year,value=Total_CO2) %>% 
   filter(Year>=1850) %>% 
-  #mutate(key=ifelse(Year>=1850 & Year < 1890,'1850-1889',NA)) %>% 
-  #mutate(key=ifelse(Year>=1890 & Year < 1930,'1890-1930',key)) %>% 
-  #mutate(key=ifelse(Year>=1930 & Year < 1970,'1930-1970',key)) %>% 
-  #mutate(key=ifelse(Year>=1970 & Year < 2010,'1970-2010',key)) %>% 
   mutate(key=NA) %>%
   mutate(key=ifelse(Year>1850 & Year < 2010,'1850-2009',key)) %>% 
-  mutate(key=ifelse(Year>=2010,'2010-2017',key)) %>% 
+  mutate(key=ifelse(Year>=2010,'2010-2018',key)) %>% 
   filter(!is.na(key))
 
 date_data <- date_data %>% 
@@ -264,7 +303,7 @@ date_data$key <- factor(date_data$key,levels(date_data$key)[c(4,3,2,1)])
 
 p2 <- date_data %>% 
   ggplot(.,aes(x='x',y=value,fill=key)) +
-  geom_bar(stat='identity') +
+  geom_bar(stat='identity',colour="#737373") +
   ylab('Carbon emissions, cumulative (GtCO2)') +
   big_trend_theme +
   theme(legend.position= c(0.5,0.5),
@@ -287,7 +326,7 @@ time_data$key <- factor(time_data$key,levels(time_data$key)[c(2,3,1)])
 
 p3 <- time_data %>% 
   ggplot(.,aes(x=key,y=value,fill=target)) + 
-  geom_bar(stat='identity') +
+  geom_bar(stat='identity',colour="#737373") +
   geom_text(aes(x=key,y=value+2,label=round(value-2017,0))) +
   #scale_y_continuous(limits=c(2017,2100),oob =rescale_none) +
   coord_flip(ylim = c(2017,2100)) +
@@ -319,34 +358,34 @@ source("decomp_figure_countries.R")
 ipcc_palette <- c("#737373","#737373","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854");
 
 
-plot_data <- edgar_GHG %>%
-  group_by(year,region_ar6_5) %>% 
+plot_data <- edgar_GHG_ar5 %>%
+  group_by(year,region_ar6_5,region_ar6_5_short) %>% 
   summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
   filter(year>1989) %>% 
-  filter(year<2018)
+  filter(year<2019)
 
 shares <- plot_data %>% 
-  filter(year %in% c(1990,2000,2010,2017)) %>% 
+  filter(year %in% c(1990,2000,2010,2018)) %>% 
   group_by(year) %>% 
   mutate(totals=sum(value)) %>% 
   ungroup() %>% 
-  group_by(year,region_ar6_5) %>% 
+  group_by(year,region_ar6_5_short) %>% 
   mutate(fractions=(value/totals)*100)
 
-shares <- locate_shares(shares,"region_ar6_5",4)
+shares <- locate_shares(shares,"region_ar6_5_short",4)
 
 p1 <- plot_data %>%
-  ggplot(.,aes(x=year,y=value,fill=region_ar6_5)) +
+  ggplot(.,aes(x=year,y=value,fill=region_ar6_5_short)) +
   scale_fill_manual(values=ipcc_palette) +
   scale_color_manual(values=ipcc_palette) +
-  geom_area() +
+  geom_area(colour="#737373") +
   geom_text(data=shares,aes(x=year,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
-  geom_text(data=shares %>% filter(year==2017),aes(x=2018,y=location,label=region_ar6_5,color=region_ar6_5,hjust=0)) +
-  geom_vline(xintercept=c(1990,2000,2010,2017),alpha=0.3,linetype="dashed") +
+  geom_text(data=shares %>% filter(year==2018),aes(x=2019,y=location,label=region_ar6_5,color=region_ar6_5_short,hjust=0)) +
+  geom_vline(xintercept=c(1990,2000,2010,2018),alpha=0.3,linetype="dashed") +
   
   labs(fill="Gas") +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
-  scale_x_continuous(breaks=c(1990,2000,2010,2017),limits = c(1990,2025)) +
+  scale_x_continuous(breaks=c(1990,2000,2010,2018),limits = c(1990,2025)) +
   big_trend_theme +
   theme(legend.position="none") +
   #      legend.justification=c(0,1), 
@@ -361,9 +400,7 @@ p1 <- plot_data %>%
 
 
 load('../Data/basic.RData')
-decomp <- decomp_figure_countries(2010,'GHG',edgar_GHG,basic)
-
-
+decomp <- decomp_figure_countries(2010,'GHG',edgar_GHG_ar5,basic)
 
 
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
@@ -390,14 +427,12 @@ openxlsx::writeData(wb, sheet = "Fig5_ghgs_countries", decomp$data, colNames = T
 
 ```{r Fig9_sectors, echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
-load('../Data/edgar.RData')
+load('../Data/edgar_data_gwp_ar5.RData')
 source("decomp_figure_sectors.R")
 
-edgar_GHG <- left_join(edgar_GHG,sectors %>% select(chapter_title=value,everything()),by=c("chapter"="key"))
-
-plot_data <- edgar_GHG  %>% 
+plot_data <- edgar_GHG_ar5  %>% 
   filter(year>1989) %>% 
-  filter(year<2018) %>% 
+  filter(year<2019) %>% 
   filter(!is.na(chapter)) %>% 
   group_by(year,chapter,chapter_title) %>%  
   summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
@@ -407,7 +442,7 @@ data <- xlsx::read.xlsx('../Data/data from Jan.xlsx',sheetIndex = "EDGAR gas - F
 
 data <- gather(data,year,value,-source,-gas) %>%  
   filter(year>1989) %>% 
-  filter(year<2018) %>% 
+  filter(year<2019) %>% 
   mutate(year=as.numeric(year)) %>% 
   filter(!is.na(value)) %>%
   filter(gas=="CO2 landuse") %>% 
@@ -426,7 +461,7 @@ plot_data <- plot_data %>%
 plot_data$chapter_title <- factor(plot_data$chapter_title,levels(plot_data$chapter_title)[c(3,1,2,5,4)])
 
 shares <- plot_data %>% 
-  filter(year %in% c(1990,2000,2010,2017)) %>% 
+  filter(year %in% c(1990,2000,2010,2018)) %>% 
   group_by(year) %>% 
   mutate(totals=sum(value)) %>% 
   ungroup() %>% 
@@ -438,15 +473,15 @@ shares <- locate_shares(shares,"chapter",4)
 
 p1 <- plot_data %>%
   ggplot(.,aes(x=year,y=value,fill=chapter_title)) +
-  geom_area() +
+  geom_area(colour="#737373") +
   geom_text(data=shares,aes(x=year,y=location,label=paste(round(fractions,0),"%",sep="")))+
-  geom_text(data=shares %>% filter(year==2017),aes(x=2018,y=location,label=chapter_title,color=chapter_title,hjust=0)) +
-  geom_vline(xintercept=c(1990,2000,2010,2017),alpha=0.3,linetype="dashed") +
+  geom_text(data=shares %>% filter(year==2018),aes(x=2019,y=location,label=chapter_title,color=chapter_title,hjust=0)) +
+  geom_vline(xintercept=c(1990,2000,2010,2018),alpha=0.3,linetype="dashed") +
   ylab("GHG emissions (GtCO2eq/yr)") +
   
   labs(fill="Sector") +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
-  scale_x_continuous(breaks=c(1990,2000,2010,2017),limits=c(1990,2023)) +
+  scale_x_continuous(breaks=c(1990,2000,2010,2018),limits=c(1990,2023)) +
   
   scale_fill_manual(values=ipcc_palette[3:7]) +
   scale_color_manual(values=ipcc_palette[3:7]) +
@@ -457,7 +492,7 @@ p1 <- plot_data %>%
 
 ######## subsectors
 
-decomp <- decomp_figure_sectors(2010,'GHG',edgar_GHG)
+decomp <- decomp_figure_sectors(2010,'GHG',edgar_GHG_ar5)
 
 
   
@@ -480,9 +515,9 @@ openxlsx::writeData(wb, sheet = "Fig9_subsectors", decomp$data, colNames = T, ro
 ```{r Figx_region_gas, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 
-plot_data <- edgar_GHG %>% 
+plot_data <- edgar_GHG_ar5 %>% 
   filter(year>1989) %>% 
-  filter(year<2018) %>% 
+  filter(year<2019) %>% 
   filter(region_ar6_5!="Intl. Aviation") %>% 
   filter(region_ar6_5!="Intl. Shipping") %>% 
   group_by(year,region_ar6_5) %>% 
@@ -520,16 +555,14 @@ plot_data %>%
 ```{r Figx_region_sector, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 
-plot_data <- edgar_GHG %>% 
+plot_data <- edgar_GHG_ar5 %>% 
   filter(year>1989) %>% 
-  filter(year<2018) %>% 
+  filter(year<2019) %>% 
   filter(region_ar6_5!="Intl. Aviation") %>% 
   filter(region_ar6_5!="Intl. Shipping") %>% 
-  group_by(year,region_ar6_5,chapter) %>% 
+  group_by(year,region_ar6_5,chapter,chapter_title) %>% 
   summarise_at(vars(GHG),sum,na.rm=TRUE) %>% 
   mutate(GHG=GHG/1e9)
-
-plot_data <- left_join(plot_data,sectors %>% select(chapter_title=value,everything()),by=c("chapter"="key"))
 
 plot_data %>% 
   ggplot(.,aes(x=year,y=GHG,color=chapter_title)) +

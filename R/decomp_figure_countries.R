@@ -2,7 +2,7 @@
 
 time_start=2010
 gas='GHG'
-
+#edgar_GHG <- edgar_GHG_ar5
 
 decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
   
@@ -11,7 +11,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
   ##############  calculate growth rates in given time period ############## 
   
   rates <- edgar_GHG %>% 
-    filter(year>=time_start & year<2018) %>% 
+    filter(year>=time_start & year<2019) %>% 
     group_by(country,ISO,year,region_ar6_5_short) %>% 
     summarise_at(gas,sum,na.rm=TRUE) %>% 
     ungroup() %>% 
@@ -21,7 +21,13 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
   
   ### join pop and gdp
   basic <- basic %>%  
+    filter(Year>=time_start & Year<2019) %>% 
     select(ISO,Year,pop_UN,gdp_ppp_WB)
+  
+  ####################################### BRING FORWARD MISSING GDP DATA
+  basic <- basic %>% 
+    group_by(ISO) %>% 
+    fill(gdp_ppp_WB)
   
   rates <- left_join(rates,basic,by=c("ISO"="ISO","year"="Year"))
   
@@ -33,7 +39,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
   
   # what is 75% of the emissions?
   blarg <- rates %>%
-    filter(year==2017)
+    filter(year==2018)
   threshold <- sum(blarg$emissions_total,na.rm=T)*0.75
   
   ## remove countries below absolute emissions threshold
@@ -42,7 +48,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
     group_by(country) %>% 
     mutate(rate=(last(emissions_total)/first(emissions_total))^(1/(last(year)-time_start+1))-1) %>% 
     mutate(abs_growth=last(emissions_total)-first(emissions_total)) %>%
-    filter(year==2017) 
+    filter(year==2018) 
   
   rates <- rates %>% 
     mutate(pop_UN=ifelse(ISO=="AIR",0,pop_UN)) %>% 
@@ -90,7 +96,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
     group_by(region_ar6_5_short) %>% 
     mutate(rate=(last(emissions_total)/first(emissions_total))^(1/(last(year)-time_start+1))-1) %>% 
     mutate(abs_growth=last(emissions_total)-first(emissions_total)) %>%
-    filter(year==2017) %>% 
+    filter(year==2018) %>% 
     na.omit() %>% 
     mutate(country=paste(region_ar6_5_short,"(rest)")) %>% 
     select(country,everything()) %>% 
@@ -124,7 +130,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
   p1 <- rates %>% 
     filter(var=="rate") %>% 
     ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_5_short)) +
-    geom_bar(stat='identity') + 
+    geom_bar(stat='identity',colour="#737373") + 
     #ylab(bquote(atop("Rate of change in" ~.(gas) ~ "Emissions","(%),"~.(time_start)*"-2017"))) +
     #ylab(paste("Rate of change in ",gas," Emissions (%),\n",time_start,"-2017",sep="")) +
     coord_flip() +
@@ -139,7 +145,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
   p2 <- rates %>% 
     filter(var=="abs_growth") %>% 
     ggplot(.,aes(x = reorder(country,value),y = value/1e9, fill=region_ar6_5_short)) +
-    geom_bar(stat='identity') + 
+    geom_bar(stat='identity',colour="#737373") + 
     #ylab(bquote(atop("Absolute change in" ~.(gas) ~ "Emissions","(Gt" ~CO[2]* "eq),"~.(time_start)*"-2017"))) +
     #ylab(paste("Absolute change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
     coord_flip() +
@@ -155,7 +161,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
     filter(region_ar6_5_short!="AIR") %>% 
     filter(region_ar6_5_short!="SEA") %>% 
     ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_5_short)) +
-    geom_bar(stat='identity') + 
+    geom_bar(stat='identity',colour="#737373") + 
     #ylab(bquote(atop( ~.(gas) ~ "Emissions per capita","(t" ~CO[2]* "eq), 2017"))) +
     #ylab(paste("Absolute change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
     coord_flip() +
@@ -171,7 +177,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
     filter(region_ar6_5_short!="AIR") %>% 
     filter(region_ar6_5_short!="SEA") %>% 
     ggplot(.,aes(x = reorder(country,value),y = value*1000, fill=region_ar6_5_short)) +
-    geom_bar(stat='identity') + 
+    geom_bar(stat='identity',colour="#737373") + 
     #ylab(bquote(atop( ~.(gas) ~ "Emissions per $GDP","(t/$GDP), 2017"))) +
     #ylab(paste("Absolute change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
     coord_flip() +

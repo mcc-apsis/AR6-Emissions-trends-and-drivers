@@ -95,7 +95,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   p1 <- rates %>% 
     filter(var=="rate") %>% 
     ggplot(.,aes(x = reorder(description,value),y = value, fill=chapter_title)) +
-    geom_bar(stat='identity') + 
+    geom_bar(stat='identity',colour="#737373") + 
     #ylab(bquote(atop("Rate of change in" ~.(gas) ~ "Emissions","(%),"~.(time_start)*"-2017"))) +
     coord_flip() +
     annotate(geom = 'text', label = 'Years: 2010-2017',
@@ -108,7 +108,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   p2 <- rates %>% 
     filter(var=="abs_growth") %>% 
     ggplot(.,aes(x = reorder(description,value),y = value/1e9, fill=chapter_title)) +
-    geom_bar(stat='identity') + 
+    geom_bar(stat='identity',colour="#737373") + 
     #ylab(bquote(atop("Absolute change in" ~.(gas) ~ "Emissions","(Gt" ~CO[2]* "eq),"~.(time_start)*"-2017"))) +
     coord_flip() +
     annotate(geom = 'text', label = 'Years: 2010-2017',
