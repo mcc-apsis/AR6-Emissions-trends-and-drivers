@@ -1,8 +1,6 @@
 
 rm(list = ls())
 library(tidyverse)
-library(ggpubr)
-library(gganimate)
 library(openxlsx)
 load('Data/edgar_data_gwp_ar5.RData')
 
@@ -26,8 +24,11 @@ basic <- basic %>%
 basic <- left_join(tsu_codes,basic,by=("ISO"="ISO")) %>% 
   filter(!is.na(year))
 
-ipcc_categories <- ipcc_categories %>% 
-  select(code,ipcc_ar6_chapter=IPCC_AR6_chapter,description)
+edgar_categories <- edgar_GHG_ar5 %>% 
+  select(sector_code,chapter,chapter_title,description) %>% 
+  unique() %>% 
+  arrange(chapter)
+
 
 #################### meta data
 
@@ -78,7 +79,7 @@ writeData(wb, sheet = "info", info, colNames = F)
 writeData(wb, sheet = "emissions_data", edgar_GHG_ar5, colNames = T)
 writeData(wb, sheet = "supplementary_data", basic, colNames = T)
 writeData(wb, sheet = "metadata", meta, colNames = T)
-writeData(wb, sheet = "sector_classification",ipcc_categories,colNames=T)
+writeData(wb, sheet = "sector_classification",edgar_categories,colNames=T)
 writeData(wb, sheet = "region_classification",tsu_codes,colNames=T)
 writeData(wb, sheet = "100_yr_gwps",gwps,colNames=T)
 
@@ -110,6 +111,17 @@ info = data.frame("x" = c("Data description","Global warming potentials","Year c
                           "",
                           "Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610"                  ))
 
+meta <- data.frame("Variable" = c("CO2","CH4","N2O","Fgas","GHG","GDP","POP"),
+                   "Description" = c("Carbon emissions","Methane emissions","Nitrous oxide emissions","Flourinated gas emissions","Total greenhouse gas emissions","Gross Domestic Product","Population"),
+                   "Units" = c("t","t","t","t","t","persons","US $ (constant 2011 international PPP)"),
+                   "Source" = c("EDGAR_v5.0","EDGAR_v5.0","EDGAR_v5.0","EDGAR_v5.0","EDGAR_v5.0","World Bank","UN Department of Economic and Social Affairs"),
+                   "Citation" = c("Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610",
+                                  "Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610",
+                                  "Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610",
+                                  "Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610",
+                                  "Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610",
+                                  "World Bank. (2019). World Bank Development Indicators. Retrieved November 7, 2019, from http://data.worldbank.org/",
+                                  "UN DESA. (2018). World Urbanization Prospects: The 2018 Revision. New York: United Nations, Department of Economic and Social Affairs, Population Division."))
 
 
 
@@ -126,12 +138,12 @@ writeData(wb2, sheet = "info", info, colNames = F)
 writeData(wb2, sheet = "emissions_data", edgar_GHG, colNames = T)
 writeData(wb2, sheet = "supplementary_data", basic, colNames = T)
 writeData(wb2, sheet = "metadata", meta, colNames = T)
-writeData(wb2, sheet = "sector_classification",ipcc_categories,colNames=T)
+writeData(wb2, sheet = "sector_classification",edgar_categories,colNames=T)
 writeData(wb2, sheet = "region_classification",tsu_codes,colNames=T)
 writeData(wb2, sheet = "100_yr_gwps",gwps,colNames=T)
 
 
-saveWorkbook(wb2,"Results/Data/ipcc_ar6_edgar_data_full.xlsx",overwrite = T)
+saveWorkbook(wb2,"Results/Data/ipcc_ar6_edgar_data_no_gwp.xlsx",overwrite = T)
 
 
 ############################################################   regional file

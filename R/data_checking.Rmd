@@ -22,7 +22,7 @@ load('../Data/dump/edgar.RData')
 
 ```
 
-```{r industry,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
+```{r industry_check,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
 
 data <- edgar_GHG_ar5 %>% 
   filter(chapter_title=="Industry") %>%
@@ -41,6 +41,54 @@ data %>%
 
 
 ```
+```{r building_check,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
+
+data <- edgar_GHG_ar5 %>% 
+  filter(chapter_title=="Buildings")
+
+library(openxlsx)
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_edgar_buildings")
+addWorksheet(wb,'all_data')
+writeData(wb, sheet = "all_data", data, colNames = T)
+
+sector_aggregation <- data %>% 
+  group_by(year,sector_code,description) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T)
+  
+addWorksheet(wb,'sector_aggregation')
+writeData(wb, sheet = "sector_aggregation", sector_aggregation, colNames = T)
+
+unique_codes <- data %>% 
+  select(sector_code,description) %>% 
+  unique()
+
+addWorksheet(wb,'codes_in_data')
+writeData(wb, sheet = "codes_in_data", unique_codes, colNames = T)
+
+saveWorkbook(wb,"../Results/Data/ipcc_ar6_edgar_buildings.xlsx",overwrite = T)
+
+
+
+```
+
+
+```{r ratios_check,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
+
+data <- edgar_GHG_ar5 %>%
+  filter(year==2018) %>% 
+  group_by(sector_code) %>% 
+  summarise(GHG=sum(GHG,na.rm=T))
+
+total <- sum(data$GHG)
+
+data <- data %>% 
+  mutate(fraction_global=GHG/total)
+
+
+```
+
+
+
 ```{r double_counting,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
 
 data <- edgar_GHG_ar5 %>% 
