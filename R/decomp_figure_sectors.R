@@ -6,7 +6,7 @@ time_start=2010
 decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   
   # set palette
-  ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+  #ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
   
   rates <- edgar_GHG %>%
     filter(year>=time_start & year<2018) %>% 

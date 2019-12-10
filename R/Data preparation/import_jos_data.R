@@ -6,7 +6,7 @@ library(tidyverse)
 
 ########### load CO2, CH4, N2O sheets - no GWPs applied ########### 
 
-jos_CO2 <- openxlsx::read.xlsx('Data/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_CO2 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                  sheet='CO2',startRow=10)
 jos_CO2 <- jos_CO2[1:58]
 jos_CO2 <- gather(jos_CO2,year,value,'1970':'2018')
@@ -14,7 +14,7 @@ jos_CO2 <- jos_CO2 %>%
   select(ISO,year,EDGAR_country=Country,IPCC.detailed=IPCC,IPCC_detailed_description=IPCC_source,CO2=value)
 
 
-jos_CH4 <- openxlsx::read.xlsx('Data/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_CH4 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                sheet='CH4',startRow=10)
 jos_CH4 <- jos_CH4[1:58]
 jos_CH4 <- gather(jos_CH4,year,value,'1970':'2018')
@@ -22,7 +22,7 @@ jos_CH4 <- jos_CH4 %>%
   select(ISO,year,EDGAR_country=Country,IPCC.detailed=IPCC,IPCC_detailed_description=IPCC_source,CH4=value)
 
 
-jos_N2O <- openxlsx::read.xlsx('Data/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_N2O <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                sheet='N2O',startRow=10)
 jos_N2O <- jos_N2O[1:58]
 jos_N2O <- gather(jos_N2O,year,value,'1970':'2018')
@@ -33,7 +33,7 @@ jos_N2O <- jos_N2O %>%
 ########### Fgas sheets
 
 
-jos_Fgas <- openxlsx::read.xlsx('Data/EDGAR v5.0 Part B--F-gases FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part B--F-gases FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                   sheet='F-gas (kton)',startRow=10)
 jos_Fgas <- jos_Fgas[1:58]
 jos_Fgas <- gather(jos_Fgas,year,value,'1970':'2018')
@@ -81,7 +81,7 @@ missing_codes <- edgar_GHG %>%
 
 ########### join country names ########### 
 
-codes <- openxlsx::read.xlsx('Data/ISOcodes.xlsx',sheet = 'ISO_master')
+codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
 edgar_GHG <- left_join(edgar_GHG,codes %>% select(name,alpha.3),by=c("ISO"="alpha.3"))
 
 ## identify additional countries in EDGAR

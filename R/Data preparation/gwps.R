@@ -7,13 +7,13 @@ gwps <- gwps[63:67]
 gwps <- gwps %>% 
   select(-IPCC.gas) %>% 
   unique() %>% 
-  select(Fgas,gwp_ar1=GWP_KP,gwp_ar4=`_AR4`,gwp_ar5=`_AR5`)
+  select(Fgas,gwp_ar2=GWP_KP,gwp_ar4=`_AR4`,gwp_ar5=`_AR5`)
 
 
 gwps <- gwps %>% 
-  add_row(Fgas="CO2",gwp_ar1=1,gwp_ar4=1,gwp_ar5=1) %>% 
-  add_row(Fgas="CH4",gwp_ar1=21,gwp_ar4=25,gwp_ar5=28) %>%
-  add_row(Fgas="N2O",gwp_ar1=310,gwp_ar4=298,gwp_ar5=265)
+  add_row(Fgas="CO2",gwp_ar2=1,gwp_ar4=1,gwp_ar5=1) %>% 
+  add_row(Fgas="CH4",gwp_ar2=21,gwp_ar4=25,gwp_ar5=28) %>%
+  add_row(Fgas="N2O",gwp_ar2=310,gwp_ar4=298,gwp_ar5=265)
 
 input <- openxlsx::read.xlsx('Data/global_warming_potentials.xlsx',sheet='gwp100')
 

@@ -16,9 +16,11 @@ knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
 rm(list = ls())
 library(tidyverse)
 library(ggpubr)
+library(openxlsx)
 
 load('../Data/edgar_data_gwp_ar5.RData')
 load('../Data/dump/edgar.RData')
+
 
 ```
 
@@ -65,29 +67,52 @@ unique_codes <- data %>%
 addWorksheet(wb,'codes_in_data')
 writeData(wb, sheet = "codes_in_data", unique_codes, colNames = T)
 
+
+global_totals <- edgar_GHG_ar5 %>% 
+  filter(year==2018) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T) %>% 
+  mutate(chapter_title='Total')
+
+totals_data <- edgar_GHG_ar5 %>% 
+  filter(year==2018) %>% 
+  group_by(chapter_title) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T)
+
+totals_data <- rbind(totals_data,global_totals)
+
+addWorksheet(wb,'totals_by_chapter_2018')
+writeData(wb, sheet = "totals_by_chapter_2018",totals_data, colNames = T)
+
+fgas_totals <- edgar_GHG_ar5 %>% 
+  filter(year==2018) %>% 
+  group_by(sector_code,description,chapter,chapter_title) %>% 
+  summarise_at(vars(CO2:GHG),sum,na.rm=T)
+
+addWorksheet(wb,'totals_by_code_2018')
+writeData(wb, sheet = "totals_by_code_2018",fgas_totals, colNames = T)
+
+
+
 saveWorkbook(wb,"../Results/Data/ipcc_ar6_edgar_buildings.xlsx",overwrite = T)
 
 
 
 ```
 
+```{r worksheet_check,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
 
-```{r ratios_check,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
 
-data <- edgar_GHG_ar5 %>%
-  filter(year==2018) %>% 
-  group_by(sector_code) %>% 
-  summarise(GHG=sum(GHG,na.rm=T))
 
-total <- sum(data$GHG)
+worksheet <- read.xlsx('../Results/Data/ipcc_ar6_edgar_data_gwp100_v3.xlsx','emissions_data')
 
-data <- data %>% 
-  mutate(fraction_global=GHG/total)
+plot_data <- worksheet %>% 
+  filter(year>1989) %>% 
+  filter(year<2019) %>% 
+  group_by(year) %>% 
+  summarise(CO2=sum(CO2,na.rm=T)/1e9,CH4=sum(CH4,na.rm=T)/1e9,N2O=sum(N2O,na.rm=T)/1e9,Fgas=sum(Fgas,na.rm=T)/1e9)
 
 
 ```
-
-
 
 ```{r double_counting,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
 

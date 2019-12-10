@@ -55,6 +55,136 @@
 
 
 
+###### waterfall AR5 GWPs
+
+waterfall <- plot_data %>%
+  filter(year==2018) %>% 
+  group_by(gas) %>%
+  summarise(value=sum(value)) %>% 
+  arrange(desc(gas))
+
+waterfall$end <- cumsum(waterfall$value)
+waterfall$start <- c(0, head(waterfall$end, -1))
+waterfall <- cbind(waterfall,id=c(5,4,3,2,1))
+
+p3 <- waterfall %>%
+  ggplot(.,aes(fill=gas)) +
+  geom_rect(aes(x = gas,
+                xmin = id - 0.4,
+                xmax = id + 0.4,
+                ymin = start,
+                ymax = end),colour="#737373") +
+  scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
+  theme_bw() +
+  ylim(0,62) +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(margin=margin(0,10,0,0)),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.border = element_blank())
+
+###### waterfall AR6 GWPs
+
+second_waterfall <- plot_data %>%
+  filter(year==2018) %>% 
+  group_by(gas) %>%
+  summarise(value=sum(value))%>% 
+  arrange(desc(gas))
+
+second_waterfall <- left_join(second_waterfall,gwps,by=c("gas"="gas"))
+
+second_waterfall$gas <- as.factor(second_waterfall$gas)
+second_waterfall$gas <-  factor(second_waterfall$gas,levels(second_waterfall$gas)[c(4,5,1,3,2)])
+
+
+second_waterfall <- second_waterfall %>% 
+  mutate(value=ifelse(gas=="CH4",(value/gwp_ar5)*gwp_ar6,value)) %>% 
+  mutate(value=ifelse(gas=="N2O",(value/gwp_ar5)*gwp_ar6,value)) %>% 
+  select(gas,value)
+
+second_waterfall$end <- cumsum(second_waterfall$value)
+second_waterfall$start <- c(0, head(second_waterfall$end, -1))
+second_waterfall <- cbind(second_waterfall,id=c(5,4,3,2,1))
+
+p4 <- second_waterfall %>%
+  ggplot(.,aes(fill=gas)) +
+  geom_rect(aes(x = gas,
+                xmin = id - 0.4,
+                xmax = id + 0.4,
+                ymin = start,
+                ymax = end),colour="#737373") +
+  scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
+  theme_bw() +
+  ylim(0,62) +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(margin=margin(0,10,0,0)),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.border = element_blank())
+
+
+###### waterfall AR2 GWPs
+
+third_waterfall <- plot_data %>%
+  filter(year==2018) %>% 
+  group_by(gas) %>%
+  summarise(value=sum(value))%>% 
+  arrange(desc(gas))
+
+third_waterfall <- left_join(third_waterfall,gwps,by=c("gas"="gas"))
+
+third_waterfall$gas <- as.factor(third_waterfall$gas)
+third_waterfall$gas <-  factor(third_waterfall$gas,levels(third_waterfall$gas)[c(4,5,1,3,2)])
+
+
+third_waterfall <- third_waterfall %>% 
+  mutate(value=ifelse(gas=="CH4",(value/gwp_ar5)*gwp_ar2,value)) %>% 
+  mutate(value=ifelse(gas=="N2O",(value/gwp_ar5)*gwp_ar2,value)) %>% 
+  select(gas,value)
+
+third_waterfall$end <- cumsum(third_waterfall$value)
+third_waterfall$start <- c(0, head(third_waterfall$end, -1))
+third_waterfall <- cbind(third_waterfall,id=c(5,4,3,2,1))
+
+p5 <- waterfall %>%
+  ggplot(.,aes(fill=gas)) +
+  geom_rect(aes(x = gas,
+                xmin = id - 0.4,
+                xmax = id + 0.4,
+                ymin = start,
+                ymax = end),colour="#737373") +
+  #scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
+  theme_bw() +
+  ylim(0,62) +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(margin=margin(0,10,0,0)),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.border = element_blank())
+
+
+
+
+
+
 
 
 

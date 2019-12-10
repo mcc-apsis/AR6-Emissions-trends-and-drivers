@@ -125,7 +125,7 @@ load('../Data/basic.RData')
 ## bring in more regional codes
 codes <- read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheetName = 'ISO_master')
 
-basic <- left_join(basic,codes %>% select(Code,WB.income),by=c("ISO"="Code")) %>%
+basic <- left_join(basic,codes %>% select(alpha.3,WB.income),by=c("ISO"="alpha.3")) %>%
   select(Country,ISO,Year,UN6,RCP5,IAM10,WB.income,pop_UN,everything())
 
 basic$WB.income <- factor(basic$WB.income,levels(basic$WB.income)[c(1,4,3,2)])
