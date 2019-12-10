@@ -133,6 +133,37 @@ data %>%
 
 ```
 
+
+```{r waste,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
+
+data <- edgar_GHG_ar5 %>% 
+  filter(year>1989) %>% 
+  filter(str_detect(description, "Managed waste")) %>% 
+  group_by(year,sector_code,description) %>% 
+  summarise(value_new=sum(GHG,na.rm=T))
+
+
+data2 <- edgar_GHG %>% 
+  filter(year>1989) %>% 
+  filter(str_detect(description, "Managed waste")) %>% 
+  group_by(year,sector_code,description) %>% 
+  summarise(value_old=sum(GHG,na.rm=T))  
+
+data <- left_join(data,data2)
+
+data <- data %>% 
+  mutate(difference=value_new-value_old)
+
+data <- gather(data,key,value,value_new:value_old)
+
+data %>% ggplot(.,aes(x=year,y=value,colour=key)) +
+  geom_line() +
+  ggtitle(data$description[1])
+
+
+```
+
+
 ## differences by gas
 
 
