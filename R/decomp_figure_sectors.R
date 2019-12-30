@@ -98,7 +98,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
     geom_bar(stat='identity',colour="#737373") + 
     #ylab(bquote(atop("Rate of change in" ~.(gas) ~ "Emissions","(%),"~.(time_start)*"-2017"))) +
     coord_flip() +
-    annotate(geom = 'text', label = 'Years: 2010-2017',
+    annotate(geom = 'text', label = 'Years: 2010-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#737373") +
     plot_theme +
     ggtitle("GHG emissions growth (%)")
@@ -111,10 +111,10 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
     geom_bar(stat='identity',colour="#737373") + 
     #ylab(bquote(atop("Absolute change in" ~.(gas) ~ "Emissions","(Gt" ~CO[2]* "eq),"~.(time_start)*"-2017"))) +
     coord_flip() +
-    annotate(geom = 'text', label = 'Years: 2010-2017',
+    annotate(geom = 'text', label = 'Years: 2010-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#737373") +
     plot_theme +
-    ggtitle("GHG emissions growth (Gt CO2eq)")
+    ggtitle("GHG emissions growth (Gt CO2eq/yr)")
   
   return(list("rate_plot"=p1,"abs_plot"=p2,"data"=rates))
          

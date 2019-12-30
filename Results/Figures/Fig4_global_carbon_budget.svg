@@ -15,8 +15,8 @@
    id="svg7388"
    version="1.1"
    inkscape:version="0.91 r13725"
-   sodipodi:docname="Fig2_global_carbon_budget.svg"
-   inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Projects\AR6-Emissions-trends-and-drivers\Results\Figures\Fig2_global_carbon_budget.png"
+   sodipodi:docname="Fig4_global_carbon_budget.svg"
+   inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Projects\AR6-Emissions-trends-and-drivers\Results\Figures\Fig4_global_carbon_budget.png"
    inkscape:export-xdpi="300"
    inkscape:export-ydpi="300">
   <defs
@@ -2519,8 +2519,8 @@
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:zoom="0.98994949"
-     inkscape:cx="455.28275"
-     inkscape:cy="314.89398"
+     inkscape:cx="364.32609"
+     inkscape:cy="224.12383"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -2543,7 +2543,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -7147,14 +7147,13 @@
        id="text13579-8"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.75px;line-height:125%;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:start;writing-mode:lr-tb;text-anchor:start;fill:#4d4d4d;fill-opacity:1;fill-rule:nonzero;stroke:none"
        x="371.36099"
-       y="-1223.6395"
-       sodipodi:linespacing="125%"
-       transform="scale(1,-1)">
+       y="1230.7562"
+       sodipodi:linespacing="125%">
       <tspan
          sodipodi:role="line"
          id="tspan23067-7"
          x="371.36099"
-         y="-1223.6395">Year of budget exceedance (remaining years shown after arrow)</tspan>
+         y="1230.7562">Year of budget exceedance (remaining years shown after arrow)</tspan>
     </text>
     <path
        inkscape:connector-curvature="0"

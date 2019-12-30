@@ -165,12 +165,6 @@ openxlsx::writeData(wb, sheet = "Fig1_waterfall", waterfall_data, colNames = T, 
 
 ##### plot
 
-g_legend<-function(a.gplot){
-  tmp <- ggplot_gtable(ggplot_build(a.gplot))
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
-  legend <- tmp$grobs[[leg]]
-  return(legend)}
-
 mylegend<-g_legend(p1)
 
 
@@ -454,24 +448,34 @@ side_plot_data <- left_join(side_plot_data,basic,by=c("year"="Year","region_ar6_
 
 
 side_plot_data <- side_plot_data %>% 
-  mutate(`GHG Emissions per capita (tCO2/cap)` = GHG/pop_UN) %>% 
-  mutate(`GHG Emissions per gdp (gCO2/$)` = GHG/gdp_ppp_WB*1000) %>% 
-  mutate(`GHG Emissions per gdp (gCO2/$)` = ifelse(year==2018,NA,`GHG Emissions per gdp (gCO2/$)`))
+  mutate(GHG_pc = GHG/pop_UN) %>% 
+  mutate(GHG_pgdp = GHG/gdp_ppp_WB*1000) %>% 
+  mutate(GHG_pgdp = ifelse(year==2018,NA,GHG_pgdp))
 
-side_plot_data <- gather(side_plot_data,key,value,`GHG Emissions per capita (tCO2/cap)`:`GHG Emissions per gdp (gCO2/$)`)
 
-p2 <- side_plot_data %>% 
-  ggplot(.,aes(x=year,y=value,colour=region_ar6_5_short)) +
+p2_1 <- side_plot_data %>% 
+  ggplot(.,aes(x=year,y=GHG_pc,colour=region_ar6_5_short)) +
   geom_line() +
   theme_bw() +
-  facet_wrap(key~.,ncol=1,scales='free') +
+  ylab('GHG Emissions\n(tCO2/cap)') +
   theme(legend.position = "none",
         axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
         text = element_text(size=11),
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank())
 
+p2_2 <- side_plot_data %>% 
+  ggplot(.,aes(x=year,y=GHG_pgdp,colour=region_ar6_5_short)) +
+  geom_line() +
+  theme_bw() +
+  ylab('GHG Emissions intensity\n(gCO2/$)') +
+  theme(legend.position = "bottom",
+        axis.title.x = element_blank(),
+        text = element_text(size=11),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+p2 <- ggarrange(p2_1,p2_2,ncol=1,nrow=2)
 
 ########### Decomposition figure ###########
 
@@ -485,8 +489,8 @@ p3 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
 p4 <- ggarrange(decomp$pc_plot,decomp$pgdp_plot,ncol=2,nrow=1)
 
 
-plot <- ggarrange(p1 + theme(legend.position="none"),p2,ncol=2,nrow=1,widths=c(0.7,0.3))
-plot <- ggarrange(plot,p3,p4,ncol=1,nrow=3,heights=c(0.3,0.35,0.35))
+plot <- ggarrange(p1 + theme(legend.position="none"),p2,ncol=2,nrow=1,widths=c(0.65,0.35))
+plot <- ggarrange(plot,p3,p4,ncol=1,nrow=3,heights=c(0.3,0.35,0.35),mylegend)
 plot
 
 

@@ -141,11 +141,9 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
     filter(var=="rate") %>% 
     ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_5_short)) +
     geom_bar(stat='identity',colour="#737373") + 
-    #ylab(bquote(atop("Rate of change in" ~.(gas) ~ "Emissions","(%),"~.(time_start)*"-2017"))) +
-    #ylab(paste("Rate of change in ",gas," Emissions (%),\n",time_start,"-2017",sep="")) +
     coord_flip() +
     scale_fill_manual(values = ipcc_palette) +
-    annotate(geom = 'text', label = 'Years: 2010-2017',
+    annotate(geom = 'text', label = 'Years: 2010-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#737373") +
     plot_theme +
     ggtitle("GHG emissions growth (%)")
@@ -156,13 +154,11 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
     filter(var=="abs_growth") %>% 
     ggplot(.,aes(x = reorder(country,value),y = value/1e9, fill=region_ar6_5_short)) +
     geom_bar(stat='identity',colour="#737373") + 
-    #ylab(bquote(atop("Absolute change in" ~.(gas) ~ "Emissions","(Gt" ~CO[2]* "eq),"~.(time_start)*"-2017"))) +
-    #ylab(paste("Absolute change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
     coord_flip() +
     scale_fill_manual(values = ipcc_palette) +
     plot_theme +
-    ggtitle("GHG emissions growth (Gt CO2eq)") +
-    annotate(geom = 'text', label = 'Years: 2010-2017',
+    ggtitle("GHG emissions growth (Gt CO2eq/yr)") +
+    annotate(geom = 'text', label = 'Years: 2010-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#737373")
   
   #pc
@@ -170,13 +166,11 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
     filter(var=="emissions_pc") %>%  
     ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_5_short)) +
     geom_bar(stat='identity',colour="#737373") + 
-    #ylab(bquote(atop( ~.(gas) ~ "Emissions per capita","(t" ~CO[2]* "eq), 2017"))) +
-    #ylab(paste("Absolute change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
     coord_flip() +
     scale_fill_manual(values = ipcc_palette) +
     plot_theme +
     ggtitle("GHG emissions per capita (tCO2/cap)") +
-    annotate(geom = 'text', label = 'Year: 2017',
+    annotate(geom = 'text', label = 'Year: 2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#737373")
   
   #pgdp
@@ -184,13 +178,11 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
     filter(var=="emissions_pgdp") %>% 
     ggplot(.,aes(x = reorder(country,value),y = value*1000, fill=region_ar6_5_short)) +
     geom_bar(stat='identity',colour="#737373") + 
-    #ylab(bquote(atop( ~.(gas) ~ "Emissions per $GDP","(t/$GDP), 2017"))) +
-    #ylab(paste("Absolute change in ",gas," emissions,\n",time_start,"-2017 (GtCO2eq/yr)",sep="")) +
     coord_flip() +
     scale_fill_manual(values = ipcc_palette) +
     plot_theme +
     ggtitle("GHG emissions intensity (kgCO2/$)") +
-    annotate(geom = 'text', label = 'Year: 2017',
+    annotate(geom = 'text', label = 'Year: 2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#737373")
   
   
