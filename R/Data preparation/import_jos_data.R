@@ -6,7 +6,7 @@ library(tidyverse)
 
 ########### load CO2, CH4, N2O sheets - no GWPs applied ########### 
 
-jos_CO2 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_CO2 <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                  sheet='CO2',startRow=10)
 jos_CO2 <- jos_CO2[1:58]
 jos_CO2 <- gather(jos_CO2,year,value,'1970':'2018')
@@ -14,7 +14,7 @@ jos_CO2 <- jos_CO2 %>%
   select(ISO,year,EDGAR_country=Country,IPCC.detailed=IPCC,IPCC_detailed_description=IPCC_source,CO2=value)
 
 
-jos_CH4 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_CH4 <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                sheet='CH4',startRow=10)
 jos_CH4 <- jos_CH4[1:58]
 jos_CH4 <- gather(jos_CH4,year,value,'1970':'2018')
@@ -22,7 +22,7 @@ jos_CH4 <- jos_CH4 %>%
   select(ISO,year,EDGAR_country=Country,IPCC.detailed=IPCC,IPCC_detailed_description=IPCC_source,CH4=value)
 
 
-jos_N2O <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_N2O <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                sheet='N2O',startRow=10)
 jos_N2O <- jos_N2O[1:58]
 jos_N2O <- gather(jos_N2O,year,value,'1970':'2018')
@@ -33,7 +33,7 @@ jos_N2O <- jos_N2O %>%
 ########### Fgas sheets
 
 
-jos_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part B--F-gases FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_Fgas <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 Part B--F-gases FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                   sheet='F-gas (kton)',startRow=10)
 jos_Fgas <- jos_Fgas[1:58]
 jos_Fgas <- gather(jos_Fgas,year,value,'1970':'2018')
@@ -53,7 +53,7 @@ edgar_GHG <- full_join(edgar_GHG,jos_Fgas)
 
 load('Data/gwps.RData')
 for (row in 1:nrow(gwps)) {
-  col <- gwps[row, "Fgas"]
+  col <- gwps[row, "gas"]
   edgar_GHG[col] <- edgar_GHG[col]*1000
 }
 
@@ -136,26 +136,33 @@ edgar_GHG <- edgar_GHG %>%
   select(ISO,country=name,region_ar6_5,region_ar6_5_short,region_ar6_10,region_ar6_22,region_ar6_dev,year,chapter,chapter_title,sector_code,description,category_1,category_2,category_3,CO2,CH4,N2O,everything(),-EDGAR_country)
 
 
+############## factorise regions
+
+
+edgar_GHG_ar5$region_ar6_5_short <- as.factor(edgar_GHG_ar5$region_ar6_5_short)
+edgar_GHG_ar5$region_ar6_5_short <- factor(edgar_GHG_ar5$region_ar6_5_short,levels(edgar_GHG_ar5$region_ar6_5_short)[c(1,7,2,3,4,5,6)])
+
+
 ############## calculate gwps based on ar5 values
 
 edgar_GHG_ar5 <- edgar_GHG
 for (row in 1:nrow(gwps)) {
-  col <- gwps[row, "Fgas"]
+  col <- gwps[row, "gas"]
   gwp  <- gwps[row, "gwp_ar5"]
   edgar_GHG_ar5[col] <- edgar_GHG_ar5[col]*gwp
 }
 
 fgas_list <- gwps %>% 
-  filter(Fgas!="CO2") %>% 
-  filter(Fgas!="N2O") %>% 
-  filter(Fgas!="CH4") %>% 
-  select(Fgas)
+  filter(gas!="CO2") %>% 
+  filter(gas!="N2O") %>% 
+  filter(gas!="CH4") %>% 
+  select(gas)
 
 edgar_GHG_ar5 <- edgar_GHG_ar5 %>% 
-  mutate(Fgas=rowSums(.[fgas_list$Fgas],na.rm=T)) %>% 
-  mutate(nnums=rowSums(!is.na(.[fgas_list$Fgas]))) %>% 
+  mutate(Fgas=rowSums(.[fgas_list$gas],na.rm=T)) %>% 
+  mutate(nnums=rowSums(!is.na(.[fgas_list$gas]))) %>% 
   mutate(Fgas=ifelse(nnums==0,NA,Fgas)) %>% 
-  select(-nnums,-one_of(fgas_list$Fgas))
+  select(-nnums,-one_of(fgas_list$gas))
 
 edgar_GHG_ar5 <- edgar_GHG_ar5 %>% 
   group_by(ISO,year,sector_code) %>% 
@@ -166,5 +173,5 @@ edgar_GHG_ar5 <- edgar_GHG_ar5 %>%
 
 ############## save two datasets
 
-save(edgar_GHG,file='Output/edgar_data_all.RData')
-save(edgar_GHG_ar5,file='Output/edgar_data_gwp_ar5.RData')
+save(edgar_GHG,file='Data/edgar_data_all.RData')
+save(edgar_GHG_ar5,file='Data/edgar_data_gwp_ar5.RData')

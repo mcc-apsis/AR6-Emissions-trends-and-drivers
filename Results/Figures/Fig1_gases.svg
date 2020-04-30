@@ -18,7 +18,7 @@
    inkscape:export-filename="C:\Users\lamw\Documents\SpiderOak Hive\Work\Projects\AR6-Emissions-trends-and-drivers\Results\Figures\Fig1_ghgs_total_gas.png"
    inkscape:export-xdpi="300"
    inkscape:export-ydpi="300"
-   sodipodi:docname="ghgs_total_gas.svg">
+   sodipodi:docname="Fig1_gases.svg">
   <defs
      id="defs5402">
     <clipPath
@@ -1022,8 +1022,8 @@
      inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:zoom="0.98994949"
-     inkscape:cx="272.6178"
-     inkscape:cy="381.19306"
+     inkscape:cx="273.5941"
+     inkscape:cy="259.38575"
      inkscape:document-units="px"
      inkscape:current-layer="layer2"
      showgrid="false"
@@ -1044,7 +1044,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -2384,82 +2384,81 @@
         </text>
       </g>
     </g>
-    <g
-       id="g9945">
-      <path
-         d="m 595.85699,263.20709 0,-3.425"
-         style="fill:none;stroke:#333333;stroke-width:1.3375001;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-         id="path4667-8"
-         inkscape:connector-curvature="0" />
-      <text
-         sodipodi:linespacing="125%"
-         y="274.01959"
+    <path
+       inkscape:connector-curvature="0"
+       id="path4667-8"
+       style="fill:none;stroke:#333333;stroke-width:1.3375001;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       d="m 595.85699,263.20709 0,-3.425" />
+    <text
+       id="text4685-9"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:center;writing-mode:lr-tb;text-anchor:middle;fill:#4d4d4d;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       x="595.72516"
+       y="274.01959"
+       sodipodi:linespacing="125%">
+      <tspan
+         sodipodi:role="line"
+         id="tspan9894"
          x="595.72516"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:center;writing-mode:lr-tb;text-anchor:middle;fill:#4d4d4d;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         id="text4685-9">
-        <tspan
-           y="274.01959"
-           x="595.72516"
-           id="tspan9894"
-           sodipodi:role="line">2018</tspan>
-        <tspan
-           y="288.08209"
-           x="595.72516"
-           id="tspan9896"
-           sodipodi:role="line">(AR5 GWP)</tspan>
-      </text>
-    </g>
-    <g
-       id="g9939">
-      <path
-         d="m 660.0498,263.20709 0,-3.425"
-         style="fill:none;stroke:#333333;stroke-width:1.3375001;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-         id="path4667-1"
-         inkscape:connector-curvature="0" />
-      <text
-         sodipodi:linespacing="125%"
-         y="274.01959"
+         y="274.01959">2018</tspan>
+      <tspan
+         sodipodi:role="line"
+         id="tspan9896"
+         x="595.72516"
+         y="288.08209">(<tspan
+   style="font-weight:bold"
+   id="tspan4732">AR5 GWP</tspan>
+)</tspan>
+    </text>
+    <path
+       inkscape:connector-curvature="0"
+       id="path4667-1"
+       style="fill:none;stroke:#333333;stroke-width:1.3375001;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       d="m 660.0498,263.20709 0,-3.425" />
+    <text
+       id="text4685-9-7"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:center;writing-mode:lr-tb;text-anchor:middle;fill:#4d4d4d;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       x="659.91797"
+       y="274.01959"
+       sodipodi:linespacing="125%">
+      <tspan
+         sodipodi:role="line"
+         id="tspan9894-0"
          x="659.91797"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:center;writing-mode:lr-tb;text-anchor:middle;fill:#4d4d4d;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         id="text4685-9-7">
-        <tspan
-           y="274.01959"
-           x="659.91797"
-           id="tspan9894-0"
-           sodipodi:role="line">2018</tspan>
-        <tspan
-           y="288.08209"
-           x="659.91797"
-           id="tspan9896-4"
-           sodipodi:role="line">(AR6 GWP)</tspan>
-      </text>
-    </g>
-    <g
-       id="g9933"
-       transform="translate(10,0)">
-      <path
-         d="m 714.24262,263.20709 0,-3.425"
-         style="fill:none;stroke:#333333;stroke-width:1.3375001;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-         id="path4667-89"
-         inkscape:connector-curvature="0" />
-      <text
-         sodipodi:linespacing="125%"
-         y="274.01959"
-         x="714.11078"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:center;writing-mode:lr-tb;text-anchor:middle;fill:#4d4d4d;fill-opacity:1;fill-rule:nonzero;stroke:none"
-         id="text4685-9-9">
-        <tspan
-           y="274.01959"
-           x="714.11078"
-           id="tspan9894-5"
-           sodipodi:role="line">2018</tspan>
-        <tspan
-           y="288.08209"
-           x="714.11078"
-           id="tspan9896-0"
-           sodipodi:role="line">(AR2 GWP)</tspan>
-      </text>
-    </g>
+         y="274.01959">2018</tspan>
+      <tspan
+         sodipodi:role="line"
+         id="tspan9896-4"
+         x="659.91797"
+         y="288.08209">(<tspan
+   style="font-weight:bold"
+   id="tspan4734">AR6 GWP</tspan>
+)</tspan>
+    </text>
+    <path
+       inkscape:connector-curvature="0"
+       id="path4667-89"
+       style="fill:none;stroke:#333333;stroke-width:1.3375001;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+       d="m 724.24262,263.20709 0,-3.425" />
+    <text
+       id="text4685-9-9"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:11.25px;line-height:125%;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:center;writing-mode:lr-tb;text-anchor:middle;fill:#4d4d4d;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       x="724.11078"
+       y="274.01959"
+       sodipodi:linespacing="125%">
+      <tspan
+         sodipodi:role="line"
+         id="tspan9894-5"
+         x="724.11078"
+         y="274.01959">2018</tspan>
+      <tspan
+         sodipodi:role="line"
+         id="tspan9896-0"
+         x="724.11078"
+         y="288.08209">(<tspan
+   style="font-weight:bold"
+   id="tspan4736">AR2 GWP</tspan>
+)</tspan>
+    </text>
     <g
        id="g9863"
        transform="translate(-17.326535,0)">

@@ -1,7 +1,7 @@
 
 
 
-gwps <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part B--F-gases FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+gwps <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 Part B--F-gases FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                             sheet='F-gas (kton)',startRow=10)
 gwps <- gwps[63:67]
 gwps <- gwps %>% 
@@ -15,7 +15,7 @@ gwps <- gwps %>%
   add_row(Fgas="CH4",gwp_ar2=21,gwp_ar4=25,gwp_ar5=28) %>%
   add_row(Fgas="N2O",gwp_ar2=310,gwp_ar4=298,gwp_ar5=265)
 
-input <- openxlsx::read.xlsx('Data/global_warming_potentials.xlsx',sheet='gwp100')
+input <- openxlsx::read.xlsx('Data/Codes and classifications/global_warming_potentials.xlsx',sheet='gwp100')
 
 input <- input %>% 
   mutate(gas=Chemical.formula) %>% 

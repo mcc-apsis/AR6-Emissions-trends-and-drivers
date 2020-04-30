@@ -15,6 +15,7 @@ library(tidyverse)
 library(ggpubr)
 library(gganimate)
 library(xlsx)
+library(ggplot2); theme_set(theme_bw())
 
 source("small_figures.R")
 source("decomp_figure_countries.R")
@@ -24,10 +25,6 @@ source("waterfall_plot.R")
 
 load('../Data/edgar_data_gwp_ar5.RData')
 load('../Data/gwps.RData')
-
-edgar_GHG_ar5$region_ar6_5_short <- as.factor(edgar_GHG_ar5$region_ar6_5_short)
-
-edgar_GHG_ar5$region_ar6_5_short <- factor(edgar_GHG_ar5$region_ar6_5_short,levels(edgar_GHG_ar5$region_ar6_5_short)[c(1,7,2,3,4,5,6)])
 
 # set palette
 # ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
@@ -41,8 +38,6 @@ wb <- openxlsx::createWorkbook(title = paste("ipcc_plot_data_",Sys.Date()))
 
 
 ```
-
-
 
 ### Figure 1: GHG emissions by gas
 
@@ -58,7 +53,7 @@ plot_data <- edgar_GHG_ar5 %>%
 
 ######### load data from global carbon budget ######### 
 
-land_data <- openxlsx::read.xlsx('../Data/Global_Carbon_Budget_2019v1.0.xlsx',sheet="Global Carbon Budget",rows=19:79,cols=2:4) %>% 
+land_data <- openxlsx::read.xlsx('../Data/Land and GCB/Global_Carbon_Budget_2019v1.0.xlsx',sheet="Global Carbon Budget",rows=19:79,cols=2:4) %>% 
   select(year=Year,CO2_landuse="land-use.change.emissions")
 
 #### convert from C to CO2
@@ -174,9 +169,6 @@ plot <- ggarrange(plot,p2,nrow=2,ncol=1,heights = c(0.7,0.3),align="v",mylegend)
 plot 
 
 
-
-
-
 ```
 
 ### Figure 2: Long term CO2 emissions sources and sinks
@@ -186,7 +178,7 @@ plot
 
 ######### load the global carbon budget ######### 
 
-gcb <- openxlsx::read.xlsx('../Data/CDIAC_fossilfuel_updated_GCP2019.xlsx',sheet="CDIAC CO2",rows=3:271,cols=1:9)
+gcb <- openxlsx::read.xlsx('../Data/Land and GCB/CDIAC_fossilfuel_updated_GCP2019.xlsx',sheet="CDIAC CO2",rows=3:271,cols=1:9)
 names(gcb) <- c("Year","Total","Gas","Oil","Coal","Cement","Flaring","Net land-use","Total_CO2")
 
 
@@ -326,6 +318,8 @@ openxlsx::writeData(wb, sheet = "Fig2_budget", spread(budget_data,year,value), c
 
 source("decomp_figure_countries.R")
 #ipcc_palette <- c("#737373","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f");
+ipcc_palette <- c("#737373","#737373","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854");
+
 
 
 plot_data <- edgar_GHG_ar5 %>% 
@@ -354,7 +348,7 @@ plot_data <- plot_data %>%
 
 ######### load data from global carbon budget ######### 
 
-land_data <- openxlsx::read.xlsx('../Data/Global_Carbon_Budget_2019v1.0.xlsx',sheet="Global Carbon Budget",rows=19:79,cols=2:4) %>% 
+land_data <- openxlsx::read.xlsx('../Data/Land and GCB/Global_Carbon_Budget_2019v1.0.xlsx',sheet="Global Carbon Budget",rows=19:79,cols=2:4) %>% 
   select(year=Year,value="land-use.change.emissions")
 
 #### convert from C to CO2
@@ -457,7 +451,7 @@ p2_1 <- side_plot_data %>%
   ggplot(.,aes(x=year,y=GHG_pc,colour=region_ar6_5_short)) +
   geom_line() +
   theme_bw() +
-  ylab('GHG Emissions\n(tCO2/cap)') +
+  ylab('GHG Emissions\n(tCO2eq/cap)') +
   theme(legend.position = "none",
         axis.title.x = element_blank(),
         text = element_text(size=11),
@@ -468,7 +462,7 @@ p2_2 <- side_plot_data %>%
   ggplot(.,aes(x=year,y=GHG_pgdp,colour=region_ar6_5_short)) +
   geom_line() +
   theme_bw() +
-  ylab('GHG Emissions intensity\n(gCO2/$)') +
+  ylab('GHG Emissions intensity\n(gCO2eq/$)') +
   theme(legend.position = "bottom",
         axis.title.x = element_blank(),
         text = element_text(size=11),
@@ -504,8 +498,17 @@ openxlsx::writeData(wb, sheet = "Fig5_ghgs_countries", decomp$data, colNames = T
 
 ```
 
+``` {r benchmark_test, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
-### Figure 9: Total GHGs, split by sector
+# what i already have
+p <- decomp$rate_plot
+p +
+  geom_hline(yintercept=-2.5,color="red",linetype="dashed") +
+  geom_hline(yintercept=-3,color="red",linetype="dashed") +
+  geom_hline(yintercept=-7.5,color="red",linetype="dashed")
+
+
+```
 
 ```{r Fig9_sectors, echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
@@ -519,7 +522,7 @@ plot_data <- edgar_GHG_ar5  %>%
   summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
   ungroup()
 
-land_data <- openxlsx::read.xlsx('../Data/Global_Carbon_Budget_2019v1.0.xlsx',sheet="Global Carbon Budget",rows=19:79,cols=2:4) %>% 
+land_data <- openxlsx::read.xlsx('../Data/Land and GCB/Global_Carbon_Budget_2019v1.0.xlsx',sheet="Global Carbon Budget",rows=19:79,cols=2:4) %>% 
   select(year=Year,value="land-use.change.emissions")
 
 #### convert from C to CO2
@@ -599,6 +602,114 @@ openxlsx::writeData(wb, sheet = "Fig9_subsectors", decomp$data, colNames = T, ro
 
 ```
 
+```{r benchmarking, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+# import scenario data
+benchmark_data_raw <- read.csv("../Data/Emission reduction benchmarks.csv")
+
+benchmark_data <- benchmark_data_raw %>% 
+  rename(rate=reduction_rates_2020.2050) %>% 
+  filter(rate>-25) %>% 
+  #filter(is.na(rate)) %>% 
+  filter(aggregated_category!="Other") %>% 
+  select(aggregated_category,rate)
+
+
+benchmark_data2 <- benchmark_data_raw %>% 
+  rename(rate=reduction_rates_2020.2040) %>% 
+  filter(rate>-25) %>% 
+  #filter(is.na(rate)) %>% 
+  filter(aggregated_category!="Other") %>% 
+  select(aggregated_category,rate)
+
+rates <- edgar_GHG_ar5 %>% 
+  filter(region_ar6_5_short!="AIR") %>% 
+  filter(region_ar6_5_short!="SEA") %>% 
+  group_by(country,ISO,year,region_ar6_5,region_ar6_5_short) %>% 
+  summarise(GHG=sum(GHG,na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  rename(emissions_total=GHG)
+
+
+##### 1990 - 2018 (as chapter figures)
+# time_start = 1990
+# 
+# blarg <- rates %>% 
+#   filter(year>=time_start & year<2019) %>% 
+#   group_by(country,year,region_ar6_5) %>% 
+#   summarise(emissions_total=sum(emissions_total,na.rm=TRUE))
+# 
+# blarg <- blarg %>% 
+#   group_by(country,region_ar6_5) %>% 
+#   summarise(rate=(last(emissions_total)/first(emissions_total))^(1/(last(year)-time_start))-1) %>% 
+#   ungroup() %>% 
+#   mutate(rate=rate*100) %>% 
+#   mutate(aggregated_category=paste0("All countries ",time_start,"-2018")) %>% 
+#   select(aggregated_category,rate)
+#   
+# blarg <- rbind(blarg,benchmark_data)
+# 
+# blarg <- blarg %>% 
+#   mutate(aggregated_category = as.factor(aggregated_category))
+# 
+# blarg$aggregated_category <- factor(blarg$aggregated_category,levels= levels(blarg$aggregated_category)[c(2,1,3,4)])
+# 
+# blarg %>% 
+#   ggplot(.,aes(x=aggregated_category,rate)) +
+#   geom_boxplot() +
+#   coord_flip() +
+#   ylab("Average annual GHG emissions growth rates (%)") +
+#   theme(axis.title.x = element_blank())
+
+
+
+##### regions
+time_start = 2010
+
+blarg <- rates %>% 
+  filter(year>=time_start & year<2019) %>% 
+  group_by(country,year,region_ar6_5) %>% 
+  summarise(emissions_total=sum(emissions_total,na.rm=TRUE))
+
+blarg <- blarg %>% 
+  group_by(country,region_ar6_5) %>% 
+  summarise(rate=(last(emissions_total)/first(emissions_total))^(1/(last(year)-time_start))-1) %>% 
+  ungroup() %>% 
+  mutate(rate=rate*100) %>% 
+  mutate(aggregated_category=region_ar6_5) %>% 
+  select(aggregated_category,rate) %>% 
+  mutate(facet="Historical (2010-2018)")
+  
+#blarg <- rbind(blarg,benchmark_data %>% mutate(facet="Scenarios (2020-2050)"))
+blarg <- rbind(blarg,benchmark_data2 %>% mutate(facet="Scenarios (2020-2040)"))
+
+blarg <- blarg %>% 
+  mutate(aggregated_category = as.factor(aggregated_category))
+
+blarg$aggregated_category <- factor(blarg$aggregated_category,levels= levels(blarg$aggregated_category)[c(2,3,4,5,7,1,6,8)])
+
+blarg %>% 
+  ggplot(.,aes(x=fct_rev(aggregated_category),rate,fill=aggregated_category)) +
+  geom_boxplot() +
+  coord_flip() +
+  facet_grid(facet~.,scales="free") +
+  theme_bw() +
+  ylab("Average annual GHG emissions growth rates (%)") +
+  theme(axis.title.y = element_blank(),
+        legend.position = "none")
+
+
+
+
+
+
+
+
+
+
+
+```
+
 ### Figure PROPOSAL: Individual gases, split by region
 
 ```{r Figx_region_gas, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
@@ -671,3 +782,15 @@ openxlsx::saveWorkbook(wb,"../Results/Data/ipcc_plot_data.xlsx",overwrite=T)
 
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+

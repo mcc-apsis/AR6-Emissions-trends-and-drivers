@@ -24,7 +24,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   
   rates <- rates %>% 
     group_by(sector_code) %>% 
-    mutate(rate=(last(value)/first(value))^(1/(last(year)-time_start+1))-1) %>% 
+    mutate(rate=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>% 
     mutate(abs_growth=last(value)-first(value)) %>%
     filter(year==2017) 
   
@@ -60,7 +60,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   
   sector_rates <- sector_rates %>% 
     group_by(chapter_title) %>% 
-    mutate(rate=(last(value)/first(value))^(1/(last(year)-time_start+1))-1) %>% 
+    mutate(rate=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>% 
     mutate(abs_growth=last(value)-first(value)) %>%
     filter(year==2017) %>% 
     mutate(description=paste(chapter_title,"(rest)")) %>% 

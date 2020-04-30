@@ -20,6 +20,90 @@ library(openxlsx)
 
 load('../Data/edgar_data_gwp_ar5.RData')
 load('../Data/dump/edgar.RData')
+load('../Data/basic.RData')
+
+
+```
+
+## Single out countries with high emissions contributions from individual sectors
+
+```{r crazy_countries,fig.width=8,fig.height=20,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
+
+##
+
+data <- edgar_GHG_ar5 %>% 
+  group_by(country,year) %>% 
+  mutate(country_GHG=sum(GHG,na.rm=TRUE)) %>% 
+  ungroup()
+
+blarg <- edgar_GHG_ar5 %>% 
+  group_by(country,ISO,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=T))
+
+blarg <- left_join(blarg,basic %>% select(ISO,year=Year,pop_UN))
+
+blarg <- blarg %>% 
+  mutate(ghgpc = GHG/pop_UN) %>% 
+  filter(year==2018) %>% 
+  arrange(desc(ghgpc))
+
+data <- data %>% 
+  mutate(sector_fraction=(GHG/country_GHG)*100)
+
+data <- data %>% 
+  filter(region_ar6_5_short!="AIR") %>% 
+  filter(region_ar6_5_short!="SEA") 
+
+data <- data %>% 
+  filter(year==2018) %>% 
+  group_by(country) %>% 
+  arrange(desc(sector_fraction)) %>% 
+  mutate(include=ifelse(first(sector_fraction)>50,1,0)) %>% 
+  ungroup()
+
+
+data <- data %>% 
+  filter(country_GHG>1e6) %>% ## exclude countries with less than 1Mt CO2
+  filter(include==1) %>% 
+  group_by(country) %>% 
+  top_n(10,wt = GHG) %>% 
+  ungroup()
+
+
+
+
+data <- gather(data,gas,value,CO2:Fgas)
+
+
+data %>% ggplot(.,aes(x=reorder(description,desc(value)),y=value,fill=gas)) +
+  geom_bar(stat='identity') +
+  coord_flip() +
+  facet_wrap(.~country,scales='free',ncol=1) +
+  theme_bw() +
+  theme(legend.position="top",
+        legend.title=element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+  
+
+
+
+```
+
+```{r cement,fig.width=8,fig.height=10,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
+
+data <- edgar_GHG_ar5 %>% 
+  filter(chapter_title=="Industry") %>%
+  filter(year>1989) %>% 
+  group_by(year,sector_code,description) %>% 
+  summarise(value=sum(GHG,na.rm=T))
+
+data %>%
+  filter(value>1e8) %>% 
+  ggplot(.,aes(x=year,y=value,colour=description)) +
+  geom_path() +
+  facet_wrap(~description,ncol=4,scales='free',labeller = label_wrap_gen(width=15)) +
+  theme(legend.position = "none")
 
 
 ```

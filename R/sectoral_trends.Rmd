@@ -43,6 +43,8 @@ source("small_figures.R")
 source("decomp_figure_countries.R")
 source("decomp_figure_sectors.R")
 
+load('../Data/edgar_data_gwp_ar5.RData')
+
 ```
 
 ```{r summary_text, include = FALSE}
@@ -68,71 +70,96 @@ summary_text <- function(ch,fraction,trend) {
 # 1. All sectors
 
 ```{r total_sector_trends,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
-
-load('../Data/edgar.RData')
-
-########### Trend figure ###########
-
-totals <- edgar_GHG %>% 
-  filter(year>1989) %>% 
-  filter(year<2018) %>% 
-  group_by(ISO,country,year,region_ar6_5,region_ar6_10,region_ar6_22,region_ar6_dev) %>% 
-  summarise_at(c("CO2","CH4","N2O","Fgas","GHG"),sum,na.rm=TRUE) %>% 
-  mutate(chapter=0,sector_code="Total",description="Total",category_1="Total",category_2="Total",category_3="Total")
-
-  
-trend <- trend_figure(2010,"sector_code","Total","GHG",totals,big_trend_theme)
-p1 <- trend$plot
-p1 <- p1 + ggtitle("A. Trend in total emissions and income classification ")
-d1 <- trend$data
-
-########### Decomposition figure ###########
-
-decomp <- decomp_figure_countries(2010,'sector_code','Total','GHG',edgar_GHG)
-p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
-p2 <- annotate_figure(p2,
-  top = text_grob("B. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
-
-plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
-plot
-
-
-#write.xlsx(p$data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName="Total_GHGs_2010",append=TRUE)
+# 
+# load('../Data/edgar_data_gwp_ar5.RData')
+# 
+# ########### Trend figure ###########
+# 
+# totals <- edgar_GHG_ar5 %>% 
+#   filter(year>1989) %>% 
+#   filter(year<2018) %>% 
+#   group_by(ISO,country,year,region_ar6_5) %>% 
+#   summarise_at(c("CO2","CH4","N2O","Fgas","GHG"),sum,na.rm=TRUE) %>% 
+#   mutate(chapter=0,sector_code="Total",description="Total",category_1="Total",category_2="Total",category_3="Total")
+# 
+#   
+# trend <- trend_figure(2010,"sector_code","Total","GHG",totals,big_trend_theme)
+# p1 <- trend$plot
+# p1 <- p1 + ggtitle("A. Trend in total emissions and income classification ")
+# d1 <- trend$data
+# 
+# ########### Decomposition figure ###########
+# 
+# decomp <- decomp_figure_countries(2010,'GHG',edgar_GHG_ar5)
+# p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+# p2 <- annotate_figure(p2,
+#   top = text_grob("B. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
+# 
+# plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
+# plot
+# 
+# 
+# #write.xlsx(p$data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName="Total_GHGs_2010",append=TRUE)
 
 ```
 
 ```{r sectors,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=11,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
-load('../Data/edgar.RData')
+load('../Data/edgar_data_gwp_ar5.RData')
+i=1
 
-for (i in 1:length(sectors$key)) {
+chapters = edgar_GHG_ar5 %>% 
+  select(chapter,chapter_title) %>% 
+  distinct()
+
+for (i in 1:length(chapters$chapter)) {
   
   ## Which chapter?
-  ch = sectors$key[i]
-  
+  ch = chapters$chapter[i]
   
   ## Generate header
-  header = paste0(i+1,". ",sectors$value[i]," (Ch.",sectors$key[i],")")
+  header = paste0(i+1,". ",chapters$chapter_title[i]," (Ch.",chapters$chapter[i],")")
   cat('\n#', header, '\n')
   
   
   ## Bar figure
-  bar <- bar_figure("chapter",ch,"GHG",edgar_GHG)
-  
+  bar <- bar_figure("chapter",ch,"GHG",edgar_GHG_ar5)
   
   ## Trend figure
-  trend <- trend_figure(2010,'chapter',ch,'GHG',edgar_GHG)
+  data <- edgar_GHG_ar5 %>%
+    filter(chapter==ch) %>% 
+    group_by(year,region_ar6_5,region_ar6_5_short) %>% 
+    summarise(value=sum(GHG,na.rm=TRUE)) %>% 
+    mutate(value=value/1e6) %>% 
+    filter(region_ar6_5_short!="AIR") %>% 
+    filter(region_ar6_5_short!="SEA") 
+  
+  trend <- data %>%
+    ggplot(.,aes(x=year,y=value,fill=region_ar6_5)) +
+    geom_area(color='#737373') +
+    #geom_text(data=shares,aes(x=year,y=location,label=paste(round(fractions,0),"%",sep="")))+
+    geom_vline(xintercept=c(1990,2000,2010,2017),alpha=0.3,linetype="dashed") +
+    big_trend_theme +
+    ggtitle("B. Sector trend by region") +
+    theme(legend.justification=c(0,1), 
+          legend.position=c(0.05, 0.97),
+          legend.title=element_blank(),
+          legend.background = element_blank(),
+          legend.spacing.x = unit(0.2,'cm')) +
+    ylab(bquote(.(gas) ~" Emissions (Gt" ~CO[2]* "eq)"))
   
   
   ## Decomposition figure
-  decomp <- decomp_figure_countries(2010,'chapter',ch,'GHG',edgar_GHG)
+  load('../Data/basic.RData')
+  decomp <- decomp_figure_countries(1990,'GHG',edgar_GHG_ar5 %>% filter(chapter==ch),basic)
+  
   p_decomp <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
   p_decomp <- annotate_figure(p_decomp,
     top = text_grob("C. Relative and absolute changes amoung countries responsible for 75% of emissions",size = 12,hjust=0.57))
   
   
   ## Plot everything
-  p_decomp_countries <- ggarrange(bar$plot,trend$plot,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
+  p_decomp_countries <- ggarrange(bar$plot,trend,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
   p_decomp_countries <- ggarrange(p_decomp_countries,p_decomp,ncol=1,nrow=2,heights=c(0.45,0.55))
   
   print(p_decomp_countries)
@@ -140,8 +167,8 @@ for (i in 1:length(sectors$key)) {
   
   
   ## Summary text
-  text <- summary_text(ch,bar$fraction,trend$data)
-  cat('  \n',text, '  \n')
+  # text <- summary_text(ch,bar$fraction,trend$data)
+  # cat('  \n',text, '  \n')
   
   
   # ## Sector decomposition
@@ -171,16 +198,17 @@ for (i in 1:length(sectors$key)) {
 
 ```{r category_table,include=FALSE,echo=FALSE}
 
-
-categories <- edgar_GHG %>%
-  select(chapter,sector_code,description) %>%
-  distinct(.keep_all = TRUE) %>% 
-  arrange(chapter)
-categories$chapter <- as.factor(categories$chapter)
-
-table <- make_table(categories)
-
+# 
+# categories <- edgar_GHG %>%
+#   select(chapter,sector_code,description) %>%
+#   distinct(.keep_all = TRUE) %>% 
+#   arrange(chapter)
+# categories$chapter <- as.factor(categories$chapter)
+# 
+# table <- make_table(categories)
+# 
+# 
+# <br>
+# `r table`
 
 ```
-<br>
-`r table`

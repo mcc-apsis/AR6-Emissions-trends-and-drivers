@@ -1,0 +1,413 @@
+---
+title: "WGII Regions"
+author: "William F. Lamb"
+date: "6 4 2020"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
+  
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(gganimate)
+library(xlsx)
+library(ggmap)
+library(maps)
+
+source("small_figures.R")
+source("decomp_figure_countries.R")
+source("decomp_figure_sectors.R")
+source("waterfall_plot.R")
+
+
+load('../Data/edgar_data_gwp_ar5.RData')
+load('../Data/gwps.RData')
+load('../Data/basic.RData')
+
+# set palette
+# ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+# ipcc_palette <- c("#737373","#737373","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854");
+
+
+uncertainties <- data.frame(gas=c('CO2 FFI','CO2 FOLU','CH4','N2O','Fgas','GHG'),
+                            uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
+
+isos <- openxlsx::read.xlsx("C:\\Users\\lamw\\Documents\\SpiderOak Hive\\Work\\Code\\R\\.Place names and codes\\output\\ISOcodes.xlsx",sheet="alternative_names")
+
+world <- map_data("world") %>% 
+  filter(region!="Antarctica")
+world <- left_join(world %>% mutate(region=tolower(region)),isos,by=c("region"="alternative.name")) 
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_region_data",Sys.Date()))
+
+
+```
+
+
+```{r plot_maps, include=FALSE, echo=FALSE}
+
+
+data <- edgar_GHG_ar5
+region <- unique(edgar_GHG_ar5$region_ar6_10)[1]
+
+plot_maps <- function(data,region) {
+  
+  trimmed_data <- data %>% 
+    filter(region_ar6_10==region) %>%
+    select(country,ISO,region_ar6_10) %>% 
+    distinct() %>% 
+    mutate(check=1)
+  
+  world <- left_join(world,trimmed_data ,by=c("alpha.3"="ISO"))
+  
+  
+  p <- ggplot() + 
+    geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=check),color="white",na.rm=T) + 
+    coord_fixed(1,xlim=c(-155,175)) +
+    theme_bw() +
+    scale_fill_continuous(trans = 'reverse',na.value='#969696',name="No. studies") +
+    guides(fill = guide_legend(reverse = TRUE))  +
+    ggtitle(paste0("a. ",region," coverage")) +
+    theme(panel.border = element_rect(colour = "black",fill=NA),
+          legend.position = "none",
+          legend.background = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_blank(),
+          plot.title = element_text(face="plain"))
+  
+  
+  
+  return(list("plot"=p,"data"=trimmed_data))
+}
+```
+
+```{r, plot_trends, include=FALSE, echo=FALSE}
+
+
+plot_trends <- function(data,region) {
+  
+  trend_data <- data %>% 
+    filter(region_ar6_10==region)  %>% 
+    filter(year>1989) %>% 
+    filter(year<2019) %>% 
+    group_by(country,year) %>% 
+    summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
+    ungroup()
+  
+  #what is 75% of the emissions?
+  blarg <- trend_data %>%
+    filter(year==2018)
+  threshold <- sum(blarg$value,na.rm=T)*0.1
+
+  country_list <- trend_data %>%
+    filter(year==2018) %>%
+    arrange(desc(value))
+
+
+  country_list$cutoff <- 0
+  z <- 0
+  for (i in 1:length(country_list$country)){
+    z <- country_list$value[i]
+    if (z > threshold) {
+      country_list$cutoff[i] <- 1
+    }
+    else {
+      break
+    }
+  }
+
+  trend_data <- left_join(trend_data,country_list %>% select(-value,-year),by=c("country"="country"))
+
+  
+  p <- trend_data %>% 
+    filter(cutoff==1) %>% 
+    ggplot(.,aes(x=year,y=value,color=country)) +
+    geom_line(size=1) +
+    geom_text(inherit.aes = FALSE,data=trend_data %>% filter(year==2018) %>% filter(cutoff==1),
+              aes(x=2020.5,y=value,color=country,label=country)) +
+    theme_bw +
+    ylab("GHG Emissions (Gt CO2eq)") +
+    xlim(1990,2022) +
+    theme(axis.title.x = element_blank(),
+          legend.position = "none",
+          axis.title.y = element_text(margin = margin(r = 10))) +
+    ggtitle(paste0("b. GHG emissions of major countries"))
+  
+  
+  return(list("plot"=p,"data"=trend_data))
+}
+  
+  
+```
+
+```{r, bars, include=FALSE, echo=FALSE}
+
+
+
+plot_bars <- function(data,region,basic) {
+  
+  pop <- basic %>% 
+    select(Country,ISO,Year,pop_UN,gdp_ppp_WB)
+    
+  trend_data <- data %>% 
+    filter(region_ar6_10==region)  %>% 
+    group_by(country,ISO,year) %>% 
+    summarise(value=sum(GHG,na.rm=TRUE)) %>% 
+    ungroup()
+  
+  trend_data <- left_join(trend_data,pop,by=c("ISO"="ISO","year"="Year"))
+  
+  blarg <- trend_data %>% 
+    filter(year==2018) %>% 
+    mutate(per_capita=value/pop_UN) %>%
+    arrange(desc(per_capita)) %>% 
+    top_n(20)
+  
+  p1 <- blarg %>% 
+    ggplot(.,aes(x=reorder(country,value/pop_UN),y=value/pop_UN)) +
+    geom_bar(stat='identity') +
+    theme_bw +
+    coord_flip() +
+    ylab("GHG Emissions (tCO2eq/capita)") +
+    theme(axis.title.y = element_blank(),
+          legend.position = "none") +
+    ggtitle(paste0("c. GHG emissions per capita in 2018"))
+  
+  p2 <- trend_data %>% 
+    ggplot(.,aes(x=reorder(country,value/gdp_ppp_WB),y=value/gdp_ppp_WB)) +
+    geom_bar(stat='identity') +
+    theme_bw +
+    coord_flip() +
+    ylab("GHG Emissions (tCO2eq/$)") +
+    theme(axis.title.y = element_blank(),
+          legend.position = "none") +
+    ggtitle(paste0("d. GHG emissions per GDP in 2018"))
+  
+  return(list("per_cap"=p1,"per_gdp"=p2,"data"=trend_data))
+}
+  
+  
+```
+
+
+```{r, plot_gases, include=FALSE, echo=FALSE }
+  
+plot_gas <- function(data,region) {
+    
+    
+    gas_data <- data %>% 
+      filter(region_ar6_10==region) %>% 
+      filter(year>1989) %>% 
+      filter(year<2019) %>% 
+      group_by(year) %>% 
+      summarise(CO2=sum(CO2,na.rm=T)/1e9,CH4=sum(CH4,na.rm=T)/1e9,N2O=sum(N2O,na.rm=T)/1e9,Fgas=sum(Fgas,na.rm=T)/1e9)
+    
+    gas_data <- gather(gas_data,gas,value,CO2:Fgas)
+    
+    
+    
+    shares <- gas_data %>% 
+      filter(year %in% c(1990,2000,2010,2018)) %>% 
+      group_by(year) %>% 
+      mutate(totals=sum(value)) %>% 
+      ungroup() %>% 
+      group_by(year,gas) %>% 
+      mutate(fractions=(value/totals)*100)
+    
+    shares <- locate_shares(shares,"gas",4)
+    
+    line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2018,2018),y=c(0,1.1*max(shares$totals)))
+    
+    
+    
+    
+    p <- gas_data %>% 
+      ggplot(.,aes(x=year,y=value,fill=gas)) +
+      geom_area(colour="#737373") +
+      
+      geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+      geom_vline(xintercept=c(1990,2000,2010,2018),alpha=0.3,linetype="dashed") +
+      
+      #### text with the shares
+      geom_text(data=shares,aes(x=year+0.75,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
+      
+      #### text with the totals
+      geom_text(data=shares %>% filter(gas=="Fgas"),aes(x=year,y=1.1*max(shares$totals),label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
+      
+      ylab('GHG Emissions (GtCO2eq/yr)') +
+      labs(fill="Gas") +
+      #scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
+      scale_x_continuous(breaks=c(1990,2000,2010,2018)) +
+      big_trend_theme +
+      theme(legend.position="bottom",
+            legend.background = element_rect(linetype = 1, size = 0.5, colour = "#525252"),
+            legend.margin = margin(l=5,t=5,b=5,r=10,unit="pt"),
+            legend.text = element_text(size=8),
+            legend.title = element_blank()) +
+      guides(fill=guide_legend(nrow=1,byrow=TRUE),
+             shape = guide_legend(override.aes = list(size = 0.5)),
+             color = guide_legend(override.aes = list(size = 0.5))) +
+      ggtitle(paste0("a. ",region," GHG emissions by gas"))
+    
+    
+    
+    return(list("plot"=p,"data"=gas_data))
+}
+  
+  
+  
+```
+
+  
+  
+```{r plot_sectors, include=FALSE, echo=FALSE}
+  
+plot_sectors <- function(data,region) {
+    
+    #sectors
+    sector_data <- data  %>% 
+      filter(region_ar6_10==region) %>% 
+      filter(year>1989) %>% 
+      filter(year<2019) %>% 
+      group_by(year,chapter,chapter_title) %>%  
+      summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
+      ungroup()
+    
+    
+    sector_data$chapter_title <- factor(sector_data$chapter_title,levels(sector_data$chapter_title)[c(3,1,2,5,4)])
+    
+    
+    shares <- sector_data %>% 
+      filter(year %in% c(1990,2000,2010,2018)) %>% 
+      group_by(year) %>% 
+      mutate(totals=sum(value)) %>% 
+      ungroup() %>% 
+      group_by(year,chapter) %>% 
+      mutate(fractions=(value/totals)*100) %>% 
+      ungroup()
+    
+    shares <- locate_shares(shares,"chapter",4)
+    
+    line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2018,2018),y=c(0,1.1*max(shares$totals)))
+    
+    
+    p <- sector_data %>%
+      ggplot(.,aes(x=year,y=value,fill=chapter_title)) +
+      geom_area(colour="#737373") +
+      
+      geom_text(data=shares,aes(x=year+0.75,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
+      
+      geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+      
+      #### text with the totals
+      geom_text(data=shares %>% filter(chapter_title=="Industry"),aes(x=year,y=1.1*max(shares$totals),label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
+      
+      ylab("GHG emissions (GtCO2eq/yr)") +
+      
+      labs(fill="Sector") +
+      #scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
+      scale_x_continuous(breaks=c(1990,2000,2010,2018),limits=c(1990,2019)) +
+      
+      big_trend_theme +
+      theme(legend.position="bottom",
+            legend.background = element_rect(linetype = 1, size = 0.5, colour = "#525252"),
+            legend.margin = margin(l=5,t=5,b=5,r=10,unit="pt"),
+            legend.text = element_text(size=8),
+            legend.title = element_blank()) +
+      ggtitle(paste0("a. ",region," GHG emissions by sector"))
+    
+    
+    return(list("plot"=p,"data"=sector_data))
+}
+  
+```
+  
+  
+  
+  
+```{r regions, echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/Regions/",dev=c('png','pdf')}
+
+
+regions <- unique(edgar_GHG_ar5$region_ar6_10)[3]
+
+for (val in 1:length(regions)) {
+  
+  #map <- plot_maps(edgar_GHG_ar5,regions[val])
+  #bars <- plot_bars(edgar_GHG_ar5,regions[val],basic)
+  gas <- plot_gas(edgar_GHG_ar5,regions[val])
+  sector <- plot_sectors(edgar_GHG_ar5,regions[val])
+  decomp <- decomp_figure_countries(1990,'GHG',edgar_GHG_ar5 %>% filter(region_ar6_10==regions[val]),basic)
+  
+  p1 <- ggarrange(gas$plot,sector$plot,nrow=1,ncol=2)
+  p2 <- ggarrange(decomp$rate_plot + scale_fill_manual(values=c("grey")),decomp$abs_plot + scale_fill_manual(values=c("grey")))
+  p3 <- ggarrange(decomp$pc_plot + scale_fill_manual(values=c("grey")),decomp$pgdp_plot + scale_fill_manual(values=c("grey")))
+  p <- ggarrange(p1,p2,p3,nrow=3)
+  print(p)
+  
+  data <- gas$data
+  data <- sector$data
+  
+}
+
+
+```
+
+``` {r drivers, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+
+stacks <- edgar_GHG_ar5 %>% 
+  filter(year==1990 | year==2000 |year==2010 | year==2018) %>% 
+  group_by(year,region_ar6_5_short,region_ar6_5,chapter_title,chapter) %>%
+  summarise(GHG=sum(GHG,na.rm=TRUE)/1e6) %>% 
+  filter(region_ar6_5_short!="AIR") %>% 
+  filter(region_ar6_5_short!="SEA")
+
+stacks %>% ggplot(.,aes(x=year,y=GHG,fill=region_ar6_5_short)) +
+  geom_bar(stat='identity',colour="#737373") +
+  facet_grid(.~chapter_title) +
+  theme_bw() +
+  ylab("GHG Emissions (Gt CO2eq/yr)") +
+  theme(legend.position = c(0.07,0.75),
+        legend.title = element_blank(),
+        legend.background = element_rect(linetype = 1, size = 0.5, colour = "#525252"),
+        legend.margin = margin(l=5,t=5,b=5,r=10,unit="pt"),
+        legend.text = element_text(size=8),
+        legend.spacing.x = unit(5, 'pt'),
+        axis.title.x = element_blank())
+ 
+ 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  

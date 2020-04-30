@@ -8,7 +8,7 @@ library(tidyverse)
 ########### load sheets ########### 
 
 
-jos_CO2 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_CO2 <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                sheet='CO2',startRow=10)
 jos_CO2 <- jos_CO2[1:58]
 jos_CO2 <- gather(jos_CO2,year,value,'1970':'2018')
@@ -16,7 +16,7 @@ jos_CO2 <- jos_CO2 %>%
   select(ISO,year,EDGAR_country=Country,IPCC.detailed=IPCC,IPCC_detailed_description=IPCC_source,CO2=value)
 
 
-jos_CH4 <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_CH4 <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                sheet='CH4',startRow=10)
 jos_CH4 <- jos_CH4[1:58]
 jos_CH4 <- gather(jos_CH4,year,value,'1970':'2018')
@@ -24,7 +24,7 @@ jos_CH4 <- jos_CH4 %>%
   select(ISO,year,EDGAR_country=Country,IPCC.detailed=IPCC,IPCC_detailed_description=IPCC_source,CH4=value)
 
 
-jos_N2O <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_N2O <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                sheet='N2O',startRow=10)
 jos_N2O <- jos_N2O[1:58]
 jos_N2O <- gather(jos_N2O,year,value,'1970':'2018')
@@ -35,7 +35,7 @@ jos_N2O <- jos_N2O %>%
 ########### Fgas sheets
 
 
-jos_Fgas <- openxlsx::read.xlsx('Data/IPCC emissions data AR6/EDGAR v5.0 Part B--F-gases FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
+jos_Fgas <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 Part B--F-gases FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',
                                 sheet='F-gas (kton)',startRow=10)
 jos_Fgas <- jos_Fgas[1:58]
 jos_Fgas <- gather(jos_Fgas,year,value,'1970':'2018')
@@ -61,14 +61,14 @@ edgar_categories <- edgar_GHG %>%
 edgar_categories <- edgar_categories %>% 
   arrange(code)
 
-ipcc_ar2_categories <- read.xlsx('Data/IPCC_AR4_2_sector_mapping.xlsx',sheet='1996') %>% 
+ipcc_ar2_categories <- openxlsx::read.xlsx('Data/Codes and classifications/IPCC_AR4_2_sector_mapping.xlsx',sheet='1996') %>% 
   select(IPCC.1996.Code,IPCC.1996.Name) %>% 
   filter(!is.na(IPCC.1996.Name)) %>% 
   select(code=IPCC.1996.Code,IPCC_AR2_description=IPCC.1996.Name) %>% 
   mutate(source="IPCC_1996") %>% 
   mutate(IPCC_AR2_description=as.character(IPCC_AR2_description))
 
-ipcc_ar5_categories <- read.xlsx('Data/IPCC_AR5_sector_mapping.xlsx',sheet='EmissionMap',startRow = 3) %>% 
+ipcc_ar5_categories <- openxlsx::read.xlsx('Data/Codes and classifications/IPCC_AR5_sector_mapping.xlsx',sheet='EmissionMap',startRow = 3) %>% 
   select(code=IPCC.cat.,IPCC_AR5_sector=Sector_A,IPCC_AR5_chapter=Chapter_a,IPCC_AR5_description=IPCC_description) %>% 
   mutate(IPCC_AR5_description=as.character(IPCC_AR5_description))
 
@@ -77,7 +77,7 @@ master_list <- full_join(master_list,ipcc_ar5_categories,by=("code"="code"))
 
 ### join the editable list with chapter allocations for AR6
 
-ipcc_ar6_chapters <- read.xlsx('Data/IPCC_categories_and_chapters_EDITABLE.xlsx',sheet = 'code_comparisons') %>% 
+ipcc_ar6_chapters <- openxlsx::read.xlsx('Data/Codes and classifications/IPCC_categories_and_chapters_EDITABLE.xlsx',sheet = 'code_comparisons') %>% 
   select(code,IPCC_AR6_chapter)
 
 master_list <- full_join(master_list,ipcc_ar6_chapters,by=("code"="code")) %>% 
@@ -162,11 +162,11 @@ ipcc_categories <- left_join(ipcc_categories,master_list %>% select(code,IPCC_AR
 
 addWorksheet(wb,"chapter_list")
 writeData(wb, sheet = "chapter_list", ipcc_categories, rowNames = F)
-saveWorkbook(wb,"Results/IPCC_master_categories.xlsx",overwrite = T)
+saveWorkbook(wb,"Results/Codes and classifications/IPCC_master_categories.xlsx",overwrite = T)
 
 ########## AR5 vs AR6
 
-ipcc_ar5_sectors <- read.xlsx('Data/IPCC_AR5_sector_mapping.xlsx',sheet='Sectors')
+ipcc_ar5_sectors <- openxlsx::read.xlsx('Data/Codes and classifications/IPCC_AR5_sector_mapping.xlsx',sheet='Sectors')
 
 ipcc_ar5_categories <- left_join(ipcc_ar5_categories,ipcc_ar5_sectors,by=c("IPCC_AR5_sector"="code")) %>% 
   select(code,IPCC_AR5_chapter,IPCC_AR5_sector=sector,IPCC_AR5_description)
@@ -215,7 +215,7 @@ ipcc_ar5_categories <- ipcc_ar5_categories %>%
 wb2 <- createWorkbook(title = "edgar_ar5_ar6_code_comparison")
 addWorksheet(wb2,"comparison")
 writeData(wb2, sheet = "comparison", ipcc_ar5_categories, rowNames = F)
-saveWorkbook(wb2,"Results/edgar_ar5_ar6_code_comparison.xlsx",overwrite = T)
+saveWorkbook(wb2,"Results/Codes and classifications/edgar_ar5_ar6_code_comparison.xlsx",overwrite = T)
 
 
 

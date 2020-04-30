@@ -1,6 +1,11 @@
 ---
 title: "International energy and emissions inequality"
-output: word_document
+author: "William F. Lamb"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
+  
 ---
 
 ```{r setup, include=FALSE}
@@ -12,7 +17,7 @@ library(xlsx)
 
 load('../Data/basic.RData')
 
-data <- read.xlsx('../Data/confidential_yannick_oswald_data.xlsx',sheetName='data') %>% 
+data <- read.xlsx('../Data/supplemetary data/confidential_yannick_oswald_data.xlsx',sheetName='data') %>% 
   select(vars=country.Code.,everything())
 
 data <- gather(data,country,value,-vars)

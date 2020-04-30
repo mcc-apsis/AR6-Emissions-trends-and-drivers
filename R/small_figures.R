@@ -1,7 +1,8 @@
-#sector=6
-#gas="GHG"
-#time_start=2010
-#category="chapter"
+# sector=6
+# gas="GHG"
+# time_start=2010
+# category="chapter"
+# edgar_GHG <- edgar_GHG_ar5
 
 ######## bar figure
 
@@ -9,23 +10,17 @@ bar_figure <- function(category,sector,gas,edgar_GHG) {
   
   data <- edgar_GHG %>% 
     filter(year==2017) %>% 
-    group_by(chapter) %>% 
-    summarise_at(gas,sum) %>% 
+    group_by(chapter,chapter_title) %>% 
+    summarise_at(gas,sum,na.rm=TRUE) %>% 
     filter(!is.na(chapter)) %>% 
-    arrange(desc(GHG))
+    arrange(desc(GHG)) %>% 
+    ungroup
   
   total = sum(data$GHG)
   
   data <- data %>% 
     mutate(fraction=round(GHG/total*100,2)) %>% 
     mutate(alpha=if_else(chapter==sector,TRUE,FALSE))
-  
-  data <- data %>% 
-    mutate(title=if_else(chapter==6,"Energy","title")) %>% 
-    mutate(title=if_else(chapter==7,"AFOLU",title)) %>% 
-    mutate(title=if_else(chapter==9,"Bldgs",title)) %>% 
-    mutate(title=if_else(chapter==10,"Transport",title)) %>%
-    mutate(title=if_else(chapter==11,"Industry",title))
   
   p <- data %>% 
     mutate(fraction=round(fraction)) %>% 
@@ -34,7 +29,7 @@ bar_figure <- function(category,sector,gas,edgar_GHG) {
     scale_alpha_discrete(range = c(0.25, 0.50)) +
     theme_bw() +
     coord_flip() +
-    geom_text(aes(label = paste0(title,"\n(",fraction,"%)")), 
+    geom_text(aes(label = paste0(chapter_title,"\n(",fraction,"%)")), 
               position = position_stack(vjust = 0.5),alpha=1,fontsize=6) +
     ggtitle("A. Sector contribution to total emissions") +
     theme(legend.position="none",
@@ -132,18 +127,18 @@ addLevel <- function(x, newlevel=NULL) {
 
 ######## trend figure
 
-time_start=2010
-category = "sector_code"
-sector="Total"
-gas="GHG"
-region="region_ar6_5"
+# time_start=2010
+# category = "sector_code"
+# sector="Total"
+# gas="GHG"
+# region="region_ar6_5"
 
 
 
 
 trend_figure <- function(time_start,category,sector,gas,edgar_GHG,big_trend_theme) {
   
-  data <- totals %>%
+  data <- edgar_GHG %>%
     filter_at(vars(category),all_vars(.==sector)) %>% 
     filter(!is.na(region_ar6_5)) %>%
     group_by(year,region_ar6_5) %>% 
