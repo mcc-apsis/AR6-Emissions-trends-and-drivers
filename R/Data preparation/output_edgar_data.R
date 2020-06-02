@@ -47,8 +47,9 @@ meta <- data.frame("Variable" = c("CO2","CH4","N2O","Fgas","GHG","GDP","POP"),
 
 #################### info
 
-info = data.frame("x" = c("Data description","Global warming potentials","Year coverage","Sector codes","Region codes","Author & contact","R code","Land use data","","Last update","","","Emissions data source"),
+info = data.frame("x" = c("Data description","Appropriate use","Global warming potentials","Year coverage","Sector codes","Region codes","Author & contact","R code","Land use data","","Last update","","","Emissions data source"),
                   "y" = c("This datafile provides detailed emissions accounts for use in IPCC AR6, as well as supplementary GDP and population data for countries.",
+                          "This data is only authorised for use within the IPCC process, as it contains a level of detail that is not currently publically available. To use this data for non-IPCC purposes, please contact Monica Crippa at the Joint Research Centre (Monica.CRIPPA@ec.europa.eu).",
                           "CH4, N2O and Fgas emissions are converted to 100 year global warming potentials based on AR5 values (see '100_yr_gwps' tab). We will update to AR6 GWPs once these are fully provided by WGII.",
                           "This provisional dataset provides annual coverage to 2018 for all emissions sources, but more limited annual coverage for GDP data.",
                           "Emission sector codes have been allocated to major sectors/AR6 chapters on consultation with the chapter leads. A full list and description of codes is in the sector_classification tab.",

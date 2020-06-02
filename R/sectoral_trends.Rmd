@@ -34,18 +34,48 @@ library(tidyverse)
 library(ggpubr)
 library(gganimate)
 library(xlsx)
-library(flextable)
-library(openxlsx)
-
-sectors = data.frame(key=c(6,7,9,10,11),value=c("Energy systems","AFOLU","Buildings","Transport","Industry"))
+library(ggplot2); theme_set(theme_bw())
 
 source("small_figures.R")
 source("decomp_figure_countries.R")
 source("decomp_figure_sectors.R")
+source("waterfall_plot.R")
+
 
 load('../Data/edgar_data_gwp_ar5.RData')
+load('../Data/gwps.RData')
+load('../Data/ipcc_sectors.RData')
+
+edgar_GHG_ar5 <- left_join(edgar_GHG_ar5,ipcc_sectors %>% select(code,subsector,subsector_title),by=c("sector_code"="code"))
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_sector_data",Sys.Date()))
+
+chapters = edgar_GHG_ar5 %>% 
+  select(chapter,chapter_title) %>% 
+  distinct()
 
 ```
+
+```{r sector_trends,echo=FALSE,warning=FALSE,fig.width=9,fig.height=5,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+sectors <- edgar_GHG_ar5 %>% 
+  filter(region_ar6_5!="Intl. Aviation") %>% 
+  filter(region_ar6_5!="Intl. Shipping") %>% 
+  filter(year %in% c(1990,2000,2010,2018)) %>% 
+  group_by(chapter,chapter_title,region_ar6_5,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE)/1e9)
+
+sectors %>% ggplot(.,aes(x=year,y=GHG,fill=region_ar6_5)) +
+  geom_bar(stat='identity',colour="#737373") +
+  facet_grid(.~chapter_title) +
+  ylab('GHG Emissions (GtCO2eq/yr)') +
+  theme_bw() +
+  theme(legend.position=c(.2,.8),
+        legend.title = element_blank(),
+        axis.title.x = element_blank())
+
+```
+
 
 ```{r summary_text, include = FALSE}
 
@@ -103,67 +133,204 @@ summary_text <- function(ch,fraction,trend) {
 
 ```
 
-```{r sectors,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=11,fig.path="../Results/Plots/",dev=c('png','pdf')}
+```{r figure_code,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=7,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
-load('../Data/edgar_data_gwp_ar5.RData')
-i=1
+
+
+sector_figure <- function(chapter,edgar_GHG_ar5) {
+  
+
+  
+  ## Bar figure
+  #bar <- bar_figure("chapter",ch,"GHG",edgar_GHG_ar5)
+  
+  ## Trend figure
+  trend_data <- edgar_GHG_ar5 %>%
+    filter(year>1989) %>% 
+    filter(chapter==ch) %>% 
+    group_by(year,subsector,subsector_title) %>% 
+    summarise(value=sum(GHG,na.rm=TRUE)) %>% 
+    mutate(value=value/1e9)
+  
+  ## align labels
+  labels <- trend_data %>%
+    filter(year==2018) %>% 
+    arrange(desc(subsector_title))
+  
+  labels$cum <- cumsum(labels$value)
+  
+  for (j in 1:length(labels$year)) {
+    labels$location[j] = labels$value[j]*0.5
+  }
+  for (j in 2:length(labels$year)) {
+    labels$location[j] = labels$location[j] + labels$cum[j-1]
+  }
+  
+  ## calculate shares
+  shares <- trend_data %>% 
+    filter(year %in% c(1990,2000,2010,2018)) %>% 
+    group_by(year) %>% 
+    mutate(totals=sum(value)) %>% 
+    ungroup() %>% 
+    group_by(year,subsector) %>% 
+    mutate(fractions=(value/totals)*100) %>% 
+    ungroup()
+
+  shares <- locate_shares(shares,"subsector",4)
+  
+  p1 <- trend_data %>%
+    ggplot(.,aes(x=year,y=value,fill=subsector_title)) +
+    geom_area(color='#737373') +
+    
+    geom_vline(xintercept=c(1990,2000,2010,2018),alpha=0.3,linetype="dashed") +
+    geom_text(data=shares %>% filter(subsector==shares$subsector[1]),aes(x=year,y=max(shares$totals+1),label=paste(round(totals,1),  "Gt")),size=3.5,colour="#252525")+
+    
+    geom_text(data=labels,aes(x=year+1,y=location,label=subsector_title),hjust=0) +
+    
+    scale_x_continuous(breaks=c(1990,2000,2010,2018),limits=c(1990,2025)) +
+    scale_fill_brewer(type = "qual",palette="Set2") +
+  
+    big_trend_theme +
+    ggtitle(paste0("a. ",chapters$chapter_title[i], " sector GHG emissions trends")) +
+    theme(legend.position="none") +
+    ylab(bquote(.(gas) ~" Emissions (Gt" ~CO[2]* "eq)"))
+  
+  
+  ## Region figure
+  region_data <- edgar_GHG_ar5 %>% 
+    filter(region_ar6_5!="Intl. Aviation") %>% 
+    filter(region_ar6_5!="Intl. Shipping") %>% 
+    filter(chapter==ch) %>% 
+    filter(year %in% c(1990,2000,2010,2018)) %>% 
+    group_by(subsector,subsector_title,region_ar6_5,region_ar6_5_short,year) %>% 
+    summarise(value=sum(GHG,na.rm=TRUE)) %>% 
+    mutate(value=value/1e9)
+  
+  region_data <- region_data %>% 
+    group_by(subsector,year) %>% 
+    mutate(total=sum(value)) %>% 
+    ungroup() %>% 
+    group_by(subsector,subsector_title,region_ar6_5,region_ar6_5_short,year) %>% 
+    mutate(fraction=value/total*100)
+  
+
+  p2 <- region_data %>% ggplot(.,aes(x=year,y=fraction,fill=region_ar6_5_short)) +
+    geom_bar(stat='identity',colour="#737373") +
+    facet_grid(.~subsector_title) +
+    ylab("Fraction of total subsector emissions (%)") +
+    ggtitle(paste0(chapters$chapter_title[i], " sector regional emissions trends")) +
+    big_trend_theme +
+    scale_fill_brewer(type = "qual",palette="Set2") +
+    theme(legend.position="right",
+          axis.title.x = element_blank(),
+          legend.title=element_blank())
+  
+  p3 <- region_data %>% ggplot(.,aes(x=year,y=value,fill=region_ar6_5_short)) +
+    geom_bar(stat='identity',colour="#737373") +
+    facet_grid(.~subsector_title) +
+    ylab(bquote(.(gas) ~" Emissions (Gt" ~CO[2]* "eq)")) +
+    ggtitle(paste0(chapters$chapter_title[i], " sector regional emissions trends")) +
+    big_trend_theme +
+    scale_fill_brewer(type = "qual",palette="Set2") +
+    theme(legend.position="right",
+          axis.title.x = element_blank(),
+          legend.title=element_blank())
+  
+  p4 <- region_data %>% ggplot(.,aes(x=year,y=value,fill=subsector_title)) +
+    geom_bar(stat='identity',colour="#737373") +
+    facet_grid(.~region_ar6_5_short) +
+    ylab(bquote(.(gas) ~" Emissions (Gt" ~CO[2]* "eq)")) +
+    scale_fill_brewer(type = "qual",palette="Set2") +
+    ggtitle(paste0(chapters$chapter_title[i], " sector regional emissions trends")) +
+    big_trend_theme +
+    theme(legend.position="right",
+          axis.title.x = element_blank(),
+          legend.title=element_blank())
+  
+  
+  return(list("p1"=p1,"p2"=p2,"p3"=p3,"p4"=p4))
+  
+}
+  
+  
+
+
+```
+
+# Transport
+
+```{r transport,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+
 
 chapters = edgar_GHG_ar5 %>% 
   select(chapter,chapter_title) %>% 
   distinct()
 
-for (i in 1:length(chapters$chapter)) {
-  
-  ## Which chapter?
-  ch = chapters$chapter[i]
-  
-  ## Generate header
-  header = paste0(i+1,". ",chapters$chapter_title[i]," (Ch.",chapters$chapter[i],")")
-  cat('\n#', header, '\n')
-  
-  
-  ## Bar figure
-  bar <- bar_figure("chapter",ch,"GHG",edgar_GHG_ar5)
-  
-  ## Trend figure
-  data <- edgar_GHG_ar5 %>%
-    filter(chapter==ch) %>% 
-    group_by(year,region_ar6_5,region_ar6_5_short) %>% 
-    summarise(value=sum(GHG,na.rm=TRUE)) %>% 
-    mutate(value=value/1e6) %>% 
-    filter(region_ar6_5_short!="AIR") %>% 
-    filter(region_ar6_5_short!="SEA") 
-  
-  trend <- data %>%
-    ggplot(.,aes(x=year,y=value,fill=region_ar6_5)) +
-    geom_area(color='#737373') +
-    #geom_text(data=shares,aes(x=year,y=location,label=paste(round(fractions,0),"%",sep="")))+
-    geom_vline(xintercept=c(1990,2000,2010,2017),alpha=0.3,linetype="dashed") +
-    big_trend_theme +
-    ggtitle("B. Sector trend by region") +
-    theme(legend.justification=c(0,1), 
-          legend.position=c(0.05, 0.97),
-          legend.title=element_blank(),
-          legend.background = element_blank(),
-          legend.spacing.x = unit(0.2,'cm')) +
-    ylab(bquote(.(gas) ~" Emissions (Gt" ~CO[2]* "eq)"))
-  
-  
+## Which chapter?
+i=3
+ch = chapters$chapter[i]
+
+plot <- sector_figure(ch,edgar_GHG_ar5)
+plot
+
+```
+
+# Buildings
+
+```{r buildings,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+
+
+
+
+## Which chapter?
+i=4
+ch = chapters$chapter[i]
+
+plot <- sector_figure(ch,edgar_GHG_ar5)
+plot
+
+```
+
+
+
+# 7. List of category codes
+
+```{r category_table,include=FALSE,echo=FALSE}
+
+# 
+# categories <- edgar_GHG %>%
+#   select(chapter,sector_code,description) %>%
+#   distinct(.keep_all = TRUE) %>% 
+#   arrange(chapter)
+# categories$chapter <- as.factor(categories$chapter)
+# 
+# table <- make_table(categories)
+# 
+# 
+# <br>
+# `r table`
+
+
+
+
+
   ## Decomposition figure
-  load('../Data/basic.RData')
-  decomp <- decomp_figure_countries(1990,'GHG',edgar_GHG_ar5 %>% filter(chapter==ch),basic)
-  
-  p_decomp <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
-  p_decomp <- annotate_figure(p_decomp,
-    top = text_grob("C. Relative and absolute changes amoung countries responsible for 75% of emissions",size = 12,hjust=0.57))
-  
-  
-  ## Plot everything
-  p_decomp_countries <- ggarrange(bar$plot,trend,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
-  p_decomp_countries <- ggarrange(p_decomp_countries,p_decomp,ncol=1,nrow=2,heights=c(0.45,0.55))
-  
-  print(p_decomp_countries)
-  cat('  \n')
+  # load('../Data/basic.RData')
+  # decomp <- decomp_figure_countries(1990,'GHG',edgar_GHG_ar5 %>% filter(chapter==ch),basic)
+  # 
+  # p_decomp <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+  # p_decomp <- annotate_figure(p_decomp,
+  #   top = text_grob("C. Relative and absolute changes amoung countries responsible for 75% of emissions",size = 12,hjust=0.57))
+  # 
+  # 
+  # ## Plot everything
+  # p_decomp_countries <- ggarrange(bar$plot,trend,nrow=2,ncol=1,heights = c(0.2,0.8),align = "v")
+  # p_decomp_countries <- ggarrange(p_decomp_countries,p_decomp,ncol=1,nrow=2,heights=c(0.45,0.55))
+  # 
+  # print(p_decomp_countries)
+  # cat('  \n')
   
   
   ## Summary text
@@ -188,27 +355,6 @@ for (i in 1:length(chapters$chapter)) {
   # cat('  \n')
   # print(p_decomp_sectors)
   # cat('  \n')
-  
-}
 
-
-```
-
-# 7. List of category codes
-
-```{r category_table,include=FALSE,echo=FALSE}
-
-# 
-# categories <- edgar_GHG %>%
-#   select(chapter,sector_code,description) %>%
-#   distinct(.keep_all = TRUE) %>% 
-#   arrange(chapter)
-# categories$chapter <- as.factor(categories$chapter)
-# 
-# table <- make_table(categories)
-# 
-# 
-# <br>
-# `r table`
 
 ```

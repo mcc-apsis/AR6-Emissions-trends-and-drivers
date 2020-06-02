@@ -146,13 +146,17 @@ openxlsx::writeData(wb, sheet = "Fig1_trend", spread(plot_data,year,value), colN
 
 ##### waterfalls
 
-ar5_waterfall <- waterfall_plot(plot_data,gwps,"gwp_ar5",uncertainties)
-ar6_waterfall <- waterfall_plot(plot_data,gwps,"gwp_ar6",uncertainties)
-ar2_waterfall <- waterfall_plot(plot_data,gwps,"gwp_ar2",uncertainties)
+ar5_waterfall <- waterfall_plot(plot_data,gwps,"gwp_ar5",uncertainties,"no")
+ar6_waterfall <- waterfall_plot(plot_data,gwps,"gwp_ar6",uncertainties,"no")
+ar2_waterfall <- waterfall_plot(plot_data,gwps,"gwp_ar2",uncertainties,"yes")
 
 waterfall_data <- ar5_waterfall$data %>% select(gas,value_gwp_ar5=newvalue)
 waterfall_data <- left_join(waterfall_data,ar6_waterfall$data %>% select(gas,value_gwp_ar6=newvalue))
 waterfall_data <- left_join(waterfall_data,ar2_waterfall$data %>% select(gas,value_gwp_ar2=newvalue))
+
+
+
+ggarrange(ar2_waterfall$plot + xlab ("GWP100 AR2") + ylab("GHG Emissions in 2017 (GtCO2eq)") + theme(axis.title.x = element_text(),axis.title.y = element_text(angle = 90,vjust = 3)),ar5_waterfall$plot + xlab ("GWP100 AR5") + theme(axis.title.x = element_text()),ar6_waterfall$plot + xlab ("GWP100 AR6") + theme(axis.title.x = element_text()),nrow=1,ncol=3)
 
 openxlsx::addWorksheet(wb,"Fig1_waterfall")
 openxlsx::writeData(wb, sheet = "Fig1_waterfall", waterfall_data, colNames = T, rowNames = F)
@@ -605,7 +609,7 @@ openxlsx::writeData(wb, sheet = "Fig9_subsectors", decomp$data, colNames = T, ro
 ```{r benchmarking, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 # import scenario data
-benchmark_data_raw <- read.csv("../Data/Emission reduction benchmarks.csv")
+benchmark_data_raw <- read.csv("../Data/supplemetary data/Emission reduction benchmarks.csv")
 
 benchmark_data <- benchmark_data_raw %>% 
   rename(rate=reduction_rates_2020.2050) %>% 
@@ -715,36 +719,36 @@ blarg %>%
 ```{r Figx_region_gas, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 
-plot_data <- edgar_GHG_ar5 %>% 
-  filter(year>1989) %>% 
-  filter(year<2019) %>% 
-  filter(region_ar6_5!="Intl. Aviation") %>% 
-  filter(region_ar6_5!="Intl. Shipping") %>% 
-  group_by(year,region_ar6_5) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=TRUE)
-
-plot_data <- gather(plot_data,key,value,CO2:GHG) %>% 
-  mutate(value=value/1e9)
-
+# plot_data <- edgar_GHG_ar5 %>% 
+#   filter(year>1989) %>% 
+#   filter(year<2019) %>% 
+#   filter(region_ar6_5!="Intl. Aviation") %>% 
+#   filter(region_ar6_5!="Intl. Shipping") %>% 
+#   group_by(year,region_ar6_5) %>% 
+#   summarise_at(vars(CO2:GHG),sum,na.rm=TRUE)
+# 
+# plot_data <- gather(plot_data,key,value,CO2:GHG) %>% 
+#   mutate(value=value/1e9)
+# 
+# # plot_data %>% 
+# #   ggplot(.,aes(x=year,y=value,color=key)) +
+# #   geom_line(size=1) +
+# #   theme_bw +
+# #   ylab("GHG Emissions (Gt CO2eq)") +
+# #   facet_grid(key~region_ar6_5,scales="free",labeller = label_wrap_gen(width=12)) +
+# #   theme(axis.title.x = element_blank(),
+# #         legend.position="none",
+# #         axis.title.y = element_text(margin = margin(r = 10)))
+#   
 # plot_data %>% 
 #   ggplot(.,aes(x=year,y=value,color=key)) +
 #   geom_line(size=1) +
 #   theme_bw +
 #   ylab("GHG Emissions (Gt CO2eq)") +
-#   facet_grid(key~region_ar6_5,scales="free",labeller = label_wrap_gen(width=12)) +
+#   facet_wrap(region_ar6_5~.,scales="free",labeller = label_wrap_gen(width=20),nrow=2) +
 #   theme(axis.title.x = element_blank(),
-#         legend.position="none",
+#         legend.position = c(0.8,0.2),
 #         axis.title.y = element_text(margin = margin(r = 10)))
-  
-plot_data %>% 
-  ggplot(.,aes(x=year,y=value,color=key)) +
-  geom_line(size=1) +
-  theme_bw +
-  ylab("GHG Emissions (Gt CO2eq)") +
-  facet_wrap(region_ar6_5~.,scales="free",labeller = label_wrap_gen(width=20),nrow=2) +
-  theme(axis.title.x = element_blank(),
-        legend.position = c(0.8,0.2),
-        axis.title.y = element_text(margin = margin(r = 10)))
   
 
 
@@ -754,25 +758,25 @@ plot_data %>%
 
 ```{r Figx_region_sector, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
-
-plot_data <- edgar_GHG_ar5 %>% 
-  filter(year>1989) %>% 
-  filter(year<2019) %>% 
-  filter(region_ar6_5!="Intl. Aviation") %>% 
-  filter(region_ar6_5!="Intl. Shipping") %>% 
-  group_by(year,region_ar6_5,chapter,chapter_title) %>% 
-  summarise_at(vars(GHG),sum,na.rm=TRUE) %>% 
-  mutate(GHG=GHG/1e9)
-
-plot_data %>% 
-  ggplot(.,aes(x=year,y=GHG,color=chapter_title)) +
-  geom_line(size=1) +
-  theme_bw +
-  ylab("GHG Emissions (Gt CO2eq)") +
-  facet_wrap(region_ar6_5~.,scales="free",labeller = label_wrap_gen(width=20),nrow=2) +
-  theme(axis.title.x = element_blank(),
-        legend.position = c(0.8,0.3),
-        axis.title.y = element_text(margin = margin(r = 10)))
+# 
+# plot_data <- edgar_GHG_ar5 %>% 
+#   filter(year>1989) %>% 
+#   filter(year<2019) %>% 
+#   filter(region_ar6_5!="Intl. Aviation") %>% 
+#   filter(region_ar6_5!="Intl. Shipping") %>% 
+#   group_by(year,region_ar6_5,chapter,chapter_title) %>% 
+#   summarise_at(vars(GHG),sum,na.rm=TRUE) %>% 
+#   mutate(GHG=GHG/1e9)
+# 
+# plot_data %>% 
+#   ggplot(.,aes(x=year,y=GHG,color=chapter_title)) +
+#   geom_line(size=1) +
+#   theme_bw +
+#   ylab("GHG Emissions (Gt CO2eq)") +
+#   facet_wrap(region_ar6_5~.,scales="free",labeller = label_wrap_gen(width=20),nrow=2) +
+#   theme(axis.title.x = element_blank(),
+#         legend.position = c(0.8,0.3),
+#         axis.title.y = element_text(margin = margin(r = 10)))
   
 ```
 

@@ -81,7 +81,7 @@ missing_codes <- edgar_GHG %>%
 
 ########### join country names ########### 
 
-codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
+codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
 edgar_GHG <- left_join(edgar_GHG,codes %>% select(name,alpha.3),by=c("ISO"="alpha.3"))
 
 ## identify additional countries in EDGAR

@@ -1,0 +1,160 @@
+---
+title: "activity_data"
+author: "William F. Lamb"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results/activity") })
+  
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(gganimate)
+library(openxlsx)
+library(ggplot2); theme_set(theme_bw())
+
+#load('../Data/edgar_data_gwp_ar5.RData')
+load('../Data/activity.RData')
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_activity_data_",Sys.Date()))
+
+
+
+
+
+```
+
+``` {r sums, echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+sums <- act %>% 
+  group_by(year,product,activity) %>% 
+  summarise(value=sum(value,na.rm = TRUE))
+
+sums %>% 
+  ggplot(.,aes(x=year,y=value,colour=activity)) +
+  geom_path() +
+  facet_wrap(.~product,scales="free",ncol = 3) +
+  theme(legend.position = "none")
+
+
+```
+
+``` {r maps, echo=FALSE,warning=FALSE,fig.width=8,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+
+isos <- openxlsx::read.xlsx("C:\\Users\\lamw\\Documents\\SpiderOak Hive\\Work\\Code\\R\\.Place names and codes\\output\\ISOcodes.xlsx",sheet="alternative_names")
+
+world <- map_data("world") %>% 
+  filter(region!="Antarctica")
+world <- left_join(world %>% mutate(region=tolower(region)),isos,by=c("region"="alternative.name")) 
+
+blarg <- act %>% 
+  select(ISO) %>% 
+  distinct() %>% 
+  mutate(included=1)
+
+world <- left_join(world,blarg ,by=c("alpha.3"="ISO"))
+
+ggplot() + 
+    geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=included),color="white",na.rm=T) + 
+    coord_fixed(1,xlim=c(-155,175)) +
+    theme_bw() +
+    guides(fill = guide_legend(reverse = TRUE))  +
+    ggtitle("Countries with IEA activity data") +
+    theme(panel.border = element_rect(colour = "black",fill=NA),
+          legend.position = "none",
+          legend.background = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_blank(),
+          plot.title = element_text(face="plain"))
+
+
+```
+
+
+
+``` {r transport, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+transport <- act %>% 
+  filter(grepl("pkm|tkm|vkm|stock", product))
+
+transport <- transport %>% 
+  group_by(year,product,activity) %>% 
+  summarise(value=sum(value,na.rm = TRUE))
+
+transport %>% 
+  ggplot(.,aes(x=year,y=value,colour=activity)) +
+  geom_path() +
+  geom_text(data=transport %>% filter(year==2017),aes(x=2018,y=value,label=activity),hjust=0) +
+  xlim(2000,2025) +
+  facet_wrap(.~product,scales="free",ncol = 2) +
+  theme(legend.position="none")
+
+
+
+```
+
+``` {r industry, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+top_countries <- function(data) {
+  
+  rank <- data %>% 
+    filter(year==max(year)) %>% 
+    arrange(desc(value)) %>% 
+    head(10) %>% 
+    mutate(include=1) %>% 
+    select(country,include)
+  
+  data <- left_join(data,rank,by=c("country"="country"))
+  small_group <- anti_join(data,rank,by=c("country"="country"))
+  
+  small_group <- small_group %>% 
+    group_by(year,activity,product) %>% 
+    summarise(value=sum(value,na.rm=TRUE),pop=sum(pop,na.rm = TRUE)) %>% 
+    mutate(country="Rest",ISO="ZZZ",region_ar6_5="ZZZ",region_ar6_5_short="ZZZ",include=1) %>% 
+    select(country,ISO,activity,region_ar6_5,region_ar6_5_short,year,pop,activity,product,value,include) %>%
+    ungroup()
+  
+  data <- rbind(data,small_group)
+  data <- data %>% filter(include==1)
+  
+  
+  return(data)
+}
+
+
+cement <- act %>% 
+  filter(grepl("Cement", product))
+cement <- top_countries(cement)
+
+steel <- act %>% 
+  filter(grepl("Steel",product))
+steel <- top_countries(steel)
+
+p1 <- cement %>% 
+  ggplot(.,aes(x=year,y=value,colour=country)) +
+  geom_path() +
+  geom_text(data=cement %>% filter(year==2017),aes(x=2018,y=value,label=country),hjust=0) +
+  xlim(2000,2023) +
+  facet_wrap(.~product,scales="free",ncol = 2) +
+  theme(legend.position="none",
+        axis.title = element_blank())
+
+p2 <- steel %>% 
+  ggplot(.,aes(x=year,y=value,colour=country)) +
+  geom_path() +
+  geom_text(data=steel %>% filter(year==2017),aes(x=2018,y=value,label=country),hjust=0) +
+  xlim(2000,2023) +
+  facet_wrap(.~product,scales="free",ncol = 2) +
+  theme(legend.position="none",
+        axis.title = element_blank())
+
+ggarrange(p1,p2,nrow=1,ncol=2)
+
+
+```
