@@ -2,19 +2,18 @@
 rm(list = ls())
 library(tidyverse)
 library(openxlsx)
-load('Data/edgar_data_gwp_ar5.RData')
+load('Data/edgar_data_gwp_ar6.RData')
 
 #################### prep
 
-edgar_GHG_ar5 <- edgar_GHG_ar5 %>% 
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
   filter(year>1969) %>% 
-  select(-category_1,-category_2,-category_3,-region_ar6_5_short) %>% 
   filter(sector_code!="Total") %>% 
   arrange(ISO)
 
 load('Data/basic.RData')
 load('Data/tsu_codes.RData')
-load('Data/ipcc_categories.RData')
+load('Data/ipcc_sectors.RData')
 load('Data/gwps.RData')
 
 basic <- basic %>% 
@@ -24,17 +23,12 @@ basic <- basic %>%
 basic <- left_join(tsu_codes,basic,by=("ISO"="ISO")) %>% 
   filter(!is.na(year))
 
-edgar_categories <- edgar_GHG_ar5 %>% 
-  select(sector_code,chapter,chapter_title,description) %>% 
-  unique() %>% 
-  arrange(chapter)
-
 
 #################### meta data
 
 meta <- data.frame("Variable" = c("CO2","CH4","N2O","Fgas","GHG","GDP","POP"),
                    "Description" = c("Carbon emissions","Methane emissions","Nitrous oxide emissions","Flourinated gas emissions","Total greenhouse gas emissions","Gross Domestic Product","Population"),
-                   "Units" = c("tCO2","tCO2eq","tCO2eq","tCO2eq","tCO2eq","persons","US $ (constant 2011 international PPP)"),
+                   "Units" = c("tCO2","tCO2eq","tCO2eq","tCO2eq","tCO2eq","US $ (constant 2011 international PPP)","persons"),
                    "Source" = c("EDGAR_v5.0","EDGAR_v5.0","EDGAR_v5.0","EDGAR_v5.0","EDGAR_v5.0","World Bank","UN Department of Economic and Social Affairs"),
                    "Citation" = c("Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610",
                                   "Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610",
@@ -50,7 +44,7 @@ meta <- data.frame("Variable" = c("CO2","CH4","N2O","Fgas","GHG","GDP","POP"),
 info = data.frame("x" = c("Data description","Appropriate use","Global warming potentials","Year coverage","Sector codes","Region codes","Author & contact","R code","Land use data","","Last update","","","Emissions data source"),
                   "y" = c("This datafile provides detailed emissions accounts for use in IPCC AR6, as well as supplementary GDP and population data for countries.",
                           "This data is only authorised for use within the IPCC process, as it contains a level of detail that is not currently publically available. To use this data for non-IPCC purposes, please contact Monica Crippa at the Joint Research Centre (Monica.CRIPPA@ec.europa.eu).",
-                          "CH4, N2O and Fgas emissions are converted to 100 year global warming potentials based on AR5 values (see '100_yr_gwps' tab). We will update to AR6 GWPs once these are fully provided by WGII.",
+                          "CH4, N2O and Fgas emissions are converted to 100 year global warming potentials based on values from AR6 WGI (see '100_yr_gwps' tab). These may be updated again by WGI before final publication. In this case we will update and replace this file.",
                           "This provisional dataset provides annual coverage to 2018 for all emissions sources, but more limited annual coverage for GDP data.",
                           "Emission sector codes have been allocated to major sectors/AR6 chapters on consultation with the chapter leads. A full list and description of codes is in the sector_classification tab.",
                           "Countries have been allocated to regions by the WGIII Technical Support Unit. A summary of the country and region codes is in the region_classification tab.",
@@ -77,10 +71,10 @@ addWorksheet(wb,"region_classification")
 addWorksheet(wb,"100_yr_gwps")
 
 writeData(wb, sheet = "info", info, colNames = F)
-writeData(wb, sheet = "emissions_data", edgar_GHG_ar5, colNames = T)
+writeData(wb, sheet = "emissions_data", edgar_GHG_ar6, colNames = T)
 writeData(wb, sheet = "supplementary_data", basic, colNames = T)
 writeData(wb, sheet = "metadata", meta, colNames = T)
-writeData(wb, sheet = "sector_classification",edgar_categories,colNames=T)
+writeData(wb, sheet = "sector_classification",ipcc_sectors,colNames=T)
 writeData(wb, sheet = "region_classification",tsu_codes,colNames=T)
 writeData(wb, sheet = "100_yr_gwps",gwps,colNames=T)
 
@@ -114,7 +108,7 @@ info = data.frame("x" = c("Data description","Global warming potentials","Year c
 
 meta <- data.frame("Variable" = c("CO2","CH4","N2O","Fgas","GHG","GDP","POP"),
                    "Description" = c("Carbon emissions","Methane emissions","Nitrous oxide emissions","Flourinated gas emissions","Total greenhouse gas emissions","Gross Domestic Product","Population"),
-                   "Units" = c("t","t","t","t","t","persons","US $ (constant 2011 international PPP)"),
+                   "Units" = c("t","t","t","t","t","US $ (constant 2011 international PPP)","persons"),
                    "Source" = c("EDGAR_v5.0","EDGAR_v5.0","EDGAR_v5.0","EDGAR_v5.0","EDGAR_v5.0","World Bank","UN Department of Economic and Social Affairs"),
                    "Citation" = c("Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610",
                                   "Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610",
@@ -139,7 +133,7 @@ writeData(wb2, sheet = "info", info, colNames = F)
 writeData(wb2, sheet = "emissions_data", edgar_GHG, colNames = T)
 writeData(wb2, sheet = "supplementary_data", basic, colNames = T)
 writeData(wb2, sheet = "metadata", meta, colNames = T)
-writeData(wb2, sheet = "sector_classification",edgar_categories,colNames=T)
+writeData(wb2, sheet = "sector_classification",ipcc_sectors,colNames=T)
 writeData(wb2, sheet = "region_classification",tsu_codes,colNames=T)
 writeData(wb2, sheet = "100_yr_gwps",gwps,colNames=T)
 
@@ -185,19 +179,29 @@ saveWorkbook(wb2,"Results/Data/ipcc_ar6_edgar_data_no_gwp.xlsx",overwrite = T)
 # 
 # #################### country file
 # 
-# countries <- edgar_GHG %>% 
-#   group_by(ISO,country,region_ar6_5,year) %>%
+# countries <- edgar_GHG_ar6 %>%
+#   group_by(ISO,country,region_ar6_5,region_ar6_10,region_ar6_22,region_ar6_dev,year) %>%
 #   summarise_at(vars(CO2:GHG),sum,na.rm=TRUE)
 # 
-# countries <- left_join(countries,basic,by=c("ISO"="ISO","year"="Year"))
+# basic <- basic %>% select(ISO,year,GDP,POP)
+# 
+# countries <- left_join(countries,basic,by=c("ISO"="ISO","year"="year"))
+# 
+# regions <- countries %>%
+#   group_by(region_ar6_10,year) %>%
+#   summarise_at(vars(CO2:POP),sum,na.rm=TRUE)
+# regions <- regions %>% 
+#   mutate(CO2pc=CO2/POP)
 # 
 # wb <- createWorkbook(title = "ipcc_ar6_edgar_data_countries")
 # addWorksheet(wb,"info")
-# addWorksheet(wb,"data")
+# addWorksheet(wb,"data_countries")
+# addWorksheet(wb,"data_regions")
 # addWorksheet(wb,"metadata")
 # 
 # writeData(wb, sheet = "info", info, colNames = F)
-# writeData(wb, sheet = "data", countries, colNames = T)
+# writeData(wb, sheet = "data_countries", countries, colNames = T)
+# writeData(wb, sheet = "data_regions", regions, colNames = T)
 # writeData(wb, sheet = "metadata", meta, colNames = T)
 # 
 # saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_countries.xlsx",overwrite = T)

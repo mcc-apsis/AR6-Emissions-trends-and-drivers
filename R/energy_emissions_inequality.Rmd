@@ -48,17 +48,9 @@ data$income_category <- gsub(" ","",data$income_category)
 data$income_category <- as.factor(data$income_category)
 data$energy_use <- as.numeric(data$energy_use)
 
-data <- left_join(data,basic %>% filter(Year==2015) %>% select(ISO,Country,RCP5),by=c("ISO"="ISO"))
+load('../Data/tsu_codes.RData')
 
-### change country names
-data$Country <- gsub("'","",data$Country)
-data$Country <- gsub('Lao Peoples Democratic Republic','Laos',data$Country)
-data$Country <- gsub('United Republic of Tanzania','Tanzania',data$Country)
-levels(data$Country) <- c(levels(data$Country),'Bolivia')
-data$Country[data$ISO=="BOL"] <- 'Bolivia'
-
-### change a few regions
-
+data <- left_join(data,tsu_codes,by = "ISO")
 
 
 ```
@@ -66,104 +58,48 @@ data$Country[data$ISO=="BOL"] <- 'Bolivia'
 
 
 
-```{r energy_inequality,echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="../Results/Plots/",dev=c('png','pdf')}
-
-data %>% 
-  ggplot(.,aes(x=reorder(Country, desc(Country)),y=energy_use,color=income_category)) +
-  geom_point(size=2.5) +
-  coord_flip() +
-  ylim(0,300) +
-  theme_bw() +
-  facet_grid(RCP5~.,space = 'free',scales = 'free') +
-  ylab("Energy use (GJ/cap)") +
-  theme(
-    axis.title.y = element_blank(),
-    legend.position = 'bottom'
-  )
 
 
-```
-
-
-```{r clustering,echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="../Results/Plots/",dev=c('png','pdf')}
-
-z <- data %>% 
-  filter(income_category=="lowest"|income_category =="high"|income_category=="Q1"|income_category=="Q4") %>% 
-  select(-pop) %>% 
-  ungroup()
-
-z$income_category[z$income_category=="Q1"] <- "lowest"
-z$income_category[z$income_category=="Q4"] <- "high"
-
-z$energy_use[z$ISO=="ARM"] <- NA
-
-z <- spread(z,income_category,energy_use) %>% 
-  select(ISO,Country,high,lowest) %>% 
-  na.omit
-
-
-blarg <- kmeans(z %>% select(-ISO,-Country),5)
-cluster <- blarg$cluster
-z <- cbind(z,cluster)
-
-new_data <- left_join(data,z %>% select(ISO,cluster),by=c("ISO"="ISO"))
-
-new_data %>% 
-  ggplot(.,aes(x=reorder(Country, desc(Country)),y=energy_use,color=income_category)) +
-  geom_point(size=2.5) +
-  coord_flip() +
-  ylim(0,500) +
-  theme_bw() +
-  facet_grid(cluster~.,space = 'free',scales = 'free') +
-  ylab("Energy use (GJ/cap)") +
-  theme(
-    axis.title.y = element_blank(),
-    legend.position = 'bottom'
-  )
-
-```
 
 ```{r income_ranking,echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 load('../Data/basic.RData')
-
-## bring in more regional codes
 codes <- read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheetName = 'ISO_master')
 
-basic <- left_join(basic,codes %>% select(alpha.3,WB.income),by=c("ISO"="alpha.3")) %>%
-  select(Country,ISO,Year,UN6,RCP5,IAM10,WB.income,pop_UN,everything())
+basic <- basic %>% 
+  filter(Year==2016) %>% 
+  select(ISO,pop_UN,gdp_ppp_WB)
 
-basic$WB.income <- factor(basic$WB.income,levels(basic$WB.income)[c(1,4,3,2)])
+basic <- left_join(basic,codes %>% select(alpha.3,WB.income),by=c("ISO"="alpha.3"))
 
-# any other adjustments here
-basic$UN6 <- gsub("LATIN AMERICA AND THE CARIBBEAN","LATIN AMERICA",basic$UN6)
 
 basic <- basic %>%
-  mutate(gdp_ppp_pc = gdp_ppp_WB/pop_UN) %>% 
-  filter(Year==2016) %>% 
-  select(ISO,gdp_ppp_pc)
+  mutate(gdp_ppp_pc_2016 = gdp_ppp_WB/pop_UN) %>%
+  select(ISO,gdp_ppp_pc_2016,WB.income)
 
-basic$WB_category  <- cut(basic$gdp_ppp_pc,breaks = c(1700,4300,8600,15000,29000,150000),dig.lab=10,include.lowest=TRUE)
 
+## bring in more regional codes
 
 
 data <- left_join(data,basic,by=c("ISO"="ISO"))
-
+data$WB.income <- factor(data$WB.income,levels(data$WB.income)[c(2,3,4,1)])
 
 data %>% 
-  filter(!is.na(WB_category)) %>% 
-  ggplot(.,aes(x=reorder(Country, desc(gdp_ppp_pc)),y=energy_use,color=income_category)) +
+  filter(!is.na(WB.income)) %>% 
+  ggplot(.,aes(x=reorder(name, desc(gdp_ppp_pc_2016)),y=energy_use,color=income_category)) +
   geom_point(size=2.5) +
   coord_flip() +
   ylim(0,500) +
   theme_bw() +
-  facet_grid(WB_category~.,space = 'free',scales = 'free') +
+  facet_grid(WB.income~.,space = 'free',scales = 'free') +
   ylab("Energy use (GJ/cap)") +
   theme(
     axis.title.y = element_blank(),
     legend.position = 'bottom'
   )
 
+
+openxlsx::write.xlsx(data,'inequality_data.xlsx')
 
 
 ```

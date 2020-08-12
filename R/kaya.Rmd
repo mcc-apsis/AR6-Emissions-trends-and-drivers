@@ -1,0 +1,370 @@
+---
+title: "Kaya decomposition of sectoral CO2 emissions"
+author: "William F. Lamb"
+date: "7 6 2020"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(gganimate)
+library(openxlsx)
+library(ggplot2); theme_set(theme_bw())
+library(data.table)
+library(janitor)
+
+#load('../Data/edgar_data_gwp_ar5.RData')
+load("../Data/tsu_codes.RData")
+
+kaya <- read.csv("../Data/kaya_data_data.csv")
+
+kaya <- t(kaya)
+
+kaya <- setDT(data.frame(kaya), keep.rownames = TRUE)[]
+
+kaya <- kaya %>% 
+  row_to_names(row_number = 1) 
+
+kaya <- kaya %>%
+  separate(Year,c("country","var"),"_",extra="merge")
+
+kaya <- kaya %>% 
+  mutate(sector=NA) %>% 
+  mutate(sector=ifelse(grepl("EGY",var),"Energy systems",sector)) %>% 
+  mutate(sector=ifelse(grepl("BLD",var),"Buildings",sector)) %>% 
+  mutate(sector=ifelse(grepl("IND",var),"Industry",sector)) %>% 
+  mutate(sector=ifelse(grepl("LUC",var),"AFOLU",sector)) %>% 
+  mutate(sector=ifelse(grepl("TOT",var),"Total",sector)) %>% 
+  mutate(sector=ifelse(grepl("TRA",var),"Transport",sector)) %>% 
+  mutate(var=ifelse(grepl("EGY_",var),"energy",var)) %>% 
+  mutate(var=ifelse(grepl("CO2_",var),"CO2",var)) %>% 
+  select(ISO=country,var,sector,everything())
+
+gdp_pop <- kaya %>% 
+  filter(var=="GDP" | var=="POP") %>% 
+  select(-sector)
+gdp_pop <- gather(gdp_pop,year,value,`1971`:`2018`)
+gdp_pop <- spread(gdp_pop,var,value)
+
+kaya <- gather(kaya,year,value,`1971`:`2018`)
+kaya <- kaya %>% 
+  filter(var!="GDP") %>% 
+  filter(var!="POP")
+
+kaya <- spread(kaya,var,value)
+kaya <- left_join(kaya,gdp_pop)
+
+kaya <- left_join(kaya,tsu_codes %>% select(ISO,name,region_ar6_5,region_ar6_5_short,region_ar6_10),by=c("ISO"="ISO"))
+
+kaya <- kaya %>% 
+  select(ISO,name,region_ar6_5,region_ar6_5_short,region_ar6_10,sector,year,everything()) %>% 
+  mutate(year=as.numeric(year))
+
+
+#wb <- openxlsx::createWorkbook(title = paste("ipcc_sector_data",Sys.Date()))
+
+
+
+
+```
+
+
+```{r decomposition, include=FALSE}
+
+
+kaya <- kaya %>% 
+  mutate(CO2_energy=CO2/energy) %>% 
+  mutate(energy_GDP=energy/GDP)
+
+sector_label ="AFOLU"
+
+```
+
+
+```{r plot_function,include=FALSE,fig.width=9,fig.height=9}
+
+kaya_plots_5 <- function(kaya,sector_label) {
+  
+  if (sector_label!="Total") {
+    wld <- kaya %>% 
+      filter(sector==sector_label)
+  } else {
+    wld <- kaya %>% 
+    filter(sector!="Total")
+  }
+  
+  wld <- wld %>% 
+    mutate(region_ar6_5=as.character(region_ar6_5)) %>% 
+    mutate(region_ar6_5=ifelse(ISO=="WLD","World",region_ar6_5)) %>% 
+    mutate(region_ar6_5_short=ifelse(ISO=="WLD","WLD",region_ar6_5_short))
+  
+  wld$region_ar6_5 <- as.factor(wld$region_ar6_5)
+  wld$region_ar6_5 <- factor(wld$region_ar6_5,levels(wld$region_ar6_5)[c(6,1,2,3,4,5)])
+  
+  if (sector_label!="Total") {
+    wld <- wld %>% 
+      group_by(region_ar6_5,region_ar6_5_short,sector,year) %>% 
+      summarise_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),sum,na.rm=TRUE)
+  } else {
+    wld <- wld %>% 
+      group_by(region_ar6_5,region_ar6_5_short,year) %>% 
+      summarise_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),sum,na.rm=TRUE) %>% 
+      mutate(sector="Total")
+  }
+  
+  wld <- wld %>% 
+    mutate_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),list(scale))
+  
+  wld <- wld %>% 
+    group_by(region_ar6_5,sector) %>% 
+    mutate(GDP=GDP-GDP[30]) %>% 
+    mutate(POP=POP-POP[30]) %>% 
+    mutate(CO2_energy=CO2_energy-CO2_energy[30]) %>% 
+    mutate(energy_GDP=energy_GDP-energy_GDP[30]) %>% 
+    mutate(energy=energy-energy[30]) %>% 
+    mutate(CO2=CO2-CO2[30])
+  
+  wld <- gather(wld,var,value,GDP:energy_GDP)
+  
+  p <- wld %>%  
+    filter(year>1989) %>% 
+    filter(year<2018) %>% 
+    ggplot(.,aes(x=year,y=value,group=var,colour=var)) +
+    geom_hline(yintercept=0) +
+    geom_path(size = 1.5) +
+    geom_point(size = 0.75,colour="white") +
+    theme_bw() +
+    scale_colour_brewer(type = "qual",palette="Set2") +
+    facet_wrap(.~region_ar6_5,ncol=3) +
+    theme(axis.title = element_blank(),
+          legend.title = element_blank())
+  
+return(p)
+}
+
+kaya_plots_10 <- function(kaya,sector_label) {
+  
+  if (sector_label!="Total") {
+    wld <- kaya %>% 
+      filter(sector==sector_label)
+  } else {
+    wld <- kaya %>% 
+    filter(sector!="Total")
+  }
+  
+  wld <- wld %>% 
+    mutate(region_ar6_10=as.character(region_ar6_10)) %>% 
+    mutate(region_ar6_10=ifelse(ISO=="WLD","World",region_ar6_10))
+  
+  wld$region_ar6_10 <- as.factor(wld$region_ar6_10)
+  #wld$region_ar6_10 <- factor(wld$region_ar6_10,levels(wld$region_ar6_10)[c(6,1,2,3,4,5)])
+  
+  if (sector_label!="Total") {
+    wld <- wld %>% 
+      group_by(region_ar6_10,sector,year) %>% 
+      summarise_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),sum,na.rm=TRUE)
+  } else {
+    wld <- wld %>% 
+      group_by(region_ar6_10,year) %>% 
+      summarise_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),sum,na.rm=TRUE) %>% 
+      mutate(sector="Total")
+  }
+  
+  wld <- wld %>% 
+    mutate_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),list(scale))
+  
+  wld <- wld %>% 
+    group_by(region_ar6_10,sector) %>% 
+    mutate(GDP=GDP-GDP[30]) %>% 
+    mutate(POP=POP-POP[30]) %>% 
+    mutate(CO2_energy=CO2_energy-CO2_energy[30]) %>% 
+    mutate(energy_GDP=energy_GDP-energy_GDP[30]) %>% 
+    mutate(energy=energy-energy[30]) %>% 
+    mutate(CO2=CO2-CO2[30])
+  
+  wld <- gather(wld,var,value,GDP:energy_GDP)
+  
+  p <- wld %>%  
+    filter(year>1989) %>% 
+    filter(year<2018) %>% 
+    ggplot(.,aes(x=year,y=value,group=var,colour=var)) +
+    geom_hline(yintercept=0) +
+    geom_path(size = 1.5) +
+    geom_point(size = 0.75,colour="white") +
+    theme_bw() +
+    scale_colour_brewer(type = "qual",palette="Set2") +
+    facet_wrap(.~region_ar6_10,ncol=3) +
+    theme(legend.position = c(0.75,0.1),
+          axis.title = element_blank(),
+          legend.title = element_blank())
+  
+return(p)
+}
+
+
+```
+
+# All sectors
+
+```{r total_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_5(kaya,"Total")
+p
+
+```
+
+```{r total_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_10(kaya,"Total")
+p
+
+```
+
+# AFOLU
+
+```{r AFOLU_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_5(kaya,"AFOLU")
+p
+
+```
+
+```{r AFOLU_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_10(kaya,"AFOLU")
+p
+
+```
+
+# Energy systems
+
+```{r energy_systems_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_5(kaya,"Energy systems")
+p
+
+```
+
+```{r energy_systems_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_10(kaya,"Energy systems")
+p
+
+```
+
+# Buildings
+
+```{r buildings_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_5(kaya,"Buildings")
+p
+
+```
+
+```{r buildings_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_10(kaya,"Buildings")
+p
+
+```
+
+# Transport
+
+```{r transport_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_5(kaya,"Transport")
+p
+
+```
+
+```{r transport_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_10(kaya,"Transport")
+p
+
+```
+
+# Industry
+
+```{r industry_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_5(kaya,"Industry")
+p
+
+```
+
+```{r industry_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots_10(kaya,"Industry")
+p
+
+
+```
+
+``` {r checks,include=FALSE}
+
+wb <- openxlsx::createWorkbook(title = "kaya_tests")
+
+# Do countries add up to global totals each year?
+
+tests <- kaya %>% 
+  filter(ISO!="WLD") %>% 
+  filter(sector=="Total") %>% 
+  group_by(year) %>% 
+  summarise_at(vars(CO2,energy,GDP,POP),sum,na.rm=TRUE)
+
+tests <- gather(tests,var,country_value,-year)
+
+world <- kaya %>% 
+  filter(ISO=="WLD") %>% 
+  filter(sector=="Total") %>% 
+  group_by(year) %>% 
+  summarise_at(vars(CO2,energy,GDP,POP),sum,na.rm=TRUE)
+
+world <- gather(world,var,world_value,-year)
+
+tests <- left_join(tests,world,by = c("year", "var"))
+
+openxlsx::addWorksheet(wb,"country_totals")
+openxlsx::writeData(wb, sheet = "country_totals", tests, colNames = T, rowNames = F)
+
+
+# Do sectors add up to the total sector each year?
+
+tests <- kaya %>% 
+  filter(ISO=="WLD") %>% 
+  filter(sector!="Total") %>% 
+  group_by(year) %>%
+  summarise_at(vars(CO2,energy),sum,na.rm=TRUE)
+
+tests <- gather(tests,var,sector_value,-year)
+
+total <- kaya %>% 
+  filter(ISO=="WLD") %>% 
+  filter(sector=="Total") %>% 
+  group_by(year) %>%
+  summarise_at(vars(CO2,energy),sum,na.rm=TRUE)
+
+total <- gather(total,var,total_value,-year)
+
+tests <- left_join(tests,total,by = c("year", "var"))
+
+openxlsx::addWorksheet(wb,"sector_totals")
+openxlsx::writeData(wb, sheet = "sector_totals", tests, colNames = T, rowNames = F)
+
+openxlsx::saveWorkbook(wb,"../Results/kaya_tests.xlsx",overwrite=T)
+
+
+```
+
+
+
+
+
+

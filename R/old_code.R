@@ -768,3 +768,67 @@ ggarrange(p1,p2,ncol=1,nrow=2)
 
 
 ```
+
+
+
+
+
+
+
+```{r summary_text, include = FALSE}
+
+summary_text <- function(ch,fraction,trend) {
+  
+  total <- trend %>% ungroup() %>% filter(Year==2017) %>% summarise(sum=sum(value))
+  growth <- trend %>% 
+    ungroup() %>% 
+    group_by(Year) %>% 
+    summarise(value=sum(value))
+  compound <- ((tail(growth$value,1)/growth$value[1])^(1/length(growth$Year))-1)*100
+  growth <- ((tail(growth$value,1)-growth$value[1])/growth$value[1])*100
+  
+  text <- paste0(sectors$value[sectors$key==ch]," emissions were ",round(total$sum,2), "Gt CO2 in 2017, ",fraction$value,"% of total GHG emissions from all sectors. ",sectors$value[sectors$key==ch]," emissions have grown by ",round(growth,2),"% between 1970 and 2017.")
+  
+  return(text)
+}
+
+
+```
+
+
+
+# 1. All sectors
+
+```{r total_sector_trends,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+# 
+# load('../Data/edgar_data_gwp_ar5.RData')
+# 
+# ########### Trend figure ###########
+# 
+# totals <- edgar_GHG_ar5 %>% 
+#   filter(year>1989) %>% 
+#   filter(year<2018) %>% 
+#   group_by(ISO,country,year,region_ar6_5) %>% 
+#   summarise_at(c("CO2","CH4","N2O","Fgas","GHG"),sum,na.rm=TRUE) %>% 
+#   mutate(chapter=0,sector_code="Total",description="Total",category_1="Total",category_2="Total",category_3="Total")
+# 
+#   
+# trend <- trend_figure(2010,"sector_code","Total","GHG",totals,big_trend_theme)
+# p1 <- trend$plot
+# p1 <- p1 + ggtitle("A. Trend in total emissions and income classification ")
+# d1 <- trend$data
+# 
+# ########### Decomposition figure ###########
+# 
+# decomp <- decomp_figure_countries(2010,'GHG',edgar_GHG_ar5)
+# p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=2,nrow=1)
+# p2 <- annotate_figure(p2,
+#   top = text_grob("B. Decomposition of relative and absolute contribution by country",size = 12,hjust=0.75))
+# 
+# plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
+# plot
+# 
+# 
+# #write.xlsx(p$data %>% select(-Year),file=paste("../Results/IPCC_plot_data_",Sys.Date(),".xlsx",sep=""),sheetName="Total_GHGs_2010",append=TRUE)
+
+```

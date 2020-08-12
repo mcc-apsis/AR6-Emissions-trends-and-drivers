@@ -57,31 +57,54 @@ for (row in 1:nrow(gwps)) {
   edgar_GHG[col] <- edgar_GHG[col]*1000
 }
 
-# edgar_GHG <- gather(edgar_GHG,key,value,CO2:SF6)
-# edgar_GHG <- edgar_GHG %>% 
-#   mutate(value=value*1000)
-# edgar_GHG <- spread(edgar_GHG,key,value)
+########### import corrected landfill (6A1) data ###########
 
-rm(jos_CH4,jos_CO2,jos_Fgas,jos_N2O)
+landfill <- openxlsx::read.xlsx("Data/EDGAR/updated EDGAR landfills emissions.xlsx","CH4 emi landfills",startRow=2) %>% 
+  select(ISO=Country_code_A3,everything(),-emi_id,-Substance)
+
+landfill <- gather(landfill,year,CH4,-ISO)
+landfill$year <- gsub("Y_","",landfill$year)
+landfill <- landfill %>% 
+  mutate(year=as.numeric(year)) %>% 
+  mutate(CH4=as.numeric(CH4)) %>% 
+  mutate(IPCC.detailed="6A1") %>% 
+  mutate(IPCC_detailed_description="Managed waste disposal on land")
+
+names <- edgar_GHG %>% 
+  select(ISO,EDGAR_country,CO2:SF6,-CH4) %>% 
+  mutate_at(vars(CO2:SF6),funs(.+NA)) %>% 
+  distinct()
+
+landfill <- left_join(landfill,names,by=c("ISO"="ISO")) 
+landfill <- landfill %>% 
+  select(ISO,EDGAR_country,year,IPCC.detailed,IPCC_detailed_description,CO2,CH4,everything())
+
+
+edgar_GHG <- edgar_GHG %>% 
+  filter(IPCC.detailed!="6A1")
+
+edgar_GHG <- rbind(edgar_GHG,landfill)
+
+rm(jos_CH4,jos_CO2,jos_Fgas,jos_N2O,names,landfill)
 
 
 ########### join source categories from compilation (see category_mapping.R) ########### 
 
-load('Data/ipcc_categories.RData')
+load('Data/ipcc_sectors.RData')
 
-edgar_GHG <- left_join(edgar_GHG,ipcc_categories %>% select(code,description,category_1,category_2,category_3,IPCC_AR6_chapter,IPCC_AR6_chapter_title),by=c("IPCC.detailed"="code"))
+edgar_GHG <- left_join(edgar_GHG,ipcc_sectors %>% select(code,description,IPCC_AR6_chapter,IPCC_AR6_chapter_title,subsector,subsector_title),by=c("IPCC.detailed"="code"))
 
 edgar_GHG <- edgar_GHG %>% 
-  select(ISO,sector_code=IPCC.detailed,chapter=IPCC_AR6_chapter,chapter_title=IPCC_AR6_chapter_title,description,category_1,category_2,category_3,year,everything(),-IPCC_detailed_description)
+  select(ISO,sector_code=IPCC.detailed,chapter=IPCC_AR6_chapter,chapter_title=IPCC_AR6_chapter_title,description,subsector,subsector_title,year,everything(),-IPCC_detailed_description)
 
 missing_codes <- edgar_GHG %>% 
   filter(is.na(chapter) | is.na(description) | is.na(sector_code)) %>% 
-  unique()
+  distinct()
 
 
 ########### join country names ########### 
 
-codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
+codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
 edgar_GHG <- left_join(edgar_GHG,codes %>% select(name,alpha.3),by=c("ISO"="alpha.3"))
 
 ## identify additional countries in EDGAR
@@ -133,23 +156,23 @@ edgar_GHG$region_ar6_5_short[edgar_GHG$ISO=="AIR"] <- "AIR"
 
 edgar_GHG <- edgar_GHG %>% 
   mutate(year=as.numeric(year)) %>% 
-  select(ISO,country=name,region_ar6_5,region_ar6_5_short,region_ar6_10,region_ar6_22,region_ar6_dev,year,chapter,chapter_title,sector_code,description,category_1,category_2,category_3,CO2,CH4,N2O,everything(),-EDGAR_country)
+  select(ISO,country=name,region_ar6_5,region_ar6_5_short,region_ar6_10,region_ar6_22,region_ar6_dev,year,chapter,chapter_title,sector_code,description,subsector,subsector_title,CO2,CH4,N2O,everything(),-EDGAR_country)
 
 
 ############## factorise regions
 
 
-edgar_GHG_ar5$region_ar6_5_short <- as.factor(edgar_GHG_ar5$region_ar6_5_short)
-edgar_GHG_ar5$region_ar6_5_short <- factor(edgar_GHG_ar5$region_ar6_5_short,levels(edgar_GHG_ar5$region_ar6_5_short)[c(1,7,2,3,4,5,6)])
+edgar_GHG$region_ar6_5_short <- as.factor(edgar_GHG$region_ar6_5_short)
+edgar_GHG$region_ar6_5_short <- factor(edgar_GHG$region_ar6_5_short,levels(edgar_GHG$region_ar6_5_short)[c(1,7,2,3,4,5,6)])
 
 
-############## calculate gwps based on ar5 values
+############## calculate gwps based on ar6 values
 
-edgar_GHG_ar5 <- edgar_GHG
+edgar_GHG_ar6 <- edgar_GHG
 for (row in 1:nrow(gwps)) {
   col <- gwps[row, "gas"]
-  gwp  <- gwps[row, "gwp_ar5"]
-  edgar_GHG_ar5[col] <- edgar_GHG_ar5[col]*gwp
+  gwp  <- gwps[row, "gwp_ar6"]
+  edgar_GHG_ar6[col] <- edgar_GHG_ar6[col]*gwp
 }
 
 fgas_list <- gwps %>% 
@@ -158,13 +181,13 @@ fgas_list <- gwps %>%
   filter(gas!="CH4") %>% 
   select(gas)
 
-edgar_GHG_ar5 <- edgar_GHG_ar5 %>% 
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
   mutate(Fgas=rowSums(.[fgas_list$gas],na.rm=T)) %>% 
   mutate(nnums=rowSums(!is.na(.[fgas_list$gas]))) %>% 
   mutate(Fgas=ifelse(nnums==0,NA,Fgas)) %>% 
   select(-nnums,-one_of(fgas_list$gas))
 
-edgar_GHG_ar5 <- edgar_GHG_ar5 %>% 
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
   group_by(ISO,year,sector_code) %>% 
   mutate(GHG = sum(CO2,CH4,N2O,Fgas,na.rm=T)) %>% 
   ungroup() %>% 
@@ -174,4 +197,4 @@ edgar_GHG_ar5 <- edgar_GHG_ar5 %>%
 ############## save two datasets
 
 save(edgar_GHG,file='Data/edgar_data_all.RData')
-save(edgar_GHG_ar5,file='Data/edgar_data_gwp_ar5.RData')
+save(edgar_GHG_ar6,file='Data/edgar_data_gwp_ar6.RData')

@@ -23,7 +23,7 @@ source("decomp_figure_sectors.R")
 source("waterfall_plot.R")
 
 
-load('../Data/edgar_data_gwp_ar5.RData')
+load('../Data/edgar_data_gwp_ar6.RData')
 load('../Data/gwps.RData')
 
 # set palette
@@ -44,7 +44,7 @@ wb <- openxlsx::createWorkbook(title = paste("ipcc_plot_data_",Sys.Date()))
 ```{r Fig1_trend, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 
-plot_data <- edgar_GHG_ar5 %>% 
+plot_data <- edgar_GHG_ar6 %>% 
   filter(year>1989) %>% 
   filter(year<2019) %>% 
   group_by(year) %>% 
@@ -326,7 +326,7 @@ ipcc_palette <- c("#737373","#737373","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#
 
 
 
-plot_data <- edgar_GHG_ar5 %>% 
+plot_data <- edgar_GHG_ar6 %>% 
   filter(year>1989) %>% 
   filter(year<2019) %>% 
   group_by(year,region_ar6_5,region_ar6_5_short) %>% 
@@ -434,7 +434,7 @@ basic <- basic %>%
   summarise_at(vars(gdp_ppp_WB,pop_UN),sum,na.rm=T)
 
 
-side_plot_data <- edgar_GHG_ar5 %>% 
+side_plot_data <- edgar_GHG_ar6 %>% 
   filter(year>1989) %>% 
   filter(year<2019) %>% 
   filter(region_ar6_5!="Intl. Aviation") %>% 
@@ -479,7 +479,7 @@ p2 <- ggarrange(p2_1,p2_2,ncol=1,nrow=2)
 
 
 load('../Data/basic.RData')
-decomp <- decomp_figure_countries(1990,'GHG',edgar_GHG_ar5,basic)
+decomp <- decomp_figure_countries(1990,'GHG',edgar_GHG_ar6,basic)
 
 mylegend<-g_legend(p1)
 
@@ -514,12 +514,12 @@ p +
 
 ```
 
-```{r Fig9_sectors, echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="../Results/Plots/",dev=c('png','pdf')}
+```{r Fig9_sectors, echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
-load('../Data/edgar_data_gwp_ar5.RData')
+load('../Data/edgar_data_gwp_ar6.RData')
 source("decomp_figure_sectors.R")
 
-plot_data <- edgar_GHG_ar5  %>% 
+plot_data <- edgar_GHG_ar6  %>% 
   filter(year>1989) %>% 
   filter(year<2019) %>% 
   group_by(year,chapter,chapter_title) %>%  
@@ -549,6 +549,7 @@ plot_data <- plot_data %>%
   summarise(value=sum(value)) %>% 
   ungroup()
 
+plot_data$chapter_title <- as.factor(plot_data$chapter_title)
 plot_data$chapter_title <- factor(plot_data$chapter_title,levels(plot_data$chapter_title)[c(3,1,2,5,4)])
 
 shares <- plot_data %>% 
@@ -588,13 +589,13 @@ p1 <- plot_data %>%
 
 ######## subsectors
 
-decomp <- decomp_figure_sectors(2010,'GHG',edgar_GHG_ar5)
+decomp <- decomp_figure_sectors(2010,'GHG',edgar_GHG_ar6)
 
 
   
 p2 <- ggarrange(decomp$rate_plot,decomp$abs_plot,ncol=1,nrow=2)
 
-plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.3,0.7))
+plot <- ggarrange(p1,p2,ncol=1,nrow=2,heights=c(0.4,0.6))
 plot
 
 
@@ -626,7 +627,7 @@ benchmark_data2 <- benchmark_data_raw %>%
   filter(aggregated_category!="Other") %>% 
   select(aggregated_category,rate)
 
-rates <- edgar_GHG_ar5 %>% 
+rates <- edgar_GHG_ar6 %>% 
   filter(region_ar6_5_short!="AIR") %>% 
   filter(region_ar6_5_short!="SEA") %>% 
   group_by(country,ISO,year,region_ar6_5,region_ar6_5_short) %>% 
@@ -671,6 +672,10 @@ rates <- edgar_GHG_ar5 %>%
 time_start = 2010
 
 blarg <- rates %>% 
+  filter(ISO!="COK") %>% 
+  filter(ISO!="FRO") %>% 
+  filter(ISO!="GRL") %>% 
+  filter(ISO!="IMN") %>% 
   filter(year>=time_start & year<2019) %>% 
   group_by(country,year,region_ar6_5) %>% 
   summarise(emissions_total=sum(emissions_total,na.rm=TRUE))
@@ -703,15 +708,6 @@ blarg %>%
         legend.position = "none")
 
 
-
-
-
-
-
-
-
-
-
 ```
 
 ### Figure PROPOSAL: Individual gases, split by region
@@ -719,7 +715,7 @@ blarg %>%
 ```{r Figx_region_gas, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 
-# plot_data <- edgar_GHG_ar5 %>% 
+# plot_data <- edgar_GHG_ar6 %>% 
 #   filter(year>1989) %>% 
 #   filter(year<2019) %>% 
 #   filter(region_ar6_5!="Intl. Aviation") %>% 
@@ -759,7 +755,7 @@ blarg %>%
 ```{r Figx_region_sector, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 # 
-# plot_data <- edgar_GHG_ar5 %>% 
+# plot_data <- edgar_GHG_ar6 %>% 
 #   filter(year>1989) %>% 
 #   filter(year<2019) %>% 
 #   filter(region_ar6_5!="Intl. Aviation") %>% 

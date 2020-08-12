@@ -15,6 +15,7 @@ rm(list = ls())
 library(tidyverse)
 library(ggpubr)
 library(gganimate)
+library(zoo)
 library(xlsx)
 library(ggmap)
 library(maps)
@@ -30,7 +31,7 @@ load('../Data/gwps.RData')
 load('../Data/basic.RData')
 
 # set palette
-# ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
 # ipcc_palette <- c("#737373","#737373","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854");
 
 
@@ -279,7 +280,7 @@ plot_sectors <- function(data,region) {
       summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
       ungroup()
     
-    
+    sector_data$chapter_title <- as.factor(sector_data$chapter_title)
     sector_data$chapter_title <- factor(sector_data$chapter_title,levels(sector_data$chapter_title)[c(3,1,2,5,4)])
     
     
@@ -384,9 +385,194 @@ stacks %>% ggplot(.,aes(x=year,y=GHG,fill=region_ar6_5_short)) +
  
 ```
 
+``` {r pathways, echo=FALSE,warning=FALSE,fig.width=10,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+# 
+# region_data <- edgar_GHG_ar5 %>% 
+#   filter(region_ar6_10==regions) %>% 
+#   filter(year>1989) %>% 
+#   group_by(ISO,year) %>% 
+#   summarise(value=sum(GHG,na.rm=TRUE))
+# 
+# country_list_threshold <- high_emitters(region_data,0.6)
+# region_data <- left_join(region_data,country_list_threshold)
+# region_data <- region_data %>% 
+#   mutate(highlight=ifelse(cutoff==1,ISO,NA))
+# 
+# region_data <- left_join(region_data,basic %>% select(ISO,Year,pop_UN),by=c("ISO"="ISO","year"="Year"))
+# 
+# region_data <- region_data %>% 
+#   mutate(GHGpc=value/pop_UN)
+# 
+# region_data %>% 
+#   ggplot(.,aes(x=year,y=GHGpc,group=ISO,colour=highlight,alpha=cutoff)) +
+#   geom_path(size = 1) +
+#   theme_bw() +
+#   scale_y_continuous(trans = "log",breaks = c(0,1,5,10,20,40,80),limits=c(0.5,120)) +
+#   scale_color_brewer(palette="Set2",na.value="grey50") +
+#   scale_alpha(range = c(0.1, 1))
+#   
+# 
+# 
+# high_emitters <- function(data,threshold) {
+#   
+#   #what is x% of the emissions?
+#   data_2018 <- data %>%
+#     filter(year==2018)
+#   data_threshold <- sum(data_2018$value,na.rm=T)*threshold
+#   
+#   country_list <- data %>%
+#     filter(year==2018) %>%
+#     arrange(desc(value))
+#   
+#   country_list$cutoff <- 0
+#   z <- 0
+#   for (i in 1:length(country_list$ISO)){
+#     z <- z + country_list$value[i]
+#     if (z > data_threshold) {
+#       break
+#     }
+#     country_list$cutoff[i] <- 1
+#   }
+#   
+#   return(country_list %>% select(-year,-value))
+#   
+# }
 
 
 
+
+```
+
+
+
+``` {r new, echo=FALSE,warning=FALSE,fig.width=10,fig.height=5,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+
+emissions_data <- edgar_GHG_ar5 %>% 
+  filter(year>1989) %>% 
+  filter(ISO!="AIR") %>% 
+  filter(ISO!="SEA") %>% 
+  group_by(country,ISO,region_ar6_10,year) %>% 
+  summarise_at(vars(CO2,GHG),sum,na.rm=TRUE)
+
+emissions_data <- left_join(emissions_data,basic %>% select(ISO,year=Year,pop_UN,gdp_ppp_WB),by = c("ISO", "year"))
+
+############## !!!!!!!!!!!!!!
+emissions_data <- emissions_data %>% 
+  group_by(country) %>% 
+  mutate(gdp_ppp_WB=na.locf(gdp_ppp_WB,na.rm=FALSE))
+############## !!!!!!!!!!!!!!
+
+emissions_data <- emissions_data %>% 
+  mutate(CO2pc=CO2/pop_UN) %>% 
+  mutate(GHGpc=GHG/pop_UN) %>% 
+  mutate(GDPpc=gdp_ppp_WB/pop_UN) %>% 
+  mutate(var=CO2pc)
+
+cumulative_emissions <- emissions_data %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(cumGHG=sum(GHG,na.rm=T),cumCO2=sum(CO2,na.rm=T))
+cumulative_emissions <- cumulative_emissions %>% 
+  mutate(cumGHG = cumGHG/sum(cumulative_emissions$cumGHG)*100)%>% 
+  mutate(cumCO2 = cumCO2/sum(cumulative_emissions$cumCO2)*100) %>% 
+  mutate(year=2018)
+#cumulative_emissions <- gather(cumulative_emissions,var,value,cumGHG:cumCO2)
+
+world <- emissions_data %>% 
+  group_by(year) %>% 
+  summarise_at(vars(pop_UN,CO2,GHG,gdp_ppp_WB),sum,na.rm=TRUE) %>% 
+  filter(year==1990 | year==2018) %>% 
+  select(year,pop=pop_UN,GDP=gdp_ppp_WB,CO2,GHG)
+
+world <- gather(world,var,world_value,pop:GHG)
+
+emissions_data <- emissions_data %>% 
+  filter(year==1990 | year==2018) %>% 
+  group_by(region_ar6_10,year) %>% 
+  summarise(pop=sum(pop_UN,na.rm=T),CO2=sum(CO2,na.rm=T),GHG=sum(GHG,na.rm=T),CO2pc=mean(CO2pc,na.rm=T),GDP=sum(gdp_ppp_WB,na.rm=T),GDPpc=mean(GDPpc,na.rm=T))
+
+
+emissions_data <- left_join(emissions_data,cumulative_emissions,by = c("year","region_ar6_10"))
+
+emissions_data <- gather(emissions_data,var,value,pop:cumCO2)
+emissions_data <- left_join(emissions_data,world,by = c("year", "var"))
+
+
+emissions_data <- emissions_data %>% 
+  mutate(percent=value/world_value*100) %>% 
+  mutate(percent=ifelse(var=="cumGHG",value,percent))
+
+### panel 2 emissions
+
+region <- "Africa"
+emissions_data <- emissions_data %>% 
+  mutate(show=ifelse(region_ar6_10==region,"yes","no")) %>% 
+  mutate(year=as.factor(year)) %>% 
+  ungroup() %>% 
+  mutate(region_ar6_10=as.factor(region_ar6_10))
+
+emissions_data$year <- factor(emissions_data$year,levels=levels(emissions_data$year)[c(2,1)])
+
+
+emissions_data <- emissions_data %>% 
+  mutate(var=ifelse(var=="cumGHG","Cumulative GHG since 1990",var)) %>% 
+  mutate(var=ifelse(var=="pop","Population (% of World)",var)) %>% 
+  mutate(var=ifelse(var=="GDP","GDP (% of World)",var))
+
+
+p2 <- emissions_data %>% 
+  filter(var=="Population (% of World)" | var =="GDP (% of World)" | var =="Cumulative GHG since 1990") %>%
+  ggplot(.,aes(x=region_ar6_10,y=percent,fill=year)) +
+  geom_bar(stat='identity',colour="black",position="dodge",width=.75) +
+  scale_color_brewer(palette="Set2",na.value="grey50") +
+  scale_x_discrete(limits=rev(levels(emissions_data$region_ar6_10))) +
+  theme_bw() +
+  coord_flip() +
+  facet_grid(.~var,labeller = label_wrap_gen(width=15)) +
+  theme(axis.title = element_blank(),axis.text.y = element_blank(),legend.position="bottom")
+
+
+### panel 1 histograms
+
+boxplot_data <- edgar_GHG_ar5 %>% 
+  filter(ISO!="AIR") %>% 
+  filter(ISO!="SEA") %>% 
+  group_by(country,ISO,region_ar6_10,year) %>% 
+  summarise_at(vars(CO2,GHG),sum,na.rm=TRUE) %>% 
+  filter(year==1990 | year==2018)
+
+
+boxplot_data <- left_join(boxplot_data,basic %>% select(ISO,year=Year,pop_UN),by = c("ISO", "year"))
+
+boxplot_data <- boxplot_data %>% 
+  mutate(CO2pc=CO2/pop_UN) %>% 
+  mutate(GHGpc=GHG/pop_UN) %>% 
+  mutate(year=as.factor(year)) %>% 
+  ungroup() %>% 
+  mutate(region_ar6_10=as.factor(region_ar6_10))
+
+boxplot_data <- gather(boxplot_data,var,value,GHGpc) %>% 
+  mutate(var="GHG per capita (tCO2eq/capita)")
+
+boxplot_data$year <- factor(boxplot_data$year,levels=levels(boxplot_data$year)[c(2,1)])
+
+p1 <- boxplot_data %>% 
+  ggplot(.,aes(x=region_ar6_10,y=value,fill=year)) +
+  geom_boxplot(position="dodge") +
+  coord_flip() +
+  theme_bw() +
+  scale_y_continuous(limits=c(0,50)) +
+  scale_x_discrete(limits=rev(levels(boxplot_data$region_ar6_10))) +
+  facet_grid(.~var) +
+  theme(legend.position="none",
+        axis.title = element_blank(),
+        strip.text = element_text(margin = margin(.32, 0, .32, 0, "cm")))
+
+ggarrange(p1,p2,nrow=1,ncol=2,align="hv",legend.grob=get_legend(p2),legend="bottom",widths=c(0.6,0.4))
+
+
+```
 
 
 

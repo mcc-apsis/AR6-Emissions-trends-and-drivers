@@ -6,7 +6,6 @@ load('Data/edgar_data_all.RData')
 
 #################### prep
 
-
 codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
 edgar_GHG <- left_join(edgar_GHG,codes %>% select(alpha.3,WB.income),by=c("ISO"="alpha.3"))
 
@@ -39,8 +38,12 @@ regions <- edgar_GHG %>%
 
 #################### aggregate by region and sector
 
-regions_ar6 <- edgar_GHG %>% 
+regions_ar6_5 <- edgar_GHG %>% 
   group_by(region_ar6_5,year) %>% 
+  summarise_at(vars(gwps$gas),sum,na.rm = T)
+
+regions_ar6_10 <- edgar_GHG %>% 
+  group_by(region_ar6_10,year) %>% 
   summarise_at(vars(gwps$gas),sum,na.rm = T)
 
 regions_income <- edgar_GHG %>% 
@@ -93,14 +96,16 @@ info = data.frame("x" = c("Units","Source"),
 
 wb <- openxlsx::createWorkbook(title = "ipcc_ar6_edgar_data_warming")
 addWorksheet(wb,"info")
-addWorksheet(wb,"regions_ar6")
+addWorksheet(wb,"regions_ar6_5")
+addWorksheet(wb,"regions_ar6_10")
 addWorksheet(wb,"regions_income")
 addWorksheet(wb,"sectors")
 addWorksheet(wb,"sector_classification")
 addWorksheet(wb,"region_classification")
 
 writeData(wb, sheet = "info", info, colNames = F)
-writeData(wb, sheet = "regions_ar6", regions_ar6, colNames = T)
+writeData(wb, sheet = "regions_ar6_5", regions_ar6_5, colNames = T)
+writeData(wb, sheet = "regions_ar6_10", regions_ar6_10, colNames = T)
 writeData(wb, sheet = "regions_income", regions_income, colNames = T)
 writeData(wb, sheet = "sectors", sectors, colNames = T)
 writeData(wb, sheet = "sector_classification",edgar_categories,colNames=T)
@@ -108,7 +113,7 @@ writeData(wb, sheet = "region_classification",regions,colNames=T)
 
 
 
-saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_warming.xlsx",overwrite = T)
+saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_warming_19_06.xlsx",overwrite = T)
 
 
 

@@ -2,6 +2,7 @@
 
 gas="GHG"
 time_start=2010
+#edgar_GHG=edgar_GHG_ar5
 
 decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   
@@ -10,7 +11,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   
   rates <- edgar_GHG %>%
     filter(year>=time_start & year<2018) %>% 
-    group_by(chapter,chapter_title,sector_code,description,year) %>% 
+    group_by(chapter,chapter_title,subsector,subsector_title,year) %>% 
     summarise_at(gas,sum,na.rm=TRUE) %>% 
     rename_at(gas,funs(sprintf('value')))
   
@@ -23,7 +24,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   ## remove countries below absolute emissions threshold
   
   rates <- rates %>% 
-    group_by(sector_code) %>% 
+    group_by(subsector) %>% 
     mutate(rate=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>% 
     mutate(abs_growth=last(value)-first(value)) %>%
     filter(year==2017) 
@@ -34,7 +35,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   
   rates$cutoff <- 0
   z <- 0
-  for (i in 1:length(rates$sector_code)){
+  for (i in 1:length(rates$subsector)){
     z <- z + rates$value[i]
     if (z > threshold) {
       break
@@ -43,14 +44,14 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   }
   
   ##### add aviation manually
-  rates$cutoff[rates$sector_code=="1C1"] <- 1
-  rates$cutoff[rates$sector_code=="1A3a"] <- 1
+  #rates$cutoff[rates$subsector=="1C1"] <- 1
+  #rates$cutoff[rates$sector_code=="1A3a"] <- 1
   
-  sector_list <- rates %>% select(sector_code,cutoff)
+  sector_list <- rates %>% select(subsector,cutoff)
   
   #### sum up rest of the sectors
   
-  sector_rates <- left_join(sector_rates,sector_list,by=c("sector_code"="sector_code"))
+  sector_rates <- left_join(sector_rates,sector_list,by=c("subsector"="subsector"))
   
   sector_rates <- sector_rates %>% 
     filter(cutoff==0) %>% 
@@ -63,14 +64,14 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
     mutate(rate=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>% 
     mutate(abs_growth=last(value)-first(value)) %>%
     filter(year==2017) %>% 
-    mutate(description=paste(chapter_title,"(rest)")) %>% 
-    select(chapter,chapter_title,description,everything()) %>% 
+    mutate(subsector_title=paste(chapter_title,"(rest)")) %>% 
+    select(chapter,chapter_title,subsector_title,everything()) %>% 
     ungroup()
   
   ### join
   rates <- rates %>% 
     filter(cutoff==1) %>% 
-    select(-cutoff,-sector_code)
+    select(-cutoff,-subsector)
   
   rates <- rbind(rates,sector_rates) %>% 
     mutate(value=value/1e9) %>% 
@@ -80,6 +81,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   rates <- rates %>% 
     ungroup()
   
+  rates$chapter_title <- as.factor(rates$chapter_title)
   rates$chapter_title <- factor(rates$chapter_title,levels(rates$chapter_title)[c(3,1,2,5,4)])
   
   plot_theme <- theme_bw() +
@@ -94,7 +96,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   #rate
   p1 <- rates %>% 
     filter(var=="rate") %>% 
-    ggplot(.,aes(x = reorder(description,value),y = value, fill=chapter_title)) +
+    ggplot(.,aes(x = reorder(subsector_title,value),y = value, fill=chapter_title)) +
     geom_bar(stat='identity',colour="#737373") + 
     #ylab(bquote(atop("Rate of change in" ~.(gas) ~ "Emissions","(%),"~.(time_start)*"-2017"))) +
     coord_flip() +
@@ -107,7 +109,7 @@ decomp_figure_sectors <- function(time_start,gas,edgar_GHG) {
   #absolute
   p2 <- rates %>% 
     filter(var=="abs_growth") %>% 
-    ggplot(.,aes(x = reorder(description,value),y = value/1e9, fill=chapter_title)) +
+    ggplot(.,aes(x = reorder(subsector_title,value),y = value/1e9, fill=chapter_title)) +
     geom_bar(stat='identity',colour="#737373") + 
     #ylab(bquote(atop("Absolute change in" ~.(gas) ~ "Emissions","(Gt" ~CO[2]* "eq),"~.(time_start)*"-2017"))) +
     coord_flip() +
