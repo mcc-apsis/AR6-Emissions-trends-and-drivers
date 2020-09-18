@@ -408,12 +408,11 @@ openxlsx::writeData(wb, sheet = "AFOLU_normalised",spread(hong_kaya %>% select(-
 
 
 
-
 ```
 
 ``` {r write,include=TRUE,warning=FALSE}
 
-openxlsx::saveWorkbook(wb,paste0("../Results/Data/sector_kaya_analysis_",Sys.Date(),".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../Results/Kaya/sector_kaya_analysis_",Sys.Date(),".xlsx"),overwrite=T)
 
 # openxlsx::addWorksheet(wb2,"afolu_data")
 # openxlsx::writeData(wb2, sheet = "afolu_data",all_data, colNames = T, rowNames = F)
@@ -475,7 +474,7 @@ sector_test <- left_join(sector_test,total,by = c("year", "var"))
 openxlsx::addWorksheet(wb,"sector_totals")
 openxlsx::writeData(wb, sheet = "sector_totals", sector_test, colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,"../Results/kaya_tests.xlsx",overwrite=T)
+openxlsx::saveWorkbook(wb,"../Results/Kaya/kaya_tests.xlsx",overwrite=T)
 
 
 ```
