@@ -109,11 +109,22 @@ world_pop <- kaya_data %>%
 # change World into a region
 kaya_data <- kaya_data %>% 
   mutate(region_ar6_10=as.character(region_ar6_10)) %>% 
+  mutate(name=ifelse(ISO=="WLD","World",name)) %>% 
+  mutate(region_ar6_5=ifelse(ISO=="WLD","World",region_ar6_5)) %>% 
+  mutate(region_ar6_5_short=ifelse(ISO=="WLD","World",region_ar6_5_short)) %>% 
   mutate(region_ar6_10=ifelse(ISO=="WLD","World",region_ar6_10))
 
 kaya_data$region_ar6_10 <- as.factor(kaya_data$region_ar6_10)
 
-# sum all variables to regions
+# sum all variables to regions - first check for nan countries
+
+missing_countries <- kaya_data[!complete.cases(kaya_data),]
+missing_countries <- missing_countries %>% 
+  filter(sector!="AFOLU")
+
+kaya_data <- kaya_data %>% 
+  na.omit()
+
 kaya_data <- kaya_data %>% 
   group_by(region_ar6_10,sector,year) %>% 
   summarise_at(vars(CO2,energy,GDP,POP),sum,na.rm=TRUE)
