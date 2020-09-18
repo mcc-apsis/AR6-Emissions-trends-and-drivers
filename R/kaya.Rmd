@@ -19,352 +19,463 @@ library(ggplot2); theme_set(theme_bw())
 library(data.table)
 library(janitor)
 
-#load('../Data/edgar_data_gwp_ar5.RData')
+wb <- openxlsx::createWorkbook(title = "sector_kaya_data",Sys.Date())
+
+load('../Data/edgar_data_gwp_ar6.RData')
+load('../Data/land.RData')
+
+land <- land %>%
+  filter(year>1969) %>% 
+  mutate(chapter=7,
+         chapter_title="AFOLU",
+         sector_code="land_CO2",
+         description="Land-use CO2",
+         subsector=7.7,
+         subsector_title="Land-use CO2",
+         CO2=mean,
+         CH4=NA,N2O=NA,Fgas=NA,GHG=mean) %>% 
+  select(-blue,-houghton,-mean)
+
+load('../Data/basic.RData')
 load("../Data/tsu_codes.RData")
 
-kaya <- read.csv("../Data/kaya_data_data.csv")
+# load data from Robbie
+kaya_data <- openxlsx::read.xlsx("../Data/kaya_data_flat.xlsx")
+names(kaya_data) <- tolower(names(kaya_data))
+kaya_data <- kaya_data %>% select(ISO=iso,everything())
 
-kaya <- t(kaya)
-
-kaya <- setDT(data.frame(kaya), keep.rownames = TRUE)[]
-
-kaya <- kaya %>% 
-  row_to_names(row_number = 1) 
-
-kaya <- kaya %>%
-  separate(Year,c("country","var"),"_",extra="merge")
-
-kaya <- kaya %>% 
-  mutate(sector=NA) %>% 
-  mutate(sector=ifelse(grepl("EGY",var),"Energy systems",sector)) %>% 
-  mutate(sector=ifelse(grepl("BLD",var),"Buildings",sector)) %>% 
-  mutate(sector=ifelse(grepl("IND",var),"Industry",sector)) %>% 
-  mutate(sector=ifelse(grepl("LUC",var),"AFOLU",sector)) %>% 
-  mutate(sector=ifelse(grepl("TOT",var),"Total",sector)) %>% 
-  mutate(sector=ifelse(grepl("TRA",var),"Transport",sector)) %>% 
-  mutate(var=ifelse(grepl("EGY_",var),"energy",var)) %>% 
-  mutate(var=ifelse(grepl("CO2_",var),"CO2",var)) %>% 
-  select(ISO=country,var,sector,everything())
-
-gdp_pop <- kaya %>% 
-  filter(var=="GDP" | var=="POP") %>% 
+pop_gdp <- kaya_data %>% 
+  filter(sector=="---") %>%
+  filter(variable=="POP" | variable=="GCP") %>% 
   select(-sector)
-gdp_pop <- gather(gdp_pop,year,value,`1971`:`2018`)
-gdp_pop <- spread(gdp_pop,var,value)
+pop_gdp <- spread(pop_gdp,variable,value)
+pop_gdp <- pop_gdp %>% 
+  select(ISO,year,GDP=GCP,POP)
 
-kaya <- gather(kaya,year,value,`1971`:`2018`)
-kaya <- kaya %>% 
-  filter(var!="GDP") %>% 
-  filter(var!="POP")
+kaya_data <- left_join(kaya_data %>% filter(sector!="---"),
+                       pop_gdp,by = c("ISO", "year"))
 
-kaya <- spread(kaya,var,value)
-kaya <- left_join(kaya,gdp_pop)
+kaya_data <- kaya_data %>% 
+  mutate(sector=ifelse(grepl("EGY",sector),"Energy systems",sector)) %>% 
+  mutate(sector=ifelse(grepl("BLD",sector),"Buildings",sector)) %>% 
+  mutate(sector=ifelse(grepl("IND",sector),"Industry",sector)) %>% 
+  mutate(sector=ifelse(grepl("LUC",sector),"AFOLU",sector)) %>% 
+  mutate(sector=ifelse(grepl("TOT",sector),"Total",sector)) %>% 
+  mutate(sector=ifelse(grepl("TRA",sector),"Transport",sector)) %>% 
+  mutate(variable=ifelse(grepl("EGY",variable),"energy",variable)) %>% 
+  mutate(variable=ifelse(grepl("CO2",variable),"CO2",variable))
 
-kaya <- left_join(kaya,tsu_codes %>% select(ISO,name,region_ar6_5,region_ar6_5_short,region_ar6_10),by=c("ISO"="ISO"))
+kaya_data <- spread(kaya_data,variable,value)
+kaya_data <- kaya_data %>% 
+  filter(year<2018) %>% 
+  filter(year>1989)
 
-kaya <- kaya %>% 
+blarg <- kaya_data %>% 
+  filter(ISO=="WLD") %>% 
+  filter(sector=="Total")
+
+# join IPCC regions
+kaya_data <- left_join(kaya_data,tsu_codes %>% select(ISO,name,region_ar6_5,region_ar6_5_short,region_ar6_10),by=c("ISO"="ISO"))
+
+kaya_data <- kaya_data %>% 
   select(ISO,name,region_ar6_5,region_ar6_5_short,region_ar6_10,sector,year,everything()) %>% 
   mutate(year=as.numeric(year))
 
+# edit units
+kaya_data <- kaya_data %>% 
+  mutate(GDP = as.numeric(GDP)) %>% 
+  mutate(POP = as.numeric(POP)) %>% 
+  mutate(CO2 = as.numeric(CO2)) %>% 
+  mutate(energy = as.numeric(energy))
+kaya_data <- kaya_data %>% 
+  mutate(GDP = GDP*1e9) %>% 
+  mutate(POP = POP*1000) %>% 
+  mutate(CO2 = CO2*1000) %>% 
+  mutate(energy = energy*1000)
 
-#wb <- openxlsx::createWorkbook(title = paste("ipcc_sector_data",Sys.Date()))
+country_kaya_data <- kaya_data
 
-
-
+world_pop <- kaya_data %>% 
+  filter(sector=="Total") %>% 
+  filter(ISO!="WLD") %>% 
+  group_by(year) %>% 
+  summarise(POP=sum(POP,na.rm=TRUE)/1e6)
 
 ```
 
 
 ```{r decomposition, include=FALSE}
 
+# change World into a region
+kaya_data <- kaya_data %>% 
+  mutate(region_ar6_10=as.character(region_ar6_10)) %>% 
+  mutate(region_ar6_10=ifelse(ISO=="WLD","World",region_ar6_10))
 
-kaya <- kaya %>% 
-  mutate(CO2_energy=CO2/energy) %>% 
-  mutate(energy_GDP=energy/GDP)
+kaya_data$region_ar6_10 <- as.factor(kaya_data$region_ar6_10)
 
-sector_label ="AFOLU"
+# sum all variables to regions
+kaya_data <- kaya_data %>% 
+  group_by(region_ar6_10,sector,year) %>% 
+  summarise_at(vars(CO2,energy,GDP,POP),sum,na.rm=TRUE)
+
+# calculate kaya components
+kaya_data <- kaya_data %>% 
+  mutate(CO2_energy=CO2/energy) %>%
+  mutate(energy_GDP=energy/GDP) %>%
+  mutate(GDP_POP=GDP/POP)
+
+
+# meta <- data.frame("Variable" = c("CO2","energy","GDP","POP","ag_production_kcal","land_area_hectares","GHG"),
+#                    "Description" = c("Carbon emissions","Energy","Gross Domestic Product","Population","Agricultural production","Land area","Greenhouse gas emissions"),
+#                    "Units" = c("tCO2","GJ","$ (PPP 2010 USD)","persons","kcals","hectares","tCO2eq"),
+#                    "Source" = c("IEA World Energy Balances","IEA World Energy Balances","World Bank, IMF","UN Population division","Hong et al. 2020","Hong et al. 2020","EDGAR & BLUE"))
+# 
+# 
+# wb2 <- openxlsx::createWorkbook(title = "kaya_data")
+# openxlsx::addWorksheet(wb2,"metadata")
+# openxlsx::addWorksheet(wb2,"data")
+# openxlsx::writeData(wb2, sheet = "metadata",meta, colNames = T, rowNames = F)
+# openxlsx::writeData(wb2, sheet = "data",kaya %>% filter(sector!="AFOLU"), colNames = T, rowNames = F)
+
 
 ```
 
 
 ```{r plot_function,include=FALSE,fig.width=9,fig.height=9}
 
-kaya_plots_5 <- function(kaya,sector_label) {
-  
-  if (sector_label!="Total") {
-    wld <- kaya %>% 
-      filter(sector==sector_label)
-  } else {
-    wld <- kaya %>% 
-    filter(sector!="Total")
-  }
-  
-  wld <- wld %>% 
-    mutate(region_ar6_5=as.character(region_ar6_5)) %>% 
-    mutate(region_ar6_5=ifelse(ISO=="WLD","World",region_ar6_5)) %>% 
-    mutate(region_ar6_5_short=ifelse(ISO=="WLD","WLD",region_ar6_5_short))
-  
-  wld$region_ar6_5 <- as.factor(wld$region_ar6_5)
-  wld$region_ar6_5 <- factor(wld$region_ar6_5,levels(wld$region_ar6_5)[c(6,1,2,3,4,5)])
-  
-  if (sector_label!="Total") {
-    wld <- wld %>% 
-      group_by(region_ar6_5,region_ar6_5_short,sector,year) %>% 
-      summarise_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),sum,na.rm=TRUE)
-  } else {
-    wld <- wld %>% 
-      group_by(region_ar6_5,region_ar6_5_short,year) %>% 
-      summarise_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),sum,na.rm=TRUE) %>% 
-      mutate(sector="Total")
-  }
-  
-  wld <- wld %>% 
-    mutate_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),list(scale))
-  
-  wld <- wld %>% 
-    group_by(region_ar6_5,sector) %>% 
-    mutate(GDP=GDP-GDP[30]) %>% 
-    mutate(POP=POP-POP[30]) %>% 
-    mutate(CO2_energy=CO2_energy-CO2_energy[30]) %>% 
-    mutate(energy_GDP=energy_GDP-energy_GDP[30]) %>% 
-    mutate(energy=energy-energy[30]) %>% 
-    mutate(CO2=CO2-CO2[30])
-  
-  wld <- gather(wld,var,value,GDP:energy_GDP)
-  
-  p <- wld %>%  
-    filter(year>1989) %>% 
-    filter(year<2018) %>% 
-    ggplot(.,aes(x=year,y=value,group=var,colour=var)) +
-    geom_hline(yintercept=0) +
-    geom_path(size = 1.5) +
-    geom_point(size = 0.75,colour="white") +
-    theme_bw() +
-    scale_colour_brewer(type = "qual",palette="Set2") +
-    facet_wrap(.~region_ar6_5,ncol=3) +
-    theme(axis.title = element_blank(),
-          legend.title = element_blank())
-  
-return(p)
-}
+sector_label ="Energy systems"
 
 kaya_plots_10 <- function(kaya,sector_label) {
   
-  if (sector_label!="Total") {
-    wld <- kaya %>% 
-      filter(sector==sector_label)
-  } else {
-    wld <- kaya %>% 
-    filter(sector!="Total")
-  }
+  kaya_plot_data <- kaya_data %>% 
+    filter(sector==sector_label)
+  rates <- gather(kaya_plot_data,var,value,CO2:GDP_POP)
   
-  wld <- wld %>% 
-    mutate(region_ar6_10=as.character(region_ar6_10)) %>% 
-    mutate(region_ar6_10=ifelse(ISO=="WLD","World",region_ar6_10))
+  rates <- rates %>% 
+    filter(year %in% c(2010,2017)) %>% 
+    group_by(region_ar6_10,sector,var) %>% 
+    mutate(rate=((last(value)/first(value))^(1/(last(year)-first(year)))-1)*100) %>% 
+    filter(year==2017)
   
-  wld$region_ar6_10 <- as.factor(wld$region_ar6_10)
-  #wld$region_ar6_10 <- factor(wld$region_ar6_10,levels(wld$region_ar6_10)[c(6,1,2,3,4,5)])
+  output_data <- gather(kaya_plot_data,var,value,CO2:GDP_POP)
+  output_data <- spread(output_data,year,value)
   
-  if (sector_label!="Total") {
-    wld <- wld %>% 
-      group_by(region_ar6_10,sector,year) %>% 
-      summarise_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),sum,na.rm=TRUE)
-  } else {
-    wld <- wld %>% 
-      group_by(region_ar6_10,year) %>% 
-      summarise_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),sum,na.rm=TRUE) %>% 
-      mutate(sector="Total")
-  }
+  output_data <- left_join(output_data,rates %>% select(-value,-year),by = c("region_ar6_10","sector", "var"))
+  output_data <- output_data %>% 
+    select(region_ar6_10,sector,var,rate_2010_2017=rate,everything())
   
-  wld <- wld %>% 
-    mutate_at(vars(GDP,POP,energy,CO2,CO2_energy,energy_GDP),list(scale))
+  kaya_plot_data <- gather(kaya_plot_data %>% select(-GDP,-energy),var,value,GDP_POP,POP,CO2,CO2_energy,energy_GDP)
   
-  wld <- wld %>% 
-    group_by(region_ar6_10,sector) %>% 
-    mutate(GDP=GDP-GDP[30]) %>% 
-    mutate(POP=POP-POP[30]) %>% 
-    mutate(CO2_energy=CO2_energy-CO2_energy[30]) %>% 
-    mutate(energy_GDP=energy_GDP-energy_GDP[30]) %>% 
-    mutate(energy=energy-energy[30]) %>% 
-    mutate(CO2=CO2-CO2[30])
+  kaya_plot_data <- kaya_plot_data %>% 
+    group_by(region_ar6_10,var) %>% 
+    mutate(value=value/first(value))
   
-  wld <- gather(wld,var,value,GDP:energy_GDP)
+  kaya_plot_data <- left_join(kaya_plot_data,rates %>% select(-value),by = c("region_ar6_10", "year", "sector", "var"))
   
-  p <- wld %>%  
-    filter(year>1989) %>% 
-    filter(year<2018) %>% 
+  p <- kaya_plot_data %>%
     ggplot(.,aes(x=year,y=value,group=var,colour=var)) +
-    geom_hline(yintercept=0) +
+    geom_hline(yintercept=1) +
+    geom_vline(xintercept=2010,alpha=0.3,linetype="dashed") +
     geom_path(size = 1.5) +
     geom_point(size = 0.75,colour="white") +
+    geom_text(data=kaya_plot_data %>% filter(year==2017),
+              aes(x=year+1,y=value,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,show.legend = FALSE) +
     theme_bw() +
     scale_colour_brewer(type = "qual",palette="Set2") +
-    facet_wrap(.~region_ar6_10,ncol=3) +
+    scale_x_continuous(breaks=c(1990,2000,2010,2017),limits=c(1990,2022.5)) + 
+    facet_wrap(.~region_ar6_10,ncol=3,scales="free") +
     theme(legend.position = c(0.75,0.1),
           axis.title = element_blank(),
-          legend.title = element_blank())
+          legend.title = element_blank(),
+          panel.grid.minor = element_blank())
   
-return(p)
+  return(list("plot"=p,"data"=output_data,"normalised_data"=spread(kaya_plot_data %>% select(-rate),year,value)))
 }
-
-
-```
-
-# All sectors
-
-```{r total_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
-
-p <- kaya_plots_5(kaya,"Total")
-p
 
 ```
 
 ```{r total_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 p <- kaya_plots_10(kaya,"Total")
-p
+p$p
 
-```
 
-# AFOLU
+openxlsx::addWorksheet(wb,"all_sectors")
+openxlsx::addWorksheet(wb,"all_sectors_normalised")
+openxlsx::writeData(wb, sheet = "all_sectors",p$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "all_sectors_normalised",p$normalised_data, colNames = T, rowNames = F)
 
-```{r AFOLU_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
 
-p <- kaya_plots_5(kaya,"AFOLU")
-p
 
 ```
 
 ```{r AFOLU_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
 
-p <- kaya_plots_10(kaya,"AFOLU")
-p
+# p <- kaya_plots_10(kaya,"AFOLU")
+# p$p
+# 
+# 
+
 
 ```
 
 # Energy systems
 
-```{r energy_systems_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
-
-p <- kaya_plots_5(kaya,"Energy systems")
-p
-
-```
-
 ```{r energy_systems_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 p <- kaya_plots_10(kaya,"Energy systems")
-p
+p$p
+
+
+openxlsx::addWorksheet(wb,"energy_systems")
+openxlsx::addWorksheet(wb,"energy_systems_normalised")
+openxlsx::writeData(wb, sheet = "energy_systems",p$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "energy_systems_normalised",p$normalised_data, colNames = T, rowNames = F)
+
+
+
 
 ```
 
 # Buildings
 
-```{r buildings_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
-
-p <- kaya_plots_5(kaya,"Buildings")
-p
-
-```
-
 ```{r buildings_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 p <- kaya_plots_10(kaya,"Buildings")
-p
+p$p
+
+
+openxlsx::addWorksheet(wb,"buildings")
+openxlsx::addWorksheet(wb,"buildings_normalised")
+openxlsx::writeData(wb, sheet = "buildings",p$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "buildings_normalised",p$normalised_data, colNames = T, rowNames = F)
 
 ```
 
 # Transport
 
-```{r transport_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
-
-p <- kaya_plots_5(kaya,"Transport")
-p
-
-```
-
 ```{r transport_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 p <- kaya_plots_10(kaya,"Transport")
-p
+p$p
+
+
+openxlsx::addWorksheet(wb,"transport")
+openxlsx::addWorksheet(wb,"transport_normalised")
+openxlsx::writeData(wb, sheet = "transport",p$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "transport_normalised",p$normalised_data, colNames = T, rowNames = F)
+
 
 ```
 
 # Industry
 
-```{r industry_5,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
-
-p <- kaya_plots_5(kaya,"Industry")
-p
-
-```
-
 ```{r industry_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 p <- kaya_plots_10(kaya,"Industry")
-p
+p$p
+
+
+openxlsx::addWorksheet(wb,"industry")
+openxlsx::addWorksheet(wb,"industry_normalised")
+openxlsx::writeData(wb, sheet = "industry",p$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "industry_normalised",p$normalised_data, colNames = T, rowNames = F)
+
 
 
 ```
+
+# AFOLU (Hong et al. decomposition)
+
+```{r AFOLU_hong,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+hong_a <- openxlsx::read.xlsx('../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Ag_production_kcal')
+names(hong_a) <- c("country","product",1961:2017)
+hong_a <- gather(hong_a,year,ag_production_kcal,`1961`:`2017`)
+hong_a <- hong_a %>% 
+  group_by(year,country) %>% 
+  summarise(ag_production_kcal=sum(ag_production_kcal))
+
+hong_b <- openxlsx::read.xlsx('../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Land_area_hectares')
+names(hong_b) <- c("country","product",1961:2017)
+hong_b <- gather(hong_b,year,land_area_hectares,`1961`:`2017`)
+hong_b <- hong_b %>% 
+  group_by(year,country) %>% 
+  summarise(land_area_hectares=sum(land_area_hectares))
+
+hong <- left_join(hong_a,hong_b,by = c("year", "country"))
+codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
+
+hong <- left_join(hong %>% mutate(country=tolower(country)),codes,by=c("country"="alternative.name"))
+
+hong <- hong %>% 
+  mutate(alpha.3=ifelse(grepl("d ivoire",country),"CIV",alpha.3)) %>% 
+  mutate(alpha.3=ifelse(grepl("china, taiwan province of",country),"TWN",alpha.3)) %>% 
+  mutate(alpha.3=ifelse(grepl("union",country),"REU",alpha.3))  %>% 
+  mutate(alpha.3=ifelse(grepl("pacific islands trust territory",country),"PCI",alpha.3)) %>%
+  ungroup() %>% 
+  mutate(year=as.numeric(year))
+
+afolu_GHG <- edgar_GHG_ar6 %>% 
+  filter(chapter_title=="AFOLU") %>% 
+  group_by(ISO,year,region_ar6_10) %>% 
+  summarise(GHG=sum(GHG,na.rm = TRUE))
+
+hong <- left_join(hong,afolu_GHG,by=c("alpha.3"="ISO","year"="year"))
+hong <- hong %>% 
+  filter(year>1989) %>% 
+  filter(!is.na(region_ar6_10)) %>% 
+  select(ISO=alpha.3,country,region_ar6_10,year,everything())
+
+hong <- left_join(hong,basic %>% select(ISO,year=Year,pop_UN),by = c("ISO", "year"))
+all_data <- hong
+
+################## now calculate kaya
+
+wld <- hong %>% 
+  group_by(year) %>% 
+  summarise_at(vars(pop_UN,GHG,ag_production_kcal,land_area_hectares),sum,na.rm=TRUE)
+wld <- wld %>% 
+  mutate(region_ar6_10="World") %>% 
+  select(year,region_ar6_10,pop_UN,GHG,ag_production_kcal,land_area_hectares)
+
+hong <- hong %>% 
+  group_by(year,region_ar6_10) %>% 
+  summarise_at(vars(pop_UN,GHG,ag_production_kcal,land_area_hectares),sum,na.rm=TRUE)
+
+hong <- hong %>% 
+  bind_rows(wld)
+
+hong <- hong %>% 
+  mutate(production_percap=ag_production_kcal/pop_UN) %>% 
+  mutate(land_production=land_area_hectares/ag_production_kcal) %>% 
+  mutate(ghg_land=GHG/land_area_hectares)
+
+hong <- hong %>% 
+  select(region_ar6_10,year,GHG,POP=pop_UN,production_percap,land_production,ghg_land)
+
+######################## rates and output data
+
+
+rates <- gather(hong,var,value,-region_ar6_10,-year)
+rates <- rates %>% 
+  filter(year %in% c(2010,2017)) %>% 
+  group_by(region_ar6_10,var) %>% 
+  mutate(rate=((last(value)/first(value))^(1/(last(year)-first(year)))-1)*100) %>% 
+  filter(year==2017)
+
+output_data <- gather(hong,var,value,-region_ar6_10,-year)
+output_data <- spread(output_data,year,value)
+
+output_data <- left_join(output_data,rates %>% select(-value,-year),by = c("region_ar6_10", "var"))
+
+output_data <- output_data %>% 
+  mutate(sector="AFOLU") %>%
+  select(region_ar6_10,sector,var,rate_2010_2017=rate,everything())
+
+
+######################## plot
+
+hong_kaya <- gather(hong,var,value,GHG,POP,production_percap,land_production,ghg_land)
+hong_kaya <- hong_kaya %>% 
+  group_by(region_ar6_10,var) %>% 
+  mutate(value=value/first(value))
+                    
+hong_kaya <- left_join(hong_kaya,rates %>% select(-value),by = c("region_ar6_10", "year", "var"))
+
+hong_kaya %>%
+  ggplot(.,aes(x=year,y=value,group=var,colour=var)) +
+  geom_hline(yintercept=1) +
+  geom_vline(xintercept=2010,alpha=0.3,linetype="dashed") +
+  geom_path(size = 1.5) +
+  geom_point(size = 0.75,colour="white") +
+  geom_text(data=hong_kaya %>% filter(year==2017),
+            aes(x=year+1,y=value,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,show.legend = FALSE) +
+  theme_bw() +
+  scale_colour_brewer(type = "qual",palette="Set2") +
+  scale_x_continuous(breaks=c(1990,2000,2010,2017),limits=c(1990,2022.5)) + 
+  facet_wrap(.~region_ar6_10,ncol=3,scales="free") +
+  theme(legend.position = c(0.75,0.1),
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.minor = element_blank())
+
+
+openxlsx::addWorksheet(wb,"AFOLU")
+openxlsx::addWorksheet(wb,"AFOLU_normalised")
+openxlsx::writeData(wb, sheet = "AFOLU",output_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "AFOLU_normalised",spread(hong_kaya %>% select(-rate),year,value), colNames = T, rowNames = F)
+
+
+
+
+```
+
+``` {r write,include=TRUE,warning=FALSE}
+
+openxlsx::saveWorkbook(wb,paste0("../Results/Data/sector_kaya_analysis_",Sys.Date(),".xlsx"),overwrite=T)
+
+# openxlsx::addWorksheet(wb2,"afolu_data")
+# openxlsx::writeData(wb2, sheet = "afolu_data",all_data, colNames = T, rowNames = F)
+# openxlsx::saveWorkbook(wb2,"../Results/Data/kaya_data.xlsx",overwrite=T)
+
+
+```
+
+
 
 ``` {r checks,include=FALSE}
 
 wb <- openxlsx::createWorkbook(title = "kaya_tests")
 
-# Do countries add up to global totals each year?
+# Do regions add up to global totals each year?
 
-tests <- kaya %>% 
-  filter(ISO!="WLD") %>% 
-  filter(sector=="Total") %>% 
-  group_by(year) %>% 
+region_test <- kaya_data %>%
+  filter(region_ar6_10!="World") %>%
+  filter(sector=="Total") %>%
+  group_by(year) %>%
   summarise_at(vars(CO2,energy,GDP,POP),sum,na.rm=TRUE)
 
-tests <- gather(tests,var,country_value,-year)
+region_test <- gather(region_test,var,region_value,-year)
 
-world <- kaya %>% 
-  filter(ISO=="WLD") %>% 
-  filter(sector=="Total") %>% 
-  group_by(year) %>% 
+world <- kaya_data %>%
+  filter(region_ar6_10=="World") %>%
+  filter(sector=="Total") %>%
+  group_by(year) %>%
   summarise_at(vars(CO2,energy,GDP,POP),sum,na.rm=TRUE)
 
 world <- gather(world,var,world_value,-year)
 
-tests <- left_join(tests,world,by = c("year", "var"))
+region_test <- left_join(region_test,world,by = c("year", "var"))
 
-openxlsx::addWorksheet(wb,"country_totals")
-openxlsx::writeData(wb, sheet = "country_totals", tests, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,"region_totals")
+openxlsx::writeData(wb, sheet = "region_totals", region_test, colNames = T, rowNames = F)
 
 
 # Do sectors add up to the total sector each year?
 
-tests <- kaya %>% 
-  filter(ISO=="WLD") %>% 
+sector_test <- kaya_data %>%
+  filter(region_ar6_10=="World") %>%
   filter(sector!="Total") %>% 
   group_by(year) %>%
   summarise_at(vars(CO2,energy),sum,na.rm=TRUE)
 
-tests <- gather(tests,var,sector_value,-year)
+sector_test <- gather(sector_test,var,sector_value,-year)
 
-total <- kaya %>% 
-  filter(ISO=="WLD") %>% 
-  filter(sector=="Total") %>% 
+total <- kaya_data %>%
+  filter(region_ar6_10=="World") %>%
+  filter(sector=="Total") %>%
   group_by(year) %>%
   summarise_at(vars(CO2,energy),sum,na.rm=TRUE)
 
 total <- gather(total,var,total_value,-year)
 
-tests <- left_join(tests,total,by = c("year", "var"))
+sector_test <- left_join(sector_test,total,by = c("year", "var"))
 
 openxlsx::addWorksheet(wb,"sector_totals")
-openxlsx::writeData(wb, sheet = "sector_totals", tests, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "sector_totals", sector_test, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,"../Results/kaya_tests.xlsx",overwrite=T)
 
 
 ```
-
-
-
-
-
-

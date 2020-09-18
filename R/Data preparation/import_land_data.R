@@ -2,37 +2,38 @@ rm(list = ls())
 library(tidyverse)
 library(openxlsx)
 
-blue <- read.xlsx("Data/Land and GCB/Country_ELUC_11102019_peatAdded_wAvgAndUnc.xlsx",sheet = "(BLUE_GCB2019_withPeat_1Sudan)")
-
-blue <- gather(blue,country,value,Afghanistan:Others) %>% 
-  select(year = X1,country,value)
-
-# totals <- blue %>% 
-#   group_by(year) %>% 
-#   summarise(value=sum(value))
-
-# units are TgC. 
-
-blue <- blue %>% 
-  mutate(value=value*1e6) %>% 
-  mutate(value=value*3.664)
-
-# join ISO codes
-codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
-blue <- left_join(blue %>% mutate(country=tolower(country)),codes,by=c("country"="alternative.name"))
-
-uhoh <- anti_join(blue %>% mutate(country=tolower(country)),codes,by=c("country"="alternative.name")) %>% 
-  select(country) %>% 
-  distinct()
+blue <- read.xlsx("Data/Land and GCB/Country_ELUC_26082020.xlsx",sheet = "BLUE_GCB2019_IPCC_regions",startRow=1,colNames=TRUE)
+houghton <- read.xlsx("Data/Land and GCB/Country_ELUC_26082020.xlsx",sheet = "H&N_2017_IPCC_regions",startRow=1,colNames=TRUE)
 
 
-load('Data/edgar_data_gwp_ar5.RData')
+blue <- gather(blue,region_ar6_10,blue,`Africa`:`Southern.Asia`) %>% 
+  select(region_ar6_10,year=X1,blue)
+houghton <- gather(houghton,region_ar6_10,houghton,`Africa`:`Southern.Asia`) %>% 
+  select(region_ar6_10,year=X1,houghton)
 
-edgar_countries <- edgar_GHG_ar5 %>% 
-  group_by(country,ISO,year) %>% 
-  summarise(CO2=sum(CO2,na.rm=T),CH4=sum(CH4,na.rm=T),N2O=sum(N2O,na.rm=T))
+land <- left_join(blue,houghton,by = c("region_ar6_10", "year"))
 
-blarg <- left_join(edgar_countries,blue %>% select(-country),by=c("year"="year","ISO"="alpha.3"))
+# bring forward Houghton from 2015 (WAITING ON EXTRAPOLATION FROM JULIA)
+land <- land %>% 
+  fill(houghton)
 
-blarg <- blarg %>% 
-  filter(ISO=="USA")
+
+# units are TgC. Convert to t CO2.
+land <- land %>% 
+  mutate(blue=blue*1e6) %>% 
+  mutate(blue=blue*3.664) %>% 
+  mutate(houghton=houghton*1e6) %>% 
+  mutate(houghton=houghton*3.664)
+land <- land %>% 
+  mutate(mean=(blue+houghton)/2)
+
+# check country names and regions
+land$region_ar6_10 <- gsub("[.]"," ",land$region_ar6_10)
+
+load('Data/tsu_codes.RData')
+
+regions <- tsu_codes %>% select(region_ar6_10) %>% distinct()
+
+uhoh <- anti_join(land,regions,by="region_ar6_10")
+
+save(land,file='Data/land.RData')

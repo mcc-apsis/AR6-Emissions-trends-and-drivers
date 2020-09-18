@@ -7,7 +7,7 @@ library(tidyverse)
 # ipcc_sectors <- ipcc_sectors %>% 
 #   select(code:description,subsector=subsector_suggestion_Lamb,subsector_title=subsector_title_suggestion_Lamb)
 
-ipcc_sectors <- openxlsx::read.xlsx('Data/Codes and classifications/sector_classification_revised_v1.xlsx',
+ipcc_sectors <- openxlsx::read.xlsx('Data/Codes and classifications/sector_classification_revised_v2.xlsx',
                                'ar6_sector_classification')
 
 ipcc_sectors <- ipcc_sectors %>%

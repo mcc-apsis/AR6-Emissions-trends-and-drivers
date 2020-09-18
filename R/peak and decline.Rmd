@@ -199,7 +199,32 @@ for (i in 1:length(rates$country[rates$decline==1])) {
 
 
 ```
+```{r save_data,echo=FALSE,warning=FALSE}
 
+output <- data %>% 
+  filter(year %in% c(time_start,2017)) %>% 
+  group_by(country) %>% 
+  summarise(rate_POP=(last(pop_UN)/first(pop_UN))^(1/(last(year)-time_start))-1,
+    rate_GDP=(last(gdp_ppp_WB)/first(gdp_ppp_WB))^(1/(last(year)-time_start))-1) %>% 
+  ungroup()
+
+output <- left_join(data,output,by = "country")
+output <- output %>% 
+  group_by(country) %>% 
+  fill(gdp_ppp_WB)
+
+output <- output %>% 
+  filter(year==2018) %>% 
+  select(-year,-decline)
+
+
+
+wb <- openxlsx::createWorkbook(title = paste("decarbonising_countries",Sys.Date()))
+openxlsx::addWorksheet(wb,"data")
+openxlsx::writeData(wb, sheet = "data", output, colNames = T, rowNames = F)
+openxlsx::saveWorkbook(wb,paste0("../Results/Data/decarbonising_countries_",Sys.Date(),".xlsx"),overwrite=T)
+
+```
 
 
 
