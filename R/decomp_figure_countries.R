@@ -2,11 +2,11 @@
 
 # time_start=2010
 # gas='GHG'
-# edgar_GHG <- edgar_GHG_ar5 %>% filter(region_ar6_10)
+# edgar_GHG <- edgar_GHG_ar6
 
 decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
   
-  ipcc_palette <- c("#F8766D","#c49a00","#53b400","#00c094","#00b6eb","#a58aff","#fb61d7");
+  ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
   
   ##############  calculate growth rates in given time period ############## 
   
@@ -47,6 +47,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
   ## remove countries below absolute emissions threshold
   
   rates <- rates %>% 
+    filter(year %in% c(2010,2018)) %>% 
     group_by(country) %>% 
     mutate(rate=(last(emissions_total)/first(emissions_total))^(1/(last(year)-time_start))-1) %>% 
     mutate(abs_growth=last(emissions_total)-first(emissions_total)) %>%
@@ -82,27 +83,27 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
   
   #### calculate growth rates for countries below threshold, grouped by region ####
   
-  region_rates <- left_join(region_rates,country_list,by=c("ISO"="ISO"))
-  
-  region_rates <- region_rates %>% 
-    filter(cutoff==0) %>% 
-    na.omit %>% 
-    group_by(region_ar6_5_short,year) %>% 
-    summarise_at(vars(emissions_total,pop_UN,gdp_ppp_WB),sum,na.rm=TRUE)
-      
-  region_rates <- region_rates %>% 
-    mutate(emissions_pc = emissions_total/pop_UN) %>% 
-    mutate(emissions_pgdp = emissions_total/gdp_ppp_WB)
-    
-  region_rates <- region_rates %>% 
-    group_by(region_ar6_5_short) %>% 
-    mutate(rate=(last(emissions_total)/first(emissions_total))^(1/(last(year)-time_start))-1) %>% 
-    mutate(abs_growth=last(emissions_total)-first(emissions_total)) %>%
-    filter(year==2018) %>% 
-    na.omit() %>% 
-    mutate(country=paste(region_ar6_5_short,"(rest)")) %>% 
-    select(country,everything()) %>% 
-    ungroup()
+  # region_rates <- left_join(region_rates,country_list,by=c("ISO"="ISO"))
+  # 
+  # region_rates <- region_rates %>% 
+  #   filter(cutoff==0) %>% 
+  #   na.omit %>% 
+  #   group_by(region_ar6_5_short,year) %>% 
+  #   summarise_at(vars(emissions_total,pop_UN,gdp_ppp_WB),sum,na.rm=TRUE)
+  #     
+  # region_rates <- region_rates %>% 
+  #   mutate(emissions_pc = emissions_total/pop_UN) %>% 
+  #   mutate(emissions_pgdp = emissions_total/gdp_ppp_WB)
+  #   
+  # region_rates <- region_rates %>% 
+  #   group_by(region_ar6_5_short) %>% 
+  #   mutate(rate=(last(emissions_total)/first(emissions_total))^(1/(last(year)-time_start))-1) %>% 
+  #   mutate(abs_growth=last(emissions_total)-first(emissions_total)) %>%
+  #   filter(year==2018) %>% 
+  #   na.omit() %>% 
+  #   mutate(country=paste(region_ar6_5_short,"(rest)")) %>% 
+  #   select(country,everything()) %>% 
+  #   ungroup()
   
   
   ### join and plot
@@ -110,7 +111,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
     filter(cutoff==1) %>% 
     select(-cutoff,-ISO)
   
-  rates <- rbind(rates,region_rates)
+  #rates <- rbind(rates,region_rates)
   rates <- rates %>% 
     select(-gdp_ppp_WB,-pop_UN) %>% 
     mutate(rate=rate*100)
@@ -124,7 +125,7 @@ decomp_figure_countries <- function(time_start,gas,edgar_GHG,basic) {
           axis.title.x = element_blank(),
           plot.title = element_text(size = 11,color="#737373"),
           panel.grid.minor.x = element_blank(),
-          panel.grid.major.x = element_blank(),
+          #panel.grid.major.x = element_blank(),
           legend.position="none",
           text = element_text(size=11,color="#737373"))
   

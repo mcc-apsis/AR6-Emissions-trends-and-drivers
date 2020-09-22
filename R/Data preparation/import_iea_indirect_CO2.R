@@ -42,25 +42,28 @@ world_totals <- iea %>%
   filter(var=="CO2") %>% 
   select(year,world_elec_heat=value)
 
-blarg <- spread(iea,var,value) %>% 
-  filter(year==2018) %>% 
-  filter(country=="World")
-blarg <- blarg %>% 
-  mutate(indirect=CO2_plus_elec_heat-CO2) %>% 
-  mutate(indirect=ifelse(grepl("TOTIND",flow),NA,indirect)) %>% 
-  mutate(indirect=ifelse(grepl("TOTTRANS",flow),NA,indirect)) %>% 
-  mutate(indirect=ifelse(grepl("CO2FCOMB",flow),NA,indirect))
+######### some checks and coordination with IEA authors
 
-avi <- spread(iea,var,value) %>% 
-  filter(year==2018) %>% 
-  filter(country=="Shipping and Aviation")
-avi <- avi %>% 
-  mutate(indirect=CO2_plus_elec_heat-CO2) %>% 
-  mutate(indirect=ifelse(grepl("TOTIND",flow),NA,indirect)) %>% 
-  mutate(indirect=ifelse(grepl("TOTTRANS",flow),NA,indirect)) %>% 
-  mutate(indirect=ifelse(grepl("CO2FCOMB",flow),NA,indirect))
+# blarg <- spread(iea,var,value) %>% 
+#   filter(year==2018) %>% 
+#   filter(country=="World")
+# blarg <- blarg %>% 
+#   mutate(indirect=CO2_plus_elec_heat-CO2) %>% 
+#   mutate(indirect=ifelse(grepl("TOTIND",flow),NA,indirect)) %>% 
+#   mutate(indirect=ifelse(grepl("TOTTRANS",flow),NA,indirect)) %>% 
+#   mutate(indirect=ifelse(grepl("CO2FCOMB",flow),NA,indirect))
 
-xlsx::write.xlsx(blarg,file="Data/iea_indirect_world.xlsx",col.names = TRUE,row.names = FALSE)
+# avi <- spread(iea,var,value) %>% 
+#   filter(year==2018) %>% 
+#   filter(country=="Shipping and Aviation")
+# avi <- avi %>% 
+#   mutate(indirect=CO2_plus_elec_heat-CO2) %>% 
+#   mutate(indirect=ifelse(grepl("TOTIND",flow),NA,indirect)) %>% 
+#   mutate(indirect=ifelse(grepl("TOTTRANS",flow),NA,indirect)) %>% 
+#   mutate(indirect=ifelse(grepl("CO2FCOMB",flow),NA,indirect))
+
+#xlsx::write.xlsx(blarg,file="Data/iea_indirect_world.xlsx",col.names = TRUE,row.names = FALSE)
+
 
 ######### use IPCC 2006 codes to merge IEA with AR6 sectors and subsectors
 
@@ -93,11 +96,6 @@ iea_trimmed <- left_join(iea_trimmed,world_totals,by="year")
 iea_trimmed <- iea_trimmed %>% 
   mutate(indirect_fraction = indirect_CO2/world_elec_heat) %>% 
   mutate(indirect_fraction = ifelse(indirect_CO2==0,NA,indirect_fraction))
-
-blarg <- iea_trimmed %>% 
-  filter(year==2018) %>%
-  group_by(year,flow,description,IPCC_AR6_chapter,IPCC_AR6_chapter_title,subsector,subsector_title) %>% 
-  summarise(CO2_plus_elec_heat=sum(CO2_plus_elec_heat,na.rm=TRUE))
 
 ######### join EDGAR world ELECHEAT and propagate adjusted indirect CO2
 

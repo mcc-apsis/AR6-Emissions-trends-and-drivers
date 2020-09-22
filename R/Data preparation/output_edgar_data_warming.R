@@ -17,8 +17,8 @@ edgar_GHG <- edgar_GHG %>%
 
 
 edgar_GHG <- edgar_GHG %>% 
-  select(-category_1,-category_2,-category_3,-region_ar6_5_short,-region_ar6_10,-region_ar6_22,-region_ar6_dev) %>% 
-  select(ISO,country,region_ar6_5,WB.income,year,everything()) %>% 
+  select(-region_ar6_5_short,-region_ar6_22,-region_ar6_dev) %>% 
+  select(ISO,country,region_ar6_5,region_ar6_10,WB.income,year,everything()) %>% 
   filter(sector_code!="Total") %>% 
   arrange(ISO)
 
@@ -31,7 +31,7 @@ edgar_categories <- edgar_GHG %>%
   arrange(chapter)
 
 regions <- edgar_GHG %>% 
-  select(ISO,country,region_ar6_5,region_income=WB.income) %>% 
+  select(ISO,country,region_ar6_5,region_ar6_10,region_income=WB.income) %>% 
   distinct() %>% 
   arrange(ISO)
 
@@ -56,34 +56,62 @@ sectors <- edgar_GHG %>%
   ungroup()
   
 
-#################### 
+#################### add land to sectors
+load("Data/land.RData")
 
-land_data <- openxlsx::read.xlsx('Data/Global_Carbon_Budget_2019v1.0.xlsx',sheet="Global Carbon Budget",rows=19:79,cols=2:4) %>% 
-  select(year=Year,value="land-use.change.emissions")
+land <- land %>% 
+  group_by(year) %>% 
+  summarise(mean=sum(mean))
 
-#### convert from C to CO2
+land[,gwps$gas]=NA
 
-land_data <- land_data %>% 
-  mutate(value=value*(44/12)) %>%
-  mutate(value=value*1e9)
-
-land_data[,gwps$gas]=NA
-
-land_data <- land_data %>% 
+land <- land %>% 
   filter(year>1969) %>% 
   filter(year<2019) %>% 
   mutate(chapter_title="AFOLU") %>% 
-  mutate(CO2=value) %>% 
-  select(chapter_title,year,everything(),-value)
+  mutate(CO2=mean) %>% 
+  select(chapter_title,year,-mean,CO2:SF6)
 
-sectors <- rbind(sectors,land_data)
+sectors <- rbind(sectors,land)
 
 ### merge LUC CO2 and AFOLU
-sectors <- sectors %>% 
-  group_by(chapter_title,year) %>% 
-  summarise_at(vars(gwps$gas),sum,na.rm=T) %>% 
+sectors <- sectors %>%
+  group_by(chapter_title,year) %>%
+  summarise_at(vars(gwps$gas),sum,na.rm=T) %>%
   ungroup()
 
+#################### add land to regions
+
+load("Data/land.RData")
+
+land <- left_join(land,regions %>% select(region_ar6_5,region_ar6_10) %>% distinct(),by = "region_ar6_10")
+land[,gwps$gas]=NA
+
+land <- land %>% 
+  filter(year>1969) %>% 
+  filter(year<2019) %>% 
+  mutate(CO2=mean)
+
+land_5 <- land %>%
+  group_by(year,region_ar6_5) %>% 
+  summarise_at(vars(CO2:SF6),sum) %>% 
+  select(region_ar6_5,year,CO2:SF6)
+
+land_10 <- land %>% 
+  group_by(year,region_ar6_10) %>% 
+  summarise_at(vars(CO2:SF6),sum) %>% 
+  select(region_ar6_10,year,CO2:SF6)
+
+regions_ar6_5 <- rbind(regions_ar6_5,land_5)
+regions_ar6_10 <- rbind(regions_ar6_10,land_10)
+
+regions_ar6_5 <- regions_ar6_5 %>% 
+  group_by(region_ar6_5,year) %>% 
+  summarise_at(vars(CO2:SF6),sum,na.rm=TRUE)
+
+regions_ar6_10 <- regions_ar6_10 %>% 
+  group_by(region_ar6_10,year) %>% 
+  summarise_at(vars(CO2:SF6),sum,na.rm=TRUE)
 
 #################### info
 
@@ -111,10 +139,7 @@ writeData(wb, sheet = "sectors", sectors, colNames = T)
 writeData(wb, sheet = "sector_classification",edgar_categories,colNames=T)
 writeData(wb, sheet = "region_classification",regions,colNames=T)
 
-
-
-saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_warming_19_06.xlsx",overwrite = T)
-
+saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_warming_21_09.xlsx",overwrite = T)
 
 
   

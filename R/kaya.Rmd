@@ -136,17 +136,17 @@ kaya_data <- kaya_data %>%
   mutate(GDP_POP=GDP/POP)
 
 
-# meta <- data.frame("Variable" = c("CO2","energy","GDP","POP","ag_production_kcal","land_area_hectares","GHG"),
-#                    "Description" = c("Carbon emissions","Energy","Gross Domestic Product","Population","Agricultural production","Land area","Greenhouse gas emissions"),
-#                    "Units" = c("tCO2","GJ","$ (PPP 2010 USD)","persons","kcals","hectares","tCO2eq"),
-#                    "Source" = c("IEA World Energy Balances","IEA World Energy Balances","World Bank, IMF","UN Population division","Hong et al. 2020","Hong et al. 2020","EDGAR & BLUE"))
-# 
-# 
-# wb2 <- openxlsx::createWorkbook(title = "kaya_data")
-# openxlsx::addWorksheet(wb2,"metadata")
-# openxlsx::addWorksheet(wb2,"data")
-# openxlsx::writeData(wb2, sheet = "metadata",meta, colNames = T, rowNames = F)
-# openxlsx::writeData(wb2, sheet = "data",kaya %>% filter(sector!="AFOLU"), colNames = T, rowNames = F)
+meta <- data.frame("Variable" = c("CO2","energy","GDP","POP","ag_production_kcal","land_area_hectares","GHG"),
+                   "Description" = c("Carbon emissions","Energy","Gross Domestic Product","Population","Agricultural production","Land area","Greenhouse gas emissions"),
+                   "Units" = c("tCO2","GJ","$ (PPP 2010 USD)","persons","kcals","hectares","tCO2eq"),
+                   "Source" = c("IEA World Energy Balances","IEA World Energy Balances","World Bank, IMF","UN Population division","Hong et al. 2020","Hong et al. 2020","EDGAR & BLUE"))
+
+
+wb2 <- openxlsx::createWorkbook(title = "kaya_data")
+openxlsx::addWorksheet(wb2,"metadata")
+openxlsx::addWorksheet(wb2,"data")
+openxlsx::writeData(wb2, sheet = "metadata",meta, colNames = T, rowNames = F)
+openxlsx::writeData(wb2, sheet = "data",country_kaya_data %>% filter(sector!="AFOLU"), colNames = T, rowNames = F)
 
 
 ```
@@ -425,9 +425,9 @@ openxlsx::writeData(wb, sheet = "AFOLU_normalised",spread(hong_kaya %>% select(-
 
 openxlsx::saveWorkbook(wb,paste0("../Results/Kaya/sector_kaya_analysis_",Sys.Date(),".xlsx"),overwrite=T)
 
-# openxlsx::addWorksheet(wb2,"afolu_data")
-# openxlsx::writeData(wb2, sheet = "afolu_data",all_data, colNames = T, rowNames = F)
-# openxlsx::saveWorkbook(wb2,"../Results/Data/kaya_data.xlsx",overwrite=T)
+openxlsx::addWorksheet(wb2,"afolu_data")
+openxlsx::writeData(wb2, sheet = "afolu_data",all_data, colNames = T, rowNames = F)
+openxlsx::saveWorkbook(wb2,"../Results/Data/kaya_data.xlsx",overwrite=T)
 
 
 ```

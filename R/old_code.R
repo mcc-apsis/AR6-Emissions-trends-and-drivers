@@ -1,3 +1,111 @@
+# Top emitting sectors
+
+```{r top_subsectors,echo=FALSE,warning=FALSE,results='asis',fig.width=10,fig.height=4.5,fig.path="../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+rates <- edgar_GHG_ar6  %>%
+  filter(year>1989) %>%
+  filter(year<2019) %>%
+  group_by(year,chapter,chapter_title,subsector_title) %>%
+  summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>%
+  ungroup()
+
+land_totals <- land %>%
+  filter(year>1989) %>%
+  filter(year<2019) %>%
+  mutate(chapter=7) %>%
+  mutate(chapter_title="AFOLU") %>%
+  group_by(year,chapter,chapter_title,subsector_title) %>%
+  summarise(value=sum(value,na.rm=TRUE)/1e9) %>%
+  ungroup()
+
+rates <- rbind(rates,land_totals)
+
+time_start=2010
+
+rates <- rates %>%
+  filter(year %in% c(time_start,2018)) %>% 
+  group_by(subsector_title) %>%
+  mutate(rate=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>%
+  mutate(abs_growth=last(value)-first(value)) %>%
+  filter(year==2018)
+
+### Top emitting sectors in 2018
+
+top_sectors <- rates %>%
+  ungroup() %>%
+  arrange(desc(value)) %>%
+  head(15)
+
+top_sectors <- top_sectors %>%
+  mutate(label=paste0(subsector_title," (",chapter_title,")"))
+
+
+top_sectors <- left_join(top_sectors,edgar_GHG_ar6,by = c("year", "chapter", "chapter_title", "subsector_title"))
+
+top_sectors <- top_sectors %>%
+  group_by(label,value,rate,abs_growth,region_ar6_5,region_ar6_5_short) %>%
+  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>%
+  mutate_at(vars(CO2,CH4,N2O,Fgas,GHG),list(~./1e9))
+
+top_sectors <- top_sectors %>%
+  group_by(label) %>%
+  mutate_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE)
+
+top_sectors <- top_sectors %>%
+  filter(region_ar6_5_short!="SEA")%>%
+  filter(region_ar6_5_short!="AIR")
+
+p2 <- top_sectors %>%
+  ggplot(.,aes(y=GHG,x=reorder(label,value),fill=region_ar6_5)) +
+  geom_bar(stat='identity',colour="#737373") +
+  coord_flip() +
+  scale_fill_brewer(type = "qual",palette="Set2") +
+  theme(axis.title = element_blank(),
+        axis.text.y = element_blank(),
+        legend.position = c(0.6,0.3),
+        legend.title = element_blank(),
+        legend.background = element_blank()) +
+  ggtitle("Regional composition")
+
+top_sectors <- gather(top_sectors,gas,gasvalue,CO2:Fgas) %>%
+  filter(region_ar6_5=="Developed Countries")
+
+
+p1 <- top_sectors %>%
+  ggplot(.,aes(y=gasvalue,x=reorder(label,value),fill=reorder(gas,gasvalue))) +
+  geom_bar(stat='identity',colour="#737373") +
+  geom_text(data=top_sectors %>% filter(gas=="CO2"),aes(y=value+1.5,x=reorder(label,value),label=paste0(ifelse(rate>0,"+","-"),round(abs(rate)*100,1),"%"))) +
+  coord_flip() +
+  ylim(0,16) +
+  scale_fill_brewer(type = "qual",palette="Set2") +
+  theme(axis.title.y = element_blank(),
+        legend.position = c(0.75,0.3),
+        legend.title = element_blank(),
+        legend.background = element_blank()) +
+  ggtitle("Top emitting sectors in 2018, growth since 2010") +
+  ylab("GHG emissions (Gt CO2eq)")
+
+ggarrange(p1,p2,align="h",widths=c(0.7,0.3),nrow=1,ncol=2)
+p1
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Regional per capita trends (Figure 6)
 
 ```{r percapita_trends, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="Results/Plots/",dev=c('png','pdf')}

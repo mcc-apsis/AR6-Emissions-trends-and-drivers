@@ -3,7 +3,9 @@ library(tidyverse)
 library(openxlsx)
 
 blue <- read.xlsx("Data/Land and GCB/Country_ELUC_26082020.xlsx",sheet = "BLUE_GCB2019_IPCC_regions",startRow=1,colNames=TRUE)
-houghton <- read.xlsx("Data/Land and GCB/Country_ELUC_26082020.xlsx",sheet = "H&N_2017_IPCC_regions",startRow=1,colNames=TRUE)
+#houghton <- read.xlsx("Data/Land and GCB/Country_ELUC_26082020.xlsx",sheet = "H&N_2017_IPCC_regions",startRow=1,colNames=TRUE)
+houghton <- read.xlsx("Data/Land and GCB/Country_ELUC_26082020_HNExtrapolated.xlsx",sheet = "data",startRow=1,colNames=TRUE)
+
 
 
 blue <- gather(blue,region_ar6_10,blue,`Africa`:`Southern.Asia`) %>% 
@@ -14,8 +16,8 @@ houghton <- gather(houghton,region_ar6_10,houghton,`Africa`:`Southern.Asia`) %>%
 land <- left_join(blue,houghton,by = c("region_ar6_10", "year"))
 
 # bring forward Houghton from 2015 (WAITING ON EXTRAPOLATION FROM JULIA)
-land <- land %>% 
-  fill(houghton)
+# land <- land %>% 
+#   fill(houghton)
 
 
 # units are TgC. Convert to t CO2.
