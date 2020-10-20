@@ -5,7 +5,17 @@ gwps <- openxlsx::read.xlsx('Data/Codes and classifications/gwps.xlsx')
 
 save(gwps,file='Data/gwps.RData')
 
+# what is biogenic?
 
+load('Data/edgar_data_gwp_ar6.RData')
+blarg <- edgar_GHG_ar6 %>% 
+  group_by(chapter,chapter_title,subsector,sector_code,description) %>% 
+  summarise(CH4=sum(CH4,na.rm=TRUE)) #%>% 
+
+blarg <- blarg %>% 
+  filter(CH4!=0)
+
+openxlsx::write.xlsx(x=blarg,file="CH4_sources.xlsx",sheetName = "data",row.names=FALSE)
 
 # 
 # gwps <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 Part B--F-gases FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',

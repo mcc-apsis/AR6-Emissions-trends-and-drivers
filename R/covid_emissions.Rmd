@@ -1,0 +1,140 @@
+---
+title: "covid emissions"
+author: "William F. Lamb"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
+  
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(gganimate)
+library(openxlsx)
+library(ggplot2); theme_set(theme_bw())
+
+Sys.setlocale("LC_ALL","English")
+
+# set palette
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+
+## load in data from Le Quere et al. 2020
+
+sheet_names <- openxlsx::getSheetNames(file = "../Data/COVID_Data_Countries_v6.xlsx")
+
+covid_sectors <- openxlsx::read.xlsx("../Data/COVID_Data_Countries_v6.xlsx",sheet="GLOBAL")
+
+covid_sectors <- gather(covid_sectors,key,value,TOTAL_CO2_MED:AVI_CO2_HIGH) %>% 
+  mutate(value=as.numeric(value))
+
+covid_sectors <- covid_sectors %>% 
+  mutate(estimate=ifelse(grepl("MED",key),"medium",NA)) %>% 
+  mutate(estimate=ifelse(grepl("HIGH",key),"high",estimate)) %>% 
+  mutate(estimate=ifelse(grepl("LOW",key),"low",estimate))
+
+covid_sectors <- covid_sectors %>% 
+  mutate(sector=ifelse(grepl("PWR",key),"Power",NA)) %>% 
+  mutate(sector=ifelse(grepl("IND",key),"Industry",sector)) %>% 
+  mutate(sector=ifelse(grepl("TRS",key),"Transport",sector)) %>% 
+  mutate(sector=ifelse(grepl("PUB",key),"Public sector",sector)) %>% 
+  mutate(sector=ifelse(grepl("RES",key),"Residential",sector)) %>% 
+  mutate(sector=ifelse(grepl("AVI",key),"Aviation",sector)) %>% 
+  mutate(sector=ifelse(grepl("TOTAL",key),"Total",sector)) %>% 
+  mutate(date=convertToDate(DATE)) %>% 
+  select(-key,-DATE)
+
+covid_sectors <- spread(covid_sectors,estimate,value)
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_ch2_section2_plots_",Sys.Date()))
+
+```
+
+## Sectors
+
+```{r sectors, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
+
+p_sectors <- covid_sectors %>%
+  filter(sector!="Total") %>% 
+  ggplot(.,aes(x=date,y=medium,color=sector)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=low,ymax=high,fill=sector),alpha=0.3) +
+  scale_x_date(breaks= as.Date(c("2020-02-01","2020-04-01","2020-06-01")),date_labels = "%b") +
+  facet_grid(.~sector) +
+  ylab("Change in global \ndaily fossil CO2 emissions (MtCO2/day)") +
+  theme(legend.position="none",
+        axis.title.x = element_blank())
+
+
+```
+## Totals
+
+```{r totals, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
+
+
+covid_totals <- openxlsx::read.xlsx("../Data/COVID_data_for_figures_11June2020.xlsx",sheet="Figure 3")
+
+names(covid_totals) <- c("year","x","date","med","low","high")
+
+covid_totals <- covid_totals %>% 
+  filter(!is.na(date)) %>% 
+  filter(year!="year") %>% 
+  filter(year>1968) %>% 
+  select(-x)
+  
+
+covid_totals <- covid_totals %>% 
+  mutate(date=convertToDate(date)) %>% 
+  mutate(med=as.numeric(med)) %>% 
+  mutate(low=as.numeric(low)) %>% 
+  mutate(high=as.numeric(high))
+
+a <- covid_totals %>% 
+  ggplot(.,aes(x=date,y=med)) +
+  geom_vline(aes(xintercept=as.Date("1973-01-01")),linetype = "dashed") +
+  geom_text(data=data.frame(x=as.Date("1973-06-01"),y=25),aes(x,y,label="1973 Oil\n Crisis"),hjust=0,size=3.5) +
+  geom_vline(aes(xintercept=as.Date("1991-01-01")),linetype = "dashed") +
+  geom_text(data=data.frame(x=as.Date("1991-06-01"),y=25),aes(x,y,label="1991 Soviet Union\n collapse"),hjust=0,size=3.5) +
+  geom_vline(aes(xintercept=as.Date("2008-01-01")),linetype = "dashed") +
+  geom_text(data=data.frame(x=as.Date("2008-06-01"),y=25),aes(x,y,label="2008 Global\n financial crisis"),hjust=0,size=3.5) +
+  geom_vline(aes(xintercept=as.Date("2020-01-01")),linetype = "dashed") +
+  geom_text(data=data.frame(x=as.Date("2020-06-01"),y=25),aes(x,y,label="COVID-19\nPandemic"),hjust=0,size=3.5) +
+  geom_line() +
+  geom_ribbon(data=covid_totals %>% filter(year<2020),aes(ymin=low,ymax=high),alpha=0.3) +
+  
+  ylab("Change in global \ndaily fossil CO2 emissions (MtCO2/day)") +
+  scale_y_continuous(limits=c(20,110),breaks=c(20,40,60,80,100)) +
+  scale_x_date(limits=as.Date(c("1969-12-31","2027-01-01")),
+               breaks=as.Date(c("1970-01-01","1980-01-01","1990-01-01","2000-01-01","2010-01-01","2020-01-01")),expand=c(0,0),date_labels = "%Y") +
+  theme(legend.position="none",
+        axis.title.x = element_blank())
+
+
+b <- covid_totals %>% 
+  filter(year>2020) %>% 
+  ggplot(.,aes(x=date,y=med)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=low,ymax=high),alpha=0.3) +
+  scale_y_continuous(limits=c(20,110),breaks=c(20,40,60,80,100)) +
+  scale_x_date(breaks= as.Date(c("2020-02-01","2020-04-01","2020-06-01")),date_labels = "%b") +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid.minor.x = element_blank())
+
+p_totals <- ggarrange(a,b,ncol=2,widths=c(0.8,0.2))
+
+```
+
+```{r covid_composite_figure, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4.5,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+ggarrange(p_totals,p_sectors,heights=c(0.55,0.45),nrow=2,align="hv")
+
+
+
+
+```

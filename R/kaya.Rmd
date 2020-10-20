@@ -67,7 +67,7 @@ kaya_data <- kaya_data %>%
 
 kaya_data <- spread(kaya_data,variable,value)
 kaya_data <- kaya_data %>% 
-  filter(year<2018) %>% 
+  filter(year<2019) %>% 
   filter(year>1989)
 
 blarg <- kaya_data %>% 
@@ -163,10 +163,10 @@ kaya_plots_10 <- function(kaya,sector_label) {
   rates <- gather(kaya_plot_data,var,value,CO2:GDP_POP)
   
   rates <- rates %>% 
-    filter(year %in% c(2010,2017)) %>% 
+    filter(year %in% c(2010,2018)) %>% 
     group_by(region_ar6_10,sector,var) %>% 
     mutate(rate=((last(value)/first(value))^(1/(last(year)-first(year)))-1)*100) %>% 
-    filter(year==2017)
+    filter(year==2018)
   
   output_data <- gather(kaya_plot_data,var,value,CO2:GDP_POP)
   output_data <- spread(output_data,year,value)
@@ -189,11 +189,11 @@ kaya_plots_10 <- function(kaya,sector_label) {
     geom_vline(xintercept=2010,alpha=0.3,linetype="dashed") +
     geom_path(size = 1.5) +
     geom_point(size = 0.75,colour="white") +
-    geom_text(data=kaya_plot_data %>% filter(year==2017),
+    geom_text(data=kaya_plot_data %>% filter(year==2018),
               aes(x=year+1,y=value,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,show.legend = FALSE) +
     theme_bw() +
     scale_colour_brewer(type = "qual",palette="Set2") +
-    scale_x_continuous(breaks=c(1990,2000,2010,2017),limits=c(1990,2022.5)) + 
+    scale_x_continuous(breaks=c(1990,2000,2010,2018),limits=c(1990,2023.5)) + 
     facet_wrap(.~region_ar6_10,ncol=3,scales="free") +
     theme(legend.position = c(0.75,0.1),
           axis.title = element_blank(),
@@ -423,7 +423,7 @@ openxlsx::writeData(wb, sheet = "AFOLU_normalised",spread(hong_kaya %>% select(-
 
 ``` {r write,include=TRUE,warning=FALSE}
 
-openxlsx::saveWorkbook(wb,paste0("../Results/Kaya/sector_kaya_analysis_",Sys.Date(),".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../Results/Data/sector_kaya_analysis_",Sys.Date(),".xlsx"),overwrite=T)
 
 openxlsx::addWorksheet(wb2,"afolu_data")
 openxlsx::writeData(wb2, sheet = "afolu_data",all_data, colNames = T, rowNames = F)
@@ -485,7 +485,7 @@ sector_test <- left_join(sector_test,total,by = c("year", "var"))
 openxlsx::addWorksheet(wb,"sector_totals")
 openxlsx::writeData(wb, sheet = "sector_totals", sector_test, colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,"../Results/Kaya/kaya_tests.xlsx",overwrite=T)
+openxlsx::saveWorkbook(wb,"../Results/Data/kaya_tests.xlsx",overwrite=T)
 
 
 ```

@@ -56,6 +56,32 @@ land <- left_join(land,regions,by = "region_ar6_10")
 
 wb <- openxlsx::createWorkbook(title = paste("ipcc_sector_trend_plots",Sys.Date()))
 
+blarg <- edgar_GHG_ar6 %>%
+    filter(year==2018) %>%
+    group_by(year,subsector_title,chapter,chapter_title) %>%
+    summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE)
+
+# blarg <- edgar_GHG_ar6 %>%
+#     filter(year>1989) %>%
+#     group_by(year,region_ar6_10,chapter,chapter_title) %>%
+#     summarise(value=sum(GHG,na.rm=TRUE)) %>%
+#     mutate(value=value/1e9) %>%
+#     ungroup()
+# 
+# land <- land %>% 
+#   mutate(chapter=7) %>% 
+#   mutate(chapter_title="AFOLU") %>% 
+#   select(year,region_ar6_10,chapter,chapter_title,value) %>% 
+#   mutate(value=value/1e9)
+# 
+# blarg <- rbind(blarg,land)
+# blarg <- blarg %>% 
+#   group_by(year,region_ar6_10,chapter,chapter_title) %>%
+#     summarise(value=sum(value,na.rm=TRUE)) %>%
+#     ungroup()
+# 
+# blarg <- blarg %>% 
+#   filter(year==2018)
 
 ```
 
@@ -799,6 +825,10 @@ ggarrange(p2,p,ncol=2,widths=c(0.44,0.56),align = "h")
 ```{r write,include=FALSE,echo=FALSE}
 
 openxlsx::saveWorkbook(wb,paste0("../Results/Data/ipcc_sector_trend_plots_",Sys.Date(),".xlsx"),overwrite=T)
+
+
+
+
 
 
 ```

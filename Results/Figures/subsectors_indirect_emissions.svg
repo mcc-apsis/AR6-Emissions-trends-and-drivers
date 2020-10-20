@@ -198,9 +198,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4"
-     inkscape:cx="547.9899"
-     inkscape:cy="290.22026"
+     inkscape:zoom="1.979899"
+     inkscape:cx="684.57028"
+     inkscape:cy="315.30755"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -221,7 +221,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -1601,10 +1601,10 @@
        sodipodi:nodetypes="czc" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:1.50000012;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Mend-4)"
-       d="m 736.3492,1057.6832 c -7.05038,16.4126 -16.36872,31.8491 -27.60729,45.7335 -40.57203,50.1236 -107.21926,77.8644 -171.37365,71.3313"
+       d="m 736.3492,1057.6832 c -7.31974,16.2801 -16.61144,31.6725 -27.60729,45.7335 -26.43459,33.8034 -62.88375,59.6744 -103.51651,73.4742"
        id="path8078-2"
        inkscape:path-effect="#path-effect8080-9"
-       inkscape:original-d="m 736.3492,1057.6832 c 0,0 -2.39289,32.6486 -27.60729,45.7335 -25.21439,13.0848 -171.37365,71.3313 -171.37365,71.3313"
+       inkscape:original-d="m 736.3492,1057.6832 c 0,0 -2.39289,32.6486 -27.60729,45.7335 -25.21439,13.0848 -103.51651,73.4742 -103.51651,73.4742"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="czc" />
     <rect
@@ -1721,5 +1721,16 @@
          y="1309.03"
          x="711.2041 721.13165 731.8291 739.47412 743.29663 747.87537 755.52039 758.57288 763.15161 770.79663 777.67163 781.49414">CO2 (direct)</tspan>
     </text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.75px;line-height:175%;font-family:Dialog;-inkscape-font-specification:'Dialog, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#4d4d4d;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       x="573.00012"
+       y="1183.0605"
+       id="text4464"
+       sodipodi:linespacing="175%"><tspan
+         sodipodi:role="line"
+         id="tspan4466"
+         x="573.00012"
+         y="1183.0605">etc.</tspan></text>
   </g>
 </svg>

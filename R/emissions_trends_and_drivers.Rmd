@@ -41,7 +41,7 @@ wb <- openxlsx::createWorkbook(title = paste("ipcc_ch2_section2_plots_",Sys.Date
 
 ### Waterfall plots for different GWPs
 
-```{r waterfall, echo=FALSE,warning=FALSE,fig.width=10,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
+```{r waterfall, echo=FALSE,warning=FALSE,fig.width=4,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
 
 ####### calculate total emissions for different gases using different GWPs
 
@@ -86,36 +86,35 @@ waterfall_data <- rbind(waterfall_data,fgas)
 waterfall_data <- rbind(waterfall_data,waterfall_land) %>% 
   mutate(gas=ifelse(gas=="CO2","CO2 FFI",gas))
 
-waterfall_plot <- waterfall_data %>% 
+waterfall_data <- waterfall_data %>% 
   filter(year==2018) %>% 
   select(-year)
 
 ######### save data ######### 
 
 openxlsx::addWorksheet(wb,"gwp_waterfall_data")
-openxlsx::writeData(wb, sheet = "gwp_waterfall_data", waterfall_plot, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "gwp_waterfall_data", waterfall_data, colNames = T, rowNames = F)
 
 ######### plot different gwp totals in a waterfall
 
-waterfall_plot$gas <- as.factor(waterfall_plot$gas)
-waterfall_plot$gas <-  factor(waterfall_plot$gas,levels(waterfall_plot$gas)[c(2,3,1,5,4)])
+waterfall_data$gas <- as.factor(waterfall_data$gas)
+waterfall_data$gas <-  factor(waterfall_data$gas,levels(waterfall_data$gas)[c(2,3,1,5,4)])
 
-waterfall_plot <- waterfall_plot %>% 
+waterfall_data <- waterfall_data %>% 
   arrange(gas)
 
-waterfall_plot <- gather(waterfall_plot,gwp,value,gwp_ar2:gwp_ar6)
+waterfall_data <- gather(waterfall_data,gwp,value,gwp_ar2:gwp_ar6)
 
-waterfall_plot <- waterfall_plot %>% 
+waterfall_data <- waterfall_data %>% 
   group_by(gwp) %>% 
   mutate(end = cumsum(value)) %>% 
   mutate(start = c(0, head(end, -1))) %>% 
   mutate(id = c(5,4,3,2,1))
 
-
 ### add uncertainties
 
-waterfall_plot <- left_join(waterfall_plot,uncertainties,by=c("gas"="gas"))
-waterfall_plot <- waterfall_plot %>% 
+waterfall_data <- left_join(waterfall_data,uncertainties,by=c("gas"="gas"))
+waterfall_data <- waterfall_data %>% 
   group_by(gwp) %>% 
   mutate(abs_uncertainty=value*uncertainty) %>% 
   mutate(uncertainty_start=end-(0.5*abs_uncertainty)) %>% 
@@ -123,9 +122,13 @@ waterfall_plot <- waterfall_plot %>%
   group_by(gwp) %>% 
   mutate(total=sum(value))
 
+
+waterfall_data$gas <- as.factor(waterfall_data$gas)
+waterfall_data$gas <-  factor(waterfall_data$gas,levels(waterfall_data$gas)[c(4,5,1,3,2)])
+
 ### plot
 
-p_waterfall <- waterfall_plot %>%
+p_waterfall <- waterfall_data %>%
   filter(gwp!="gwp_ar4") %>% 
   ggplot(., aes(fill = gas)) +
   geom_rect(aes(
@@ -159,7 +162,7 @@ p_waterfall <- waterfall_plot %>%
   
   facet_grid(~gwp,switch="both") +
   
-  geom_text(data=waterfall_plot %>% filter(gwp!="gwp_ar4") %>%  filter(gas=="CO2 Land use"),aes(x=gas,y=62,label=paste(gwp,"\n",round(total,1),  "Gt")),size=3.5,colour="#252525")+
+  geom_text(data=waterfall_data %>% filter(gwp!="gwp_ar4") %>%  filter(gas=="CO2 Land use"),aes(x=gas,y=62,label=paste(gwp,"\n",round(total,1),  "Gt")),size=3.5,colour="#252525")+
   
   theme_bw() +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60),limits=c(0,62)) +
@@ -184,11 +187,7 @@ p_waterfall
 
 ```
 
-
-### Figure 1: GHG emissions by gas
-
-```{r Fig1_trend, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
-
+```{r gas_trend, echo=FALSE,warning=FALSE,fig.width=6,fig.height=4}
 
 plot_data <- edgar_GHG_ar6 %>% 
   filter(year>1989) %>% 
@@ -196,14 +195,13 @@ plot_data <- edgar_GHG_ar6 %>%
   group_by(year) %>% 
   summarise(CO2=sum(CO2,na.rm=T)/1e9,CH4=sum(CH4,na.rm=T)/1e9,N2O=sum(N2O,na.rm=T)/1e9,Fgas=sum(Fgas,na.rm=T)/1e9)
 
-
 ### join land use data
 
 plot_data <- left_join(plot_data,land_totals,by=c("year"="year"))
 plot_data<- gather(plot_data,gas,value,-year) 
 plot_data <- plot_data %>% 
   mutate(gas=ifelse(gas=="CO2","CO2 FFI",gas)) %>% 
-  mutate(gas=ifelse(gas=="CO2_landuse","CO2 Land Use",gas))
+  mutate(gas=ifelse(gas=="CO2_landuse","CO2 Land use",gas))
 
 plot_data$gas <- as.factor(plot_data$gas)
 plot_data$gas <-  factor(plot_data$gas,levels(plot_data$gas)[c(4,5,1,3,2)])
@@ -235,15 +233,14 @@ p_gas_totals <- plot_data %>%
   #### text with the totals
   geom_text(data=shares %>% filter(gas=="Fgas"),aes(x=year,y=62,label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
   
-  ylab('GHG Emissions (GtCO2eq/yr)') +
+  ylab('GHG Emissions \n(GtCO2eq/yr)') +
   labs(fill="Gas") +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
   scale_x_continuous(breaks=c(1990,2000,2010,2018)) +
   big_trend_theme +
   theme(
-    legend.position="none",
     #legend.position = c(0.225,0.85),
-    #legend.position="none",    
+    legend.position="none",    
     legend.background = element_rect(linetype = 1, size = 0.5, colour = "#525252"),
     legend.margin = margin(l=5,t=5,b=5,r=10,unit="pt"),
     legend.text = element_text(size=8),
@@ -252,12 +249,12 @@ p_gas_totals <- plot_data %>%
     shape = guide_legend(override.aes = list(size = 0.5)),
     color = guide_legend(override.aes = list(size = 0.5)))
 
-##### write data
+p_gas_totals
 
-openxlsx::addWorksheet(wb,"Fig1_trend")
-openxlsx::writeData(wb, sheet = "Fig1_trend", spread(plot_data,year,value), colNames = T, rowNames = F)
+```
 
-#########
+```{r ghgs_no_gwp, echo=FALSE,warning=FALSE,fig.width=8,fig.height=2,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
 
 plot_data_nogwp <- plot_data %>% 
   filter(gas!="Fgas")
@@ -268,14 +265,35 @@ plot_data_nogwp <- plot_data_nogwp %>%
   mutate(gwp_ar6=ifelse(grepl("CO2",gas),1,gwp_ar6)) %>% 
   mutate(value=value/gwp_ar6)
 
+# Normalise to 1 in first year?
+plot_data_nogwp <- plot_data_nogwp %>%
+  group_by(gas) %>%
+  mutate(value=value/first(value))
+
+# calculate error range
+plot_data_nogwp <- left_join(plot_data_nogwp,uncertainties,by = "gas")
+
+plot_data_nogwp <- plot_data_nogwp %>% 
+  mutate(high = value+((uncertainty*value)/2)) %>% 
+  mutate(low = value-((uncertainty*value)/2)) %>% 
+  select(-uncertainty)
+
+#manually map colours
+plot_data_nogwp$gas <- as.factor(plot_data_nogwp$gas)
+plot_data_nogwp$gas <- factor(plot_data_nogwp$gas,levels=levels(plot_data_nogwp$gas)[c(2,3,1,4)])
+colours = c("#a6d854","#e78ac3","#8da0cb","#fc8d62")
+
+
 p_gas_trends <- plot_data_nogwp %>%
   ggplot(.,aes(x=year,y=value,color=gas)) +
   geom_line() +
+  geom_ribbon(data=plot_data_nogwp,aes(ymin=low,ymax=high,fill=gas),alpha=0.3)+
   scale_x_continuous(breaks=c(1995,2010)) +
-  scale_color_brewer(palette = "Set2") +
+  scale_fill_manual(values=colours) +
+  scale_color_manual(values=colours) +
   theme_bw() +
-  ylab('Emissions \n(Gt/yr - original units)') +
-  facet_wrap(.~gas,scales='free',nrow=1) +
+  ylab('Emissions \n(original units noramlised to 1990)') +
+  facet_wrap(.~gas,nrow=1) +
   theme(legend.position = "none",
         axis.title.x = element_blank(),
         axis.title.y = element_text(margin=margin(0,10,0,0)),
@@ -283,10 +301,27 @@ p_gas_trends <- plot_data_nogwp %>%
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank())
 
+p_gas_trends
 
-p <- ggarrange(p_gas_totals,p_waterfall,widths=c(0.7,0.3),align="v")
-p <- ggarrange(p,p_gas_trends,nrow=2,heights=c(0.7,0.3))
+
+```
+
+
+### Figure 1: GHG emissions by gas
+
+```{r Fig1_trend, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+
+#########
+
+p <- ggarrange(p_gas_totals,p_waterfall,widths=c(0.7,0.3),align="hv")
+p <- ggarrange(p,p_gas_trends,nrow=2,heights=c(0.7,0.3),align="hv")
 p
+
+##### write data
+
+openxlsx::addWorksheet(wb,"Fig1_trend")
+openxlsx::writeData(wb, sheet = "Fig1_trend", spread(plot_data,year,value), colNames = T, rowNames = F)
 
 ```
 
