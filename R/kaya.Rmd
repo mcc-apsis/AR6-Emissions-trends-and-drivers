@@ -101,6 +101,10 @@ world_pop <- kaya_data %>%
   group_by(year) %>% 
   summarise(POP=sum(POP,na.rm=TRUE)/1e6)
 
+# add indirect emissions
+
+
+
 ```
 
 

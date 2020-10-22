@@ -220,7 +220,7 @@ iea <- iea %>%
 
 load("../Data/tsu_codes.RData")
 regions_10 <- tsu_codes %>%
-  select(region_ar6_10,region_ar6_5) %>%
+  select(region_ar6_22,region_ar6_10,region_ar6_5) %>%
   distinct() %>%
   mutate(include=1)
 
@@ -234,8 +234,9 @@ indirect_CO2_regions <- indirect_CO2_regions %>%
 ######### world
 
 indirect_CO2_world <- iea %>% 
-  filter(country=="World") %>%
-  filter(year==2018)
+  filter(country=="World")
+
+indirect_CO2_world <- spread(indirect_CO2_world,year,CO2_indirect)
 
 ######### match up individual countries
 
@@ -269,27 +270,28 @@ indirect_CO2_countries <- indirect_CO2_countries %>%
   select(country,ISO=alpha.3,year,everything()) %>% 
   select(-name)
 
-
-yy <- indirect_CO2_regions %>% 
-  filter(year==2018)
-
-
 ```
 
 ```{r save_data, echo=FALSE}
+
+
+save(indirect_CO2_regions,indirect_CO2_world,file="../Data/indirect_CO2.RData")
+
+
 
 wb <- openxlsx::createWorkbook(title = paste("ipcc_indirect_emissions_",Sys.Date()))
 
 openxlsx::addWorksheet(wb,"10 Regions")
 openxlsx::writeData(wb, sheet = "10 Regions",indirect_CO2_regions , colNames = T, rowNames = F)
 
-openxlsx::addWorksheet(wb,"World 2018")
-openxlsx::writeData(wb, sheet = "World 2018",indirect_CO2_world , colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,"World")
+openxlsx::writeData(wb, sheet = "World",indirect_CO2_world , colNames = T, rowNames = F)
 
 openxlsx::addWorksheet(wb,"Countries")
 openxlsx::writeData(wb, sheet = "Countries",indirect_CO2_countries , colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("../Results/Data/ipcc_indirect_emissions_",Sys.Date(),".xlsx"),overwrite=T)
+
 
 
 ``` 
