@@ -19,7 +19,7 @@ Caption: Panel a depicts per capita greenhouse gas emissions by region and growt
 ## Data citation (TO BE UPDATED BEFORE FINAL DRAFT)
 Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., … Vignati, E. (2019). Fossil CO2 and GHG emissions of all world countries - 2019 Report. Luxembourg. https://doi.org/10.2760/687800
 
-
+.ris file: https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/Results/Plots/WG2_regions/Crippa%20et%20al.%202019.ris
 
 
 ```{r setup, include=FALSE}
@@ -56,7 +56,7 @@ uncertainties <- data.frame(gas=c('CO2 FFI','CO2 FOLU','CH4','N2O','Fgas','GHG')
 
 isos <- openxlsx::read.xlsx("C:\\Users\\lamw\\Documents\\SpiderOak Hive\\Work\\Code\\R\\.Place names and codes\\output\\ISOcodes.xlsx",sheet="alternative_names")
 
-wb <- openxlsx::createWorkbook(title = paste("ipcc_wg2_region_data",Sys.Date()))
+wb <- openxlsx::createWorkbook(title = paste0("ipcc_wg2_region_data_",Sys.Date()))
 
 
 ```
@@ -84,12 +84,6 @@ data <- data %>%
   mutate(wg2_region=ifelse(wg2_region=="Central and South America","Central and\nS. America",wg2_region))
 
 
-eu <- data %>% filter(wg2_region=="Europe") %>% filter(year==2018)
-
-eu <- eu %>% 
-  group_by(country) %>% 
-  summarise(GHG=sum(GHG,na.rm=TRUE))
-
 ```
 
 ``` {r per_capita_boxplots, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4}
@@ -104,7 +98,7 @@ boxplot_data <- data %>%
 
 boxplot_data <- left_join(boxplot_data,basic %>% select(ISO,year=Year,pop_UN),by = c("ISO", "year"))
 
-### fix TAIWAN
+### Taiwan missing from boxplots
 
 not_joined <- anti_join(boxplot_data,basic %>% select(ISO,year=Year,pop_UN),by = c("ISO", "year"))
 not_joined <- not_joined %>% 
@@ -133,6 +127,11 @@ p1 <- boxplot_data %>%
         axis.title.y = element_blank(),
         strip.text = element_text(margin = margin(.32, 0, .32, 0, "cm"))) +
   ggtitle("a. Regional per capita emissions")
+
+
+openxlsx::addWorksheet(wb,"Region per capita")
+openxlsx::writeData(wb, sheet = "Region per capita",boxplot_data, colNames = T, rowNames = F)
+
 
 ```
 
@@ -169,14 +168,15 @@ p2 <- trend_data %>%
   theme(legend.position="none",
         axis.title.x = element_blank())
 
-p2
+openxlsx::addWorksheet(wb,"Region trend")
+openxlsx::writeData(wb, sheet = "Region trend",spread(trend_data,year,GHG), colNames = T, rowNames = F)
+
+
 ```
 
 
 
 ```{r country_plot, include=FALSE, echo=FALSE}
-
-region="Europe"
 
 country_plot <- function(data,region) {
   
@@ -273,7 +273,12 @@ gas_sector_plot <- function(data,region) {
           legend.title = element_blank(),plot.background = element_blank()) +
     ylab("GHG Emissions (Gt CO2eq/year)")
   
-  return(list("gas_plot"=p1,"sector_plot"=p2,"data_gas"=bar_data_gas,"data_sector"=bar_data_sector))
+  combined_data <- rbind(bar_data_gas %>% mutate(plot="gas") %>% select(plot,year,var=gas,value),
+                         bar_data_sector %>% mutate(plot="sector") %>% select(plot,year,var=chapter_title,value))
+  
+  combined_data <- spread(combined_data,year,value)
+  
+  return(list("gas_plot"=p1,"sector_plot"=p2,"data"=combined_data))
 }
 
   
@@ -294,6 +299,12 @@ gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and se
 p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
 
 wrap_plots(p1,p2,countries$plot,p4)
+
+openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
+openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
+openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
+
 ```
 
 # Asia
@@ -339,20 +350,20 @@ wrap_plots(p1,p2,countries$plot,p4)
 # Central and South America
 
 ```{r Central and South America,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-# 
-# region="Central and\nS. America"
-# 
-# 
-# countries <- country_plot(data,region)
-# gas_sector <- gas_sector_plot(data,region)
-# 
-# countries$plot <- countries$plot + ggtitle("c. Country emissions growth (C.& S. America)")
-# gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (C.& S. America)")
-# 
-# p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
-# 
-# wrap_plots(p1,p2,countries$plot,p4)
-# 
+
+region="Central and\nS. America"
+
+
+countries <- country_plot(data,region)
+gas_sector <- gas_sector_plot(data,region)
+
+countries$plot <- countries$plot + ggtitle("c. Country emissions growth (C.& S. America)")
+gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (C.& S. America)")
+
+p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
+
+wrap_plots(p1,p2,countries$plot,p4)
+
 
 
 ```
@@ -360,19 +371,19 @@ wrap_plots(p1,p2,countries$plot,p4)
 # Europe
 
 ```{r Europe, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-# 
-# region="Europe"
-# 
-# countries <- country_plot(data,region)
-# gas_sector <- gas_sector_plot(data,region)
-# 
-# countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Europe)")
-# gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Europe)")
-# 
-# p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
-# 
-# wrap_plots(p1,p2,countries$plot,p4)
-# 
+
+region="Europe"
+
+countries <- country_plot(data,region)
+gas_sector <- gas_sector_plot(data,region)
+
+countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Europe)")
+gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Europe)")
+
+p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
+
+wrap_plots(p1,p2,countries$plot,p4)
+
 
 
 ```
@@ -380,19 +391,19 @@ wrap_plots(p1,p2,countries$plot,p4)
 # North America
 
 ```{r North America, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-# 
-# region="North America"
-# 
-# countries <- country_plot(data,region)
-# gas_sector <- gas_sector_plot(data,region)
-# 
-# countries$plot <- countries$plot + ggtitle("c. Country emissions growth (North America)")
-# gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (North America)")
-# 
-# p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
-# 
-# wrap_plots(p1,p2,countries$plot,p4)
-# 
+
+region="North America"
+
+countries <- country_plot(data,region)
+gas_sector <- gas_sector_plot(data,region)
+
+countries$plot <- countries$plot + ggtitle("c. Country emissions growth (North America)")
+gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (North America)")
+
+p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
+
+wrap_plots(p1,p2,countries$plot,p4)
+
 
 
 
@@ -401,20 +412,27 @@ wrap_plots(p1,p2,countries$plot,p4)
 # Small Islands
 
 ```{r Small Islands,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-# 
-# region="Small Islands"
-# 
-# countries <- country_plot(data,region)
-# gas_sector <- gas_sector_plot(data,region)
-# 
-# countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Small Islands)")
-# gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Small Islands)")
-# 
-# p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
-# 
-# wrap_plots(p1,p2,countries$plot,p4)
-# 
 
+region="Small Islands"
+
+countries <- country_plot(data,region)
+gas_sector <- gas_sector_plot(data,region)
+
+countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Small Islands)")
+gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Small Islands)")
+
+p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
+
+wrap_plots(p1,p2,countries$plot,p4)
+
+
+
+
+```
+
+```{r write,echo=FALSE,warning=FALSE}
+
+openxlsx::saveWorkbook(wb,paste0("../Results/Data/ipcc_wg2_region_data_",Sys.Date(),".xlsx"),overwrite=T)
 
 ```
 
