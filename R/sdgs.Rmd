@@ -53,10 +53,13 @@ load('C:\\Users\\lamw\\Documents\\SpiderOak Hive\\Work\\Code\\R\\Database\\SWIID
 
 
 load('../Data/sdgs.RData')
-load('../Data/edgar_data_gwp_ar5.RData')
+load('../Data/edgar_data_gwp_ar6.RData')
 load('../Data/basic.RData')
 
 ```
+
+
+
 
 ```{r prepare_table,echo=FALSE,inclue=FALSE}
 
@@ -96,6 +99,9 @@ table <- table %>%
   ungroup() %>% 
   select(-Health)
 
+table <- table %>% 
+  filter(year==2018)
+
 thresholds = data.frame(sdg=c("Poverty","Mortality","Education","Sanitation","Electricity","Employment"),
                         upper=c(95,95,95,95,95,94),lower=c(80,60,80,80,80,80))
 
@@ -109,35 +115,42 @@ labels = data.frame(sdg=c("Poverty","Mortality","Education","Sanitation","Electr
                                 "Employment\n(%)"))
 
 
-# table <- table %>% 
-#   group_by(country,year) %>% 
-#   mutate(group=0) %>% 
-#   mutate(group=ifelse(Poverty>=thresholds$upper[thresholds$sdg=="Poverty"],group+1,group)) %>% 
-#   mutate(group=ifelse(Health>=thresholds$upper[thresholds$sdg=="Health"],group+1,group)) %>% 
-#   mutate(group=ifelse(Education>=thresholds$upper[thresholds$sdg=="Education"],group+1,group)) %>% 
-#   mutate(group=ifelse(Sanitation>=thresholds$upper[thresholds$sdg=="Sanitation"],group+1,group)) %>% 
-#   mutate(group=ifelse(Electricity>=thresholds$upper[thresholds$sdg=="Electricity"],group+1,group)) %>% 
-#   mutate(group=ifelse(Employment>=thresholds$upper[thresholds$sdg=="Employment"],group+1,group)) %>% 
-#   ungroup() %>% 
-#   select(iso,country,year,Population,everything())
-# 
-# table <- table %>% 
+table <- table %>%
+  group_by(country,year) %>%
+  mutate(group=0) %>%
+  mutate(group=ifelse(Poverty>=thresholds$upper[thresholds$sdg=="Poverty"],group+1,group)) %>%
+  mutate(group=ifelse(Mortality>=thresholds$upper[thresholds$sdg=="Mortality"],group+1,group)) %>%
+  mutate(group=ifelse(Education>=thresholds$upper[thresholds$sdg=="Education"],group+1,group)) %>%
+  mutate(group=ifelse(Sanitation>=thresholds$upper[thresholds$sdg=="Sanitation"],group+1,group)) %>%
+  mutate(group=ifelse(Electricity>=thresholds$upper[thresholds$sdg=="Electricity"],group+1,group)) %>%
+  mutate(group=ifelse(Employment>=thresholds$upper[thresholds$sdg=="Employment"],group+1,group)) %>%
+  ungroup() %>%
+  select(iso,country,year,Population,everything())
+
+# table <- table %>%
 #   filter(!is.na(group))
 
 
 ## join with Edgar
 
 
-# edgar_countries <- edgar_GHG_ar5 %>% 
-#   group_by(ISO,country,region_ar6_5,region_ar6_dev,year) %>% 
-#   summarise(CO2=sum(CO2,na.rm = T),N2O=sum(N2O,na.rm=T),CH4=sum(CH4,na.rm=T),Fgas=sum(Fgas,na.rm=T),GHG=sum(GHG,na.rm=T)) %>% 
-#   ungroup()
-# 
-# edgar_countries <- left_join(edgar_countries,table %>% select(-country),by=c("ISO"="iso","year"="year"))
-# 
-# edgar_countries$group <- as.factor(edgar_countries$group)
-# 
-# 
+edgar_countries <- edgar_GHG_ar6 %>%
+  filter(year==2018) %>% 
+  group_by(ISO,country,region_ar6_5,region_ar6_5_short) %>%
+  summarise(GHG=sum(GHG,na.rm=T)) %>%
+  ungroup()
+
+edgar_countries <- left_join(edgar_countries,table %>% select(-country),by=c("ISO"="iso"))
+
+edgar_countries <- edgar_countries %>% 
+  filter(!is.na(group))
+
+edgar_countries <- edgar_countries %>% 
+  mutate(GHG_pc=GHG/Population)
+
+#edgar_countries$group <- as.factor(edgar_countries$group)
+
+
 # ##### which countries move groups?
 # 
 # 
@@ -154,9 +167,65 @@ labels = data.frame(sdg=c("Poverty","Mortality","Education","Sanitation","Electr
 
 ```
 
+
+```{r ch1_plot, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=4,fig.path="../Results/Plots/sdgs/",dev=c('png','pdf')}
+# 
+# data <- edgar_GHG_ar6 %>% 
+#   filter(year>1989) %>% 
+#   group_by(year,ISO,country,region_ar6_5,region_ar6_5_short) %>% 
+#   summarise(GHG=sum(GHG,na.rm=T))
+# 
+# pop <- basic %>% 
+#   filter(Year>1989) %>% 
+#   select(ISO,year=Year,pop_UN)
+# 
+# data <- left_join(data,pop,by = c("year", "ISO"))
+# 
+# blarg <- data %>% 
+#   filter(year==2018)
+# 
+# data <- data %>% 
+#   filter(year==2018) %>% 
+#   filter(region_ar6_5_short!="AIR") %>% 
+#   filter(region_ar6_5_short!="SEA") %>% 
+#   group_by(year,region_ar6_5,region_ar6_5_short) %>% 
+#   summarise(GHG=sum(GHG,na.rm=T),pop=sum(pop_UN,na.rm=T)) %>% 
+#   mutate(GHG_pc=GHG/pop)
+# 
+# data <- data %>% 
+#   mutate(fake=ifelse(region_ar6_5_short=="AME",1,NA)) %>% 
+#   mutate(fake=ifelse(region_ar6_5_short=="APC",2,fake))%>% 
+#   mutate(fake=ifelse(region_ar6_5_short=="DEV",5,fake))%>% 
+#   mutate(fake=ifelse(region_ar6_5_short=="EEA",4,fake))%>% 
+#   mutate(fake=ifelse(region_ar6_5_short=="LAM",3,fake))
+
+
+# data %>% 
+#   ggplot(.,aes(x=GHG_pc,y=fake,size=pop,label=region_ar6_5,color=region_ar6_5)) +
+#   geom_point() +
+#   geom_text(aes(y=fake+0.5),size=4,hjust=0) +
+#   scale_size(range = c(.1, 24)) +
+#   xlim(0,20) +
+#   theme(legend.position ="none")
+
+edgar_countries %>% 
+  ggplot(.,aes(x=GHG_pc,y=group,size=Population,fill=region_ar6_5)) +
+  geom_point(shape = 21,alpha=0.7,stroke=0,colour="#636363") +
+  #geom_text(aes(y=fake+0.5),size=4,hjust=0) +
+  scale_size(range = c(1, 20)) +
+  xlim(0,30) +
+  labs(fill = "Region") +
+  guides(fill = guide_legend(override.aes = list(size=8))) +
+  theme(legend.position ="right") +
+  ylab("No. SDG thresholds achieved") +
+  xlab("GHG emissions (CO2eq/capita)")
+
+
+```
+
 ```{r clustering_pathways, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=4,fig.path="../Results/Plots/sdgs/",dev=c('png','pdf')}
 
-emissions_data <- edgar_GHG_ar5 %>% 
+emissions_data <- edgar_GHG_ar6 %>% 
   group_by(country,ISO,region_ar6_5,year) %>% 
   summarise_at(vars(CO2,GHG),sum,na.rm=TRUE)
 

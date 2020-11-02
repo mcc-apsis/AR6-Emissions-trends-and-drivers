@@ -81,14 +81,17 @@ indirect <- indirect %>%
 scope2_sectors <- left_join(scope1_sectors %>% select(-fraction),indirect,by = "chapter_title")
 
 scope2_sectors <- scope2_sectors %>% 
-  filter(chapter_title!="Electricity & heat")
+  filter(chapter_title!="Electricity & heat") %>% 
+  mutate(total=GHG+CO2_indirect)
 
 scope2_sectors <- gather(scope2_sectors,var,GHG,GHG:CO2_indirect)
+scope2_sectors <- scope2_sectors %>% 
+  select(chapter_title,var,GHG,total)
 
 # fractions
 
 scope2_sectors <- scope2_sectors %>% 
-  mutate(fraction=round(((GHG/sum(data$GHG))*100),1))
+  mutate(fraction=round(((total/sum(data$GHG))*100),1))
 
 ```
 
@@ -136,9 +139,10 @@ scope2_sectors <- scope2_sectors %>%
   arrange(chapter_title,desc(GHG))
 
 blarg <- scope2_sectors %>% 
-  arrange(desc(chapter_title),desc(GHG)) %>% 
+  filter(var=="GHG") %>% 
+  arrange(desc(chapter_title),desc(total)) %>% 
   ungroup() %>% 
-  mutate(label_position = cumsum(GHG) - GHG/2)
+  mutate(label_position = cumsum(total) - total/2)
 
 
 
@@ -203,6 +207,23 @@ You can also embed plots, for example:
 ```{r combo,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../Results/Plots/Sectors",dev=c('png','pdf')}
 
 ggarrange(p1,p2,p3,nrow=1,ncol=3,widths=c(0.25,0.25,0.5))
+
+
+# save data for soapbox
+
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_indirect_emissions_plot",Sys.Date()))
+
+openxlsx::addWorksheet(wb,"direct emissions")
+openxlsx::addWorksheet(wb,"indirect emissions")
+openxlsx::addWorksheet(wb,"indirect emissions - subsectors")
+
+openxlsx::writeData(wb,"direct emissions",scope1_sectors, colNames = T, rowNames = F)
+openxlsx::writeData(wb,"indirect emissions",scope2_sectors, colNames = T, rowNames = F)
+openxlsx::writeData(wb,"indirect emissions - subsectors",scope2_subsectors, colNames = T, rowNames = F)
+
+
+openxlsx::saveWorkbook(wb,paste0("../Results/Data/ipcc_indirect_emissions_plot_",Sys.Date(),".xlsx"),overwrite=T)
 
 
 

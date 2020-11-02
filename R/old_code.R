@@ -1,3 +1,139 @@
+### wg2 regional stuff
+
+
+```{r, plot_gases, include=FALSE, echo=FALSE }
+
+plot_gas <- function(data,region) {
+  
+  
+  gas_data <- data %>% 
+    filter(region_ar6_10==region) %>% 
+    filter(year>1989) %>% 
+    filter(year<2019) %>% 
+    group_by(year) %>% 
+    summarise(CO2=sum(CO2,na.rm=T)/1e9,CH4=sum(CH4,na.rm=T)/1e9,N2O=sum(N2O,na.rm=T)/1e9,Fgas=sum(Fgas,na.rm=T)/1e9)
+  
+  gas_data <- gather(gas_data,gas,value,CO2:Fgas)
+  
+  
+  
+  shares <- gas_data %>% 
+    filter(year %in% c(1990,2000,2010,2018)) %>% 
+    group_by(year) %>% 
+    mutate(totals=sum(value)) %>% 
+    ungroup() %>% 
+    group_by(year,gas) %>% 
+    mutate(fractions=(value/totals)*100)
+  
+  shares <- locate_shares(shares,"gas",4)
+  
+  line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2018,2018),y=c(0,1.1*max(shares$totals)))
+  
+  
+  
+  
+  p <- gas_data %>% 
+    ggplot(.,aes(x=year,y=value,fill=gas)) +
+    geom_area(colour="#737373") +
+    
+    geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+    geom_vline(xintercept=c(1990,2000,2010,2018),alpha=0.3,linetype="dashed") +
+    
+    #### text with the shares
+    geom_text(data=shares,aes(x=year+0.75,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
+    
+    #### text with the totals
+    geom_text(data=shares %>% filter(gas=="Fgas"),aes(x=year,y=1.1*max(shares$totals),label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
+    
+    ylab('GHG Emissions (GtCO2eq/yr)') +
+    labs(fill="Gas") +
+    #scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
+    scale_x_continuous(breaks=c(1990,2000,2010,2018)) +
+    big_trend_theme +
+    theme(legend.position="bottom",
+          legend.background = element_rect(linetype = 1, size = 0.5, colour = "#525252"),
+          legend.margin = margin(l=5,t=5,b=5,r=10,unit="pt"),
+          legend.text = element_text(size=8),
+          legend.title = element_blank()) +
+    guides(fill=guide_legend(nrow=1,byrow=TRUE),
+           shape = guide_legend(override.aes = list(size = 0.5)),
+           color = guide_legend(override.aes = list(size = 0.5))) +
+    ggtitle(paste0("a. ",region," GHG emissions by gas"))
+  
+  
+  
+  return(list("plot"=p,"data"=gas_data))
+}
+
+
+
+```
+
+
+
+```{r plot_sectors, include=FALSE, echo=FALSE}
+
+plot_sectors <- function(data,region) {
+  
+  #sectors
+  sector_data <- data  %>% 
+    filter(region_ar6_10==region) %>% 
+    filter(year>1989) %>% 
+    filter(year<2019) %>% 
+    group_by(year,chapter,chapter_title) %>%  
+    summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
+    ungroup()
+  
+  sector_data$chapter_title <- as.factor(sector_data$chapter_title)
+  sector_data$chapter_title <- factor(sector_data$chapter_title,levels(sector_data$chapter_title)[c(3,1,2,5,4)])
+  
+  
+  shares <- sector_data %>% 
+    filter(year %in% c(1990,2000,2010,2018)) %>% 
+    group_by(year) %>% 
+    mutate(totals=sum(value)) %>% 
+    ungroup() %>% 
+    group_by(year,chapter) %>% 
+    mutate(fractions=(value/totals)*100) %>% 
+    ungroup()
+  
+  shares <- locate_shares(shares,"chapter",4)
+  
+  line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2018,2018),y=c(0,1.1*max(shares$totals)))
+  
+  
+  p <- sector_data %>%
+    ggplot(.,aes(x=year,y=value,fill=chapter_title)) +
+    geom_area(colour="#737373") +
+    
+    geom_text(data=shares,aes(x=year+0.75,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
+    
+    geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+    
+    #### text with the totals
+    geom_text(data=shares %>% filter(chapter_title=="Industry"),aes(x=year,y=1.1*max(shares$totals),label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
+    
+    ylab("GHG emissions (GtCO2eq/yr)") +
+    
+    labs(fill="Sector") +
+    #scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
+    scale_x_continuous(breaks=c(1990,2000,2010,2018),limits=c(1990,2019)) +
+    
+    big_trend_theme +
+    theme(legend.position="bottom",
+          legend.background = element_rect(linetype = 1, size = 0.5, colour = "#525252"),
+          legend.margin = margin(l=5,t=5,b=5,r=10,unit="pt"),
+          legend.text = element_text(size=8),
+          legend.title = element_blank()) +
+    ggtitle(paste0("a. ",region," GHG emissions by sector"))
+  
+  
+  return(list("plot"=p,"data"=sector_data))
+}
+
+```
+
+
 # Top emitting sectors
 
 ```{r top_subsectors,echo=FALSE,warning=FALSE,results='asis',fig.width=10,fig.height=4.5,fig.path="../Results/Plots/Sectors/",dev=c('png','pdf')}
