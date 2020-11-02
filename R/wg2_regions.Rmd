@@ -9,7 +9,18 @@ knit: (function(inputFile, encoding) {
   
 ---
 
-These figures depict emissions trends across and within the WGII regions.
+## Description
+These figures depict emissions trends for the WGII regions using data compiled by WGIII. Code for producing them can be found here: https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/wg2_regions.Rmd. An excel file with the data compiled for each figure is available on request. 
+
+## Figure caption (replace #region as appropriate)
+Title: Greenhouse gas emissions trends for (#region). 
+Caption: Panel a depicts per capita greenhouse gas emissions by region and growth from 1990-2018. Panel b depicts total greenhouse gas emissions by region since 1990. Panel c depicts the absolute emissions growth between 2010 and 2018 for the highest emitting countries within (#region). Panel d depicts total (#region) emissions since 1990, broken down by greenhouse gas (left) and sector (right). 100 year global warming potentials consistent with WGI estimates are used. Emissions data are from Crippa et al. (2019), compiled by Ch2 of WGIII. Estimates of land-use change CO2 are not included.
+
+## Data citation (TO BE UPDATED BEFORE FINAL DRAFT)
+Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., … Vignati, E. (2019). Fossil CO2 and GHG emissions of all world countries - 2019 Report. Luxembourg. https://doi.org/10.2760/687800
+
+
+
 
 ```{r setup, include=FALSE}
 
@@ -117,7 +128,7 @@ p1 <- boxplot_data %>%
   scale_y_continuous(limits=c(0,50)) +
   scale_x_discrete(limits=rev(levels(boxplot_data$wg2_region))) +
   ylab("GHG Emissions per capita (tCO2eq/capita)") +
-  theme(legend.position=c(0.8,0.15),
+  theme(legend.position=c(0.9,0.15),
         legend.title = element_blank(),
         axis.title.y = element_blank(),
         strip.text = element_text(margin = margin(.32, 0, .32, 0, "cm"))) +
@@ -328,20 +339,20 @@ wrap_plots(p1,p2,countries$plot,p4)
 # Central and South America
 
 ```{r Central and South America,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-
-region="Central and\nS. America"
-
-
-countries <- country_plot(data,region)
-gas_sector <- gas_sector_plot(data,region)
-
-countries$plot <- countries$plot + ggtitle("c. Country emissions growth (C.& S. America)")
-gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (C.& S. America)")
-
-p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
-
-wrap_plots(p1,p2,countries$plot,p4)
-
+# 
+# region="Central and\nS. America"
+# 
+# 
+# countries <- country_plot(data,region)
+# gas_sector <- gas_sector_plot(data,region)
+# 
+# countries$plot <- countries$plot + ggtitle("c. Country emissions growth (C.& S. America)")
+# gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (C.& S. America)")
+# 
+# p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
+# 
+# wrap_plots(p1,p2,countries$plot,p4)
+# 
 
 
 ```
@@ -349,19 +360,19 @@ wrap_plots(p1,p2,countries$plot,p4)
 # Europe
 
 ```{r Europe, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-
-region="Europe"
-
-countries <- country_plot(data,region)
-gas_sector <- gas_sector_plot(data,region)
-
-countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Europe)")
-gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Europe)")
-
-p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
-
-wrap_plots(p1,p2,countries$plot,p4)
-
+# 
+# region="Europe"
+# 
+# countries <- country_plot(data,region)
+# gas_sector <- gas_sector_plot(data,region)
+# 
+# countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Europe)")
+# gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Europe)")
+# 
+# p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
+# 
+# wrap_plots(p1,p2,countries$plot,p4)
+# 
 
 
 ```
@@ -369,19 +380,19 @@ wrap_plots(p1,p2,countries$plot,p4)
 # North America
 
 ```{r North America, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-
-region="North America"
-
-countries <- country_plot(data,region)
-gas_sector <- gas_sector_plot(data,region)
-
-countries$plot <- countries$plot + ggtitle("c. Country emissions growth (North America)")
-gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (North America)")
-
-p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
-
-wrap_plots(p1,p2,countries$plot,p4)
-
+# 
+# region="North America"
+# 
+# countries <- country_plot(data,region)
+# gas_sector <- gas_sector_plot(data,region)
+# 
+# countries$plot <- countries$plot + ggtitle("c. Country emissions growth (North America)")
+# gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (North America)")
+# 
+# p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
+# 
+# wrap_plots(p1,p2,countries$plot,p4)
+# 
 
 
 
@@ -390,19 +401,19 @@ wrap_plots(p1,p2,countries$plot,p4)
 # Small Islands
 
 ```{r Small Islands,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-
-region="Small Islands"
-
-countries <- country_plot(data,region)
-gas_sector <- gas_sector_plot(data,region)
-
-countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Small Islands)")
-gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Small Islands)")
-
-p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
-
-wrap_plots(p1,p2,countries$plot,p4)
-
+# 
+# region="Small Islands"
+# 
+# countries <- country_plot(data,region)
+# gas_sector <- gas_sector_plot(data,region)
+# 
+# countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Small Islands)")
+# gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Small Islands)")
+# 
+# p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
+# 
+# wrap_plots(p1,p2,countries$plot,p4)
+# 
 
 
 ```
