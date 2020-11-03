@@ -10,11 +10,15 @@ knit: (function(inputFile, encoding) {
 ---
 
 ## Description
-These figures depict emissions trends for the WGII regions using data compiled by WGIII. Code for producing them can be found here: https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/wg2_regions.Rmd. An excel file with the data compiled for each figure is available on request. 
+These figures depict emissions trends for the WGII regions using data compiled by WGIII. Code for producing them can be found here: https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/wg2_regions.Rmd. The figures are available as PNG and PDF files here: https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/tree/master/Results/Plots/WG2_regions
+An excel file with the data compiled for each figure is available on request. 
 
 ## Figure caption (replace #region as appropriate)
 Title: Greenhouse gas emissions trends for (#region). 
 Caption: Panel a depicts per capita greenhouse gas emissions by region and growth from 1990-2018. Panel b depicts total greenhouse gas emissions by region since 1990. Panel c depicts the absolute emissions growth between 2010 and 2018 for the highest emitting countries within (#region). Panel d depicts total (#region) emissions since 1990, broken down by greenhouse gas (left) and sector (right). 100 year global warming potentials consistent with WGI estimates are used. Emissions data are from Crippa et al. (2019), compiled by Ch2 of WGIII. Estimates of land-use change CO2 are not included.
+
+## Modifications and requests
+I will do some final manual modifications before the final draft (e.g. tidying the figure legend). Alternative presentations of the data may also be possible, on request.
 
 ## Data citation (TO BE UPDATED BEFORE FINAL DRAFT)
 Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., … Vignati, E. (2019). Fossil CO2 and GHG emissions of all world countries - 2019 Report. Luxembourg. https://doi.org/10.2760/687800
@@ -324,6 +328,11 @@ p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
 
 wrap_plots(p1,p2,countries$plot,p4)
 
+openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
+openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
+openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
+
 ```
 
 # Australasia
@@ -343,7 +352,10 @@ p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
 
 wrap_plots(p1,p2,countries$plot,p4)
 
-
+openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
+openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
+openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
 
 ```
 
@@ -364,7 +376,10 @@ p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
 
 wrap_plots(p1,p2,countries$plot,p4)
 
-
+openxlsx::addWorksheet(wb,"C. & S. Am. emissions growth")
+openxlsx::addWorksheet(wb,"C. & S. Am. gas and sector")
+openxlsx::writeData(wb, "C. & S. Am. emissions growth",countries$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, "C. & S. Am. gas and sector",gas_sector$data, colNames = T, rowNames = F)
 
 ```
 
@@ -384,7 +399,10 @@ p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
 
 wrap_plots(p1,p2,countries$plot,p4)
 
-
+openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
+openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
+openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
 
 ```
 
@@ -404,7 +422,10 @@ p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
 
 wrap_plots(p1,p2,countries$plot,p4)
 
-
+openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
+openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
+openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
 
 
 ```
@@ -425,7 +446,10 @@ p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
 
 wrap_plots(p1,p2,countries$plot,p4)
 
-
+openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
+openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
+openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
 
 
 ```

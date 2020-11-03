@@ -52,6 +52,7 @@ world_totals <- iea %>%
 
 
 ```
+
 ```{r allocate_ononspec, echo=FALSE}
 
 iea <- spread(iea,var,value)
@@ -220,9 +221,15 @@ iea <- iea %>%
 
 load("../Data/tsu_codes.RData")
 regions_10 <- tsu_codes %>%
-  select(region_ar6_22,region_ar6_10,region_ar6_5) %>%
+  select(region_ar6_10,region_ar6_5) %>%
   distinct() %>%
   mutate(include=1)
+
+## rename South-East Asia to match TSU codes though
+
+iea <- iea %>% 
+  mutate(country = as.character(country)) %>% 
+  mutate(country = ifelse(country=="South-East Asia and developing Pacific","South-East Asia and Developing Pacific",country))
 
 indirect_CO2_regions <- left_join(iea,regions_10,by=c("country"="region_ar6_10"))
 indirect_CO2_regions <- indirect_CO2_regions %>%
@@ -230,6 +237,7 @@ indirect_CO2_regions <- indirect_CO2_regions %>%
   select(-include) %>% 
   select(region_ar6_10=country,region_ar6_5,everything())
 
+not_joined <- anti_join(iea,regions_10,by=c("country"="region_ar6_10"))
 
 ######### world
 
@@ -272,12 +280,26 @@ indirect_CO2_countries <- indirect_CO2_countries %>%
 
 ```
 
+```{r checks, echo=FALSE}
+
+# do region emissions add up to world?
+
+check <- indirect_CO2_regions %>% 
+  group_by(year) %>% 
+  summarise(total=sum(CO2_indirect))
+
+world <- gather(indirect_CO2_world,year,value,`1990`:`2018`)
+world <- world %>% 
+  group_by(year) %>% 
+  summarise(total=sum(value))
+
+```
+
+
 ```{r save_data, echo=FALSE}
 
 
 save(indirect_CO2_regions,indirect_CO2_world,file="../Data/indirect_CO2.RData")
-
-
 
 wb <- openxlsx::createWorkbook(title = paste("ipcc_indirect_emissions_",Sys.Date()))
 
