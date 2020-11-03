@@ -1,0 +1,857 @@
+---
+title: "GHG emissions trends by sector"
+author: "William F. Lamb"
+output: 
+  word_document:
+    toc: yes
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+---
+
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(ggplot2); theme_set(theme_bw())
+library(RColorBrewer)
+
+source("small_figures.R")
+
+load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/gwps.RData')
+load('../../Data/indirect_CO2.RData')
+load('../../Data/land.RData')
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_sector_data",Sys.Date()))
+
+chapters = edgar_GHG_ar6 %>% 
+  select(chapter,chapter_title) %>% 
+  distinct()
+
+regions <- edgar_GHG_ar6 %>% 
+  select(region_ar6_10) %>% 
+  distinct()
+
+regions <- cbind(regions,data.frame(region_ar6_10_short=c("N. America","Latin Am.","Africa","Europe","Eurasia","Middle E.","S. Asia","E. Asia","S.E. Asia","A. Pacific","AIR","SEA")))
+
+edgar_GHG_ar6 <- left_join(edgar_GHG_ar6,regions,by = "region_ar6_10")
+
+
+
+########## add land CO2 data
+
+land <- land %>%
+  filter(year>1989) %>% 
+  mutate(subsector=7.7) %>% 
+  mutate(subsector_title="Land-use CO2") %>% 
+  select(region_ar6_10,year,subsector,subsector_title,value=mean)
+
+land <- left_join(land,regions,by = "region_ar6_10")
+
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_sector_trend_plots",Sys.Date()))
+
+blarg <- edgar_GHG_ar6 %>%
+  filter(year==2018) %>%
+  group_by(year,subsector_title,chapter,chapter_title) %>%
+  summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE)
+
+```
+
+```{r trend_plots,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=7,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+#ch = 11
+gather_trend_data <- function(edgar_GHG_ar6,ch) {
+  
+  ## Trend figure
+  trend_data <- edgar_GHG_ar6 %>%
+    filter(year>1989) %>%
+    filter(chapter==ch) %>%
+    group_by(year,subsector,subsector_title) %>%
+    summarise(value=sum(GHG,na.rm=TRUE)) %>%
+    mutate(value=value/1e9) %>%
+    ungroup()
+  
+  # ADD LAND IF AFOLU
+  if (ch==7) {
+    
+    land_totals <- land %>%
+      group_by(year,subsector,subsector_title) %>%
+      summarise(value=sum(value,na.rm=TRUE)) %>%
+      mutate(value=value/1e9) %>%
+      ungroup()
+    
+    trend_data <- rbind(trend_data,land_totals)
+    
+  }
+  # ADD LAND IF TOTAL
+  if (ch==1) {
+    
+    land_totals <- land %>%
+      group_by(year,subsector,subsector_title) %>%
+      summarise(value=sum(value,na.rm=TRUE)) %>%
+      mutate(value=value/1e9) %>%
+      ungroup() %>%
+      mutate(subsector=1) %>%
+      mutate(subsector_title="AFOLU") %>%
+      ungroup()
+    
+    trend_data <- rbind(trend_data,land_totals)
+    trend_data <- trend_data %>%
+      group_by(year,subsector,subsector_title) %>%
+      summarise(value=sum(value))
+    
+  }
+  
+  # ADD INDIRECT EMISSIONS IF NOT TOTAL OR ENERGY
+  if (ch!=1) {
+    if (ch!=6) {
+      
+      indirect_totals <- indirect_CO2_regions %>%
+        filter(chapter==ch) %>%
+        group_by(year) %>%
+        summarise(value=sum(CO2_indirect,na.rm=TRUE)) %>%
+        mutate(subsector_title="Indirect CO2") %>%
+        mutate(subsector=paste0(ch,".9")) %>%
+        mutate(subsector=as.numeric(subsector)) %>%
+        ungroup() %>%
+        select(year,subsector,subsector_title,value)
+      
+      # SPLIT RESIDENTIAL AND COMMERCIAL IF BUILDINGS
+      if (ch==9) {
+        
+        indirect_totals <- indirect_CO2_regions %>%
+          filter(chapter==ch) %>%
+          group_by(year,subsector,subsector_title) %>%
+          summarise(value=sum(CO2_indirect,na.rm=TRUE)) %>% 
+          ungroup()
+        
+        indirect_totals <- indirect_totals %>% 
+          mutate(subsector=ifelse(subsector_title=="Non-residential","9.8",subsector)) %>% 
+          mutate(subsector=ifelse(subsector_title=="Residential","9.9",subsector)) %>% 
+          mutate(subsector_title=ifelse(subsector_title=="Non-residential","Indirect CO2 (non-residential)",subsector_title)) %>% 
+          mutate(subsector_title=ifelse(subsector_title=="Residential","Indirect CO2 (residential)",subsector_title)) %>% 
+          select(year,subsector,subsector_title,value)
+      }
+      
+      trend_data <- rbind(trend_data,indirect_totals)
+      
+    }
+  }
+  
+  # CALCULATE RATES OF CHANGE
+  trend_rates <- trend_data %>%
+    filter(year %in% c(2010,2018)) %>%
+    group_by(subsector,subsector_title) %>%
+    mutate(rate=((last(value)/first(value))^(1/(last(year)-first(year)))-1)*100) %>%
+    filter(year==2018)
+  
+  trend_data <- left_join(trend_data,trend_rates,by = c("year", "subsector", "subsector_title", "value"))
+  
+  return(trend_data)
+  
+}
+
+
+trend_figure <- function(trend_data,chapter) {
+  
+  ## align labels
+  labels <- trend_data %>%
+    filter(year==2018) %>% 
+    arrange(desc(subsector_title))
+  
+  labels <- labels %>% 
+    mutate(fractions=(value/sum(labels$value))*100)
+  
+  labels$cum <- cumsum(labels$value)
+  
+  for (j in 1:length(labels$year)) {
+    labels$location[j] = labels$value[j]*0.5
+  }
+  for (j in 2:length(labels$year)) {
+    labels$location[j] = labels$location[j] + labels$cum[j-1]
+  }
+  
+  ## calculate shares
+  shares <- trend_data %>% 
+    filter(year %in% c(1990,2000,2010,2018)) %>% 
+    group_by(year) %>% 
+    mutate(totals=sum(value)) %>% 
+    ungroup() %>% 
+    group_by(year,subsector) %>% 
+    mutate(fractions=(value/totals)*100) %>% 
+    ungroup()
+  
+  shares <- locate_shares(shares,"subsector",4)
+  
+  ## calculate overall growth between years
+  growth_data <- trend_data %>% 
+    filter(year %in% c(1990,2000,2010,2018)) %>% 
+    group_by(year) %>% 
+    summarise(value=sum(value)) %>% 
+    mutate(total_rate = NA)
+  
+  for (j in 1:length(growth_data$year)-1) {
+    rate = (((growth_data$value[j+1]/growth_data$value[j])^(1/(growth_data$year[j+1]-growth_data$year[j])))-1)*100
+    growth_data$total_rate[j] <- rate
+  }
+  
+  shares <- left_join(shares,growth_data %>% select(-value),by="year")
+  
+  colours <- c("#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
+  if (chapter!=1) {
+    if (chapter!=6) {
+      colours <- c("#bdbdbd","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
+      
+      if (chapter==9) {
+        
+        colours <- c("#bdbdbd","#969696","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
+        
+      }
+    }
+  }
+  
+  p <- trend_data %>%
+    ggplot(.,aes(x=year,y=value,fill=subsector_title)) +
+    geom_area(color='#737373') +
+    
+    geom_vline(xintercept=c(1990,2000,2010,2018),alpha=0.3,linetype="dashed") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]),aes(x=year,y=1.05*max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste(round(totals,1),  "Gt")),size=3.5,colour="#252525")+
+    
+    #geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,size=3.5,colour="#252525") +
+    
+    geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(round(fractions,0),"%")),hjust=0,size=3.5,colour="#252525") +
+    
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<2018),aes(x=ifelse(year==2010,year+4,year+5),y=max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste0(ifelse(total_rate>0,"+","-"),round(abs(total_rate),1),"%")),size=3.5,colour="#252525") +
+    
+    scale_x_continuous(breaks=c(1990,2000,2010,2018),limits = c(1990,2020)) +
+    scale_y_continuous() +
+    expand_limits(y=c(0,max(shares$totals+ifelse(shares$subsector==1,5,1))*1.05)) +
+    #scale_fill_brewer(type = "qual",palette="Set2") +
+    scale_fill_manual(values=colours) +
+    
+    big_trend_theme +
+    ggtitle(paste0("a. ",chapters$chapter_title[i], " global GHG emissions trends")) +
+    theme(legend.position="right",
+          axis.title.x = element_blank(),
+          legend.title=element_blank(),
+          legend.spacing.x= unit(0.25, 'cm')) +
+    ylab(bquote("GHG Emissions (Gt" ~CO[2]* "eq/yr)"))
+  
+  return(p)
+  
+}
+
+```
+
+
+
+```{r regional_plots,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+gather_region_data <- function(edgar_GHG_ar6,ch) {
+  
+  ## Gather data
+  region_data <- edgar_GHG_ar6 %>% 
+    filter(chapter==ch) %>% 
+    filter(year %in% c(1990,2000,2010,2018)) %>% 
+    group_by(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year) %>% 
+    summarise(value=sum(GHG,na.rm=TRUE)) %>% 
+    mutate(value=value/1e9) %>% 
+    mutate(year=as.factor(year)) %>% 
+    ungroup()
+  
+  ## Add land if AFOLU
+  if (ch==7) {
+    
+    land_regions <- land %>% 
+      filter(year %in% c(1990,2000,2010,2018)) %>% 
+      group_by(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year) %>% 
+      summarise(value=sum(value,na.rm=TRUE)) %>% 
+      mutate(value=value/1e9) %>% 
+      mutate(year=as.factor(year)) %>% 
+      ungroup()
+    
+    region_data <- rbind(region_data,land_regions)
+    
+  }
+  
+  ## Add land if Total
+  if (ch==1) {
+    
+    land_regions <- land %>% 
+      filter(year %in% c(1990,2000,2010,2018)) %>% 
+      group_by(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year) %>% 
+      summarise(value=sum(value,na.rm=TRUE)) %>% 
+      mutate(value=value/1e9) %>% 
+      mutate(year=as.factor(year)) %>% 
+      ungroup() %>% 
+      mutate(subsector=1) %>% 
+      mutate(subsector_title="AFOLU")
+    
+    region_data <- rbind(region_data,land_regions)
+    region_data <- region_data %>% 
+      group_by(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year) %>% 
+      summarise(value=sum(value,na.rm=TRUE))
+    
+  }
+  
+  ## Remove aviation/shipping if transport
+  if (ch==10) {
+    
+    region_data <- region_data %>% 
+      ungroup() %>% 
+      mutate(value=ifelse(region_ar6_10_short=="AIR",0,value)) %>% 
+      mutate(value=ifelse(region_ar6_10_short=="SEA",0,value))
+    
+    region_data$region_ar6_10_short[region_data$region_ar6_10_short=="AIR"] <- "A. Pacific"
+    region_data$region_ar6_10_short[region_data$region_ar6_10_short=="SEA"] <- "A. Pacific"  
+    
+  }  else {
+    
+    region_data <- region_data %>% 
+      filter(region_ar6_10!="Intl. Aviation") %>% 
+      filter(region_ar6_10!="Intl. Shipping") 
+    
+  }
+  
+  ## Add indirect CO2 if not Total or Energy
+  if (ch!=1) {
+    if (ch!=6) {
+      # 
+      # land_regions <- land %>% 
+      #   filter(year %in% c(1990,2000,2010,2018)) %>% 
+      #   group_by(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year) %>% 
+      #   summarise(value=sum(value,na.rm=TRUE)) %>% 
+      #   mutate(value=value/1e9) %>% 
+      #   mutate(year=as.factor(year)) %>% 
+      #   ungroup() %>% 
+      #   mutate(subsector=1) %>% 
+      #   mutate(subsector_title="AFOLU")
+      
+      
+      indirect_regions <- indirect_CO2_regions %>% 
+        filter(chapter==ch) %>% 
+        filter(year %in% c(1990,2000,2010,2018)) %>% 
+        group_by(region_ar6_10,year) %>% 
+        summarise(value=sum(CO2_indirect,na.rm=TRUE)) %>% 
+        mutate(subsector_title="Indirect CO2") %>% 
+        mutate(subsector=paste0(ch,".9")) %>% 
+        mutate(subsector=as.numeric(subsector)) %>% 
+        ungroup()
+      
+      # SPLIT RESIDENTIAL AND COMMERCIAL IF BUILDINGS
+      if (ch==9) {
+        
+        indirect_regions <- indirect_CO2_regions %>%
+          filter(chapter==ch) %>%
+          filter(year %in% c(1990,2000,2010,2018)) %>% 
+          group_by(region_ar6_10,year,subsector,subsector_title) %>%
+          summarise(value=sum(CO2_indirect,na.rm=TRUE)) %>% 
+          ungroup()
+        
+        indirect_regions <- indirect_regions %>% 
+          mutate(subsector=ifelse(subsector_title=="Non-residential","9.8",subsector)) %>% 
+          mutate(subsector=ifelse(subsector_title=="Residential","9.9",subsector)) %>% 
+          mutate(subsector_title=ifelse(subsector_title=="Non-residential","Indirect CO2 (non-residential)",subsector_title)) %>% 
+          mutate(subsector_title=ifelse(subsector_title=="Residential","Indirect CO2 (residential)",subsector_title))
+        
+      }
+      
+      indirect_regions <- left_join(indirect_regions,regions,by = "region_ar6_10")
+      indirect_regions <- indirect_regions %>% 
+        select(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year,value)
+      
+      region_data <- rbind(region_data,indirect_regions)
+      
+      
+      
+      
+    }
+  }
+  
+  return(region_data)
+  
+}
+
+plot_region_figure <- function(region_data,chapter) {
+  
+  colours <- c("#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
+  if (chapter!=1) {
+    if (chapter!=6) {
+      colours <- c("#bdbdbd","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
+      if (chapter==9) {
+        
+        colours <- c("#bdbdbd","#969696","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
+        
+      }
+    }
+  }
+  
+  p <- region_data %>% ggplot(.,aes(x=year,y=value,fill=subsector_title)) +
+    geom_bar(stat='identity',colour="#737373") +
+    facet_grid(.~region_ar6_10_short) +
+    ylab(bquote("GHG Emissions (Gt" ~CO[2]* "eq/yr)")) +
+    #scale_fill_brewer(type = "qual",palette="Set2") +
+    scale_fill_manual(values=colours) +
+    ggtitle(paste0("b. ",chapters$chapter_title[i], " regional GHG emissions trends")) +
+    big_trend_theme +
+    theme(legend.position="none",
+          axis.title.x = element_blank(),
+          legend.title=element_blank(),
+          axis.text.x = element_text(angle = 45,hjust=1),
+          legend.spacing.x= unit(0.25, 'cm'))
+  
+  return(p)
+}
+
+
+
+```
+
+
+
+# All 5 sectors by 10 regions
+
+```{r totals,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+## Which chapter?
+i=6
+ch = 1
+chapters <- add_row(chapters,chapter=1,chapter_title="Total")
+
+## Gather data for overall trend
+total_data <- edgar_GHG_ar6 %>% 
+  group_by(country,year,chapter,chapter_title,region_ar6_10,region_ar6_10_short) %>% 
+  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>% 
+  ungroup() %>% 
+  mutate(chapter=1) %>% 
+  mutate(subsector=1) %>% 
+  select(chapter,subsector,subsector_title=chapter_title,everything())
+
+trend_data <- gather_trend_data(total_data,ch)
+
+
+## align factors and labels
+trend_data$subsector_title <- as.factor(trend_data$subsector_title)
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,4,1,5,2)])
+
+p1 <- trend_figure(trend_data,ch)
+
+
+############ Region plot
+
+region_data <- gather_region_data(total_data,ch)
+
+## align factors and labels
+region_data$subsector_title <- as.factor(region_data$subsector_title)
+region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(3,4,1,5,2)])
+
+p2 <- plot_region_figure(region_data,ch)
+
+
+############ Plot everything
+ggarrange(p1,p2,nrow=2,align = "h")
+
+
+############ Save data
+trend_data <- spread(trend_data %>% select(-rate),year,value)
+region_data <- spread(region_data,year,value)
+
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+
+
+```
+
+# Energy
+
+```{r energy,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+## Which chapter?
+i=1
+ch = chapters$chapter[i]
+
+############  Overall trend
+
+trend_data <- gather_trend_data(edgar_GHG_ar6,ch)
+
+## align factors and labels
+trend_data$subsector_title <- as.factor(trend_data$subsector_title)
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,4,2,5,6,1)])
+
+p1 <- trend_figure(trend_data,ch)
+
+############  Region plot
+
+region_data <- gather_region_data(edgar_GHG_ar6,ch)
+
+## align factors and labels
+region_data$subsector_title <- as.factor(region_data$subsector_title)
+region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(3,4,2,5,6,1)])
+
+p2 <- plot_region_figure(region_data,ch)
+
+
+############ Plot everything
+ggarrange(p1,p2,nrow=2,align = "h")
+
+
+############ Save data
+trend_data <- spread(trend_data %>% select(-rate),year,value)
+region_data <- spread(region_data,year,value)
+
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+
+
+```
+
+# Industry
+
+```{r industry,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+## Which chapter?
+i=2
+ch = chapters$chapter[i]
+
+############  Overall trend
+
+trend_data <- gather_trend_data(edgar_GHG_ar6,ch)
+
+## align factors and labels
+trend_data$subsector_title <- as.factor(trend_data$subsector_title)
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,5,4,2,1,6)])
+
+p1 <- trend_figure(trend_data,ch)
+
+############  Region plot
+
+region_data <- gather_region_data(edgar_GHG_ar6,ch)
+
+## align factors and labels
+region_data$subsector_title <- as.factor(region_data$subsector_title)
+region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(3,5,4,2,1,6)])
+
+p2 <- plot_region_figure(region_data,ch)
+
+
+############ Plot everything
+ggarrange(p1,p2,nrow=2,align = "h")
+
+
+############ Save data
+trend_data <- spread(trend_data %>% select(-rate),year,value)
+region_data <- spread(region_data,year,value)
+
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+
+
+```
+
+# Transport
+
+```{r transport,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+## Which chapter?
+i=3
+ch = chapters$chapter[i]
+
+############  Overall trend
+
+trend_data <- gather_trend_data(edgar_GHG_ar6,ch)
+
+## align factors and labels
+trend_data$subsector_title <- as.factor(trend_data$subsector_title)
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(2,8,5,4,1,6,3,7)])
+
+p1 <- trend_figure(trend_data,ch)
+
+############  Region plot
+
+region_data <- gather_region_data(edgar_GHG_ar6,ch)
+
+## align factors and labels
+region_data$subsector_title <- as.factor(region_data$subsector_title)
+region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(2,8,5,4,1,6,3,7)])
+
+p2 <- plot_region_figure(region_data,ch)
+
+
+############ Plot everything
+ggarrange(p1,p2,nrow=2,align = "h")
+
+
+############ Save data
+trend_data <- spread(trend_data %>% select(-rate),year,value)
+region_data <- spread(region_data,year,value)
+
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+
+
+```
+
+# Buildings
+
+```{r buildings,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+## Which chapter?
+i=4
+ch = chapters$chapter[i]
+
+############  Overall trend
+
+trend_data <- gather_trend_data(edgar_GHG_ar6,ch)
+
+## align factors and labels
+trend_data$subsector_title <- as.factor(trend_data$subsector_title)
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(2,1,5,4,3)])
+
+p1 <- trend_figure(trend_data,ch)
+
+############  Region plot
+
+region_data <- gather_region_data(edgar_GHG_ar6,ch)
+
+## align factors and labels
+region_data$subsector_title <- as.factor(region_data$subsector_title)
+region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(2,1,5,4,3)])
+
+p2 <- plot_region_figure(region_data,ch)
+
+
+############ Plot everything
+ggarrange(p1,p2,nrow=2,align = "h")
+
+
+############ Save data
+trend_data <- spread(trend_data %>% select(-rate),year,value)
+region_data <- spread(region_data,year,value)
+
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+
+
+```
+
+
+# AFOLU
+
+```{r AFOLU,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+## Which chapter?
+i=5
+ch = chapters$chapter[i]
+
+############  Overall trend
+
+trend_data <- gather_trend_data(edgar_GHG_ar6 %>% filter(subsector_title!="Fuel combustion (REMOVE FROM FIGURES)"),ch)
+
+## align factors and labels
+trend_data$subsector_title <- as.factor(trend_data$subsector_title)
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,4,2,5,7,6,1,8)])
+
+p1 <- trend_figure(trend_data,ch)
+
+############  Region plot
+
+region_data <- gather_region_data(edgar_GHG_ar6 %>% filter(subsector_title!="Fuel combustion (REMOVE FROM FIGURES)"),ch)
+
+## align factors and labels
+region_data$subsector_title <- as.factor(region_data$subsector_title)
+region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(3,4,2,5,7,6,1,8)])
+
+p2 <- plot_region_figure(region_data,ch)
+
+
+############ Plot everything
+ggarrange(p1,p2,nrow=2,align = "h")
+
+
+############ Save data
+trend_data <- spread(trend_data %>% select(-rate),year,value)
+region_data <- spread(region_data,year,value)
+
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+
+
+```
+
+
+
+# Top emitting sectors + indirect emissions
+
+```{r top_subsectors_indirect,echo=FALSE,warning=FALSE,results='asis',fig.width=10,fig.height=7,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+top_sectors <- edgar_GHG_ar6  %>%
+  filter(year>1989) %>%
+  filter(year<2019) %>%
+  group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
+  summarise(total_GHG=sum(GHG,na.rm=TRUE)/1e9) %>%
+  ungroup()
+
+########### add land CO2
+land_totals <- land %>%
+  filter(year>1989) %>%
+  filter(year<2019) %>%
+  mutate(chapter=7) %>%
+  mutate(chapter_title="AFOLU") %>%
+  group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
+  summarise(total_GHG=sum(value,na.rm=TRUE)/1e9) %>%
+  ungroup()
+top_sectors <- rbind(top_sectors,land_totals)
+
+GHG_2018 <- top_sectors %>% 
+  filter(year==2018) %>% 
+  summarise(total_GHG=sum(total_GHG))
+
+########### add indirect emissions
+load("../../Data/indirect_CO2.RData")
+indirect_CO2_regions <- indirect_CO2_regions %>% 
+  group_by(year,subsector,subsector_title) %>% 
+  summarise(CO2_indirect=sum(CO2_indirect)) %>% 
+  ungroup()
+
+top_sectors <- left_join(top_sectors,indirect_CO2_regions,by = c("year", "subsector", "subsector_title"))
+
+top_sectors <- top_sectors %>% 
+  mutate(total_GHG_plus_indirect = total_GHG+CO2_indirect)
+
+
+######### calculate rates of change and fractions of total
+
+time_start=2010
+
+top_sectors <- top_sectors %>%
+  filter(year %in% c(2010,2018)) %>% 
+  group_by(subsector_title) %>%
+  mutate(rate_direct=(last(total_GHG)/first(total_GHG))^(1/(last(year)-time_start))-1) %>%
+  mutate(rate_indirect=(last(total_GHG_plus_indirect)/first(total_GHG_plus_indirect))^(1/(last(year)-time_start))-1) %>% 
+  filter(year==2018)
+
+top_sectors <- top_sectors %>% 
+  mutate(rate_indirect=ifelse(is.na(rate_indirect),rate_direct,rate_indirect)) %>% 
+  mutate(total_GHG_plus_indirect=ifelse(is.na(total_GHG_plus_indirect),total_GHG,total_GHG_plus_indirect)) 
+
+top_sectors <- top_sectors %>% 
+  mutate(fraction_indirect=total_GHG_plus_indirect/GHG_2018$total_GHG) %>% 
+  mutate(fraction_indirect=ifelse(subsector_title=="Electricity & heat",NA,fraction_indirect))
+
+
+######### join gas data
+
+subsector_gases <- edgar_GHG_ar6 %>% 
+  filter(year==2018) %>%
+  group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
+  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>%
+  mutate_at(vars(CO2,CH4,N2O,Fgas,GHG),list(~./1e9)) %>%
+  ungroup()
+
+top_sectors <- left_join(top_sectors,subsector_gases,by = c("year", "chapter", "chapter_title", "subsector", "subsector_title"))
+top_sectors <- top_sectors %>% 
+  mutate(CO2=ifelse(subsector_title=="Land-use CO2",total_GHG,CO2))
+
+top_sectors <- top_sectors %>% 
+  select(`CO2 (direct)`=CO2,`CO2 (indirect)`=CO2_indirect,everything())
+
+######### select top 15 and plot
+
+plot_data <- top_sectors %>%
+  ungroup() %>%
+  arrange(desc(total_GHG_plus_indirect)) %>% 
+  head(20)
+
+plot_data <- plot_data %>%
+  mutate(label=paste0(subsector_title," (",chapter_title,")")) %>% 
+  mutate(year=as.factor(year))
+
+plot_data <- gather(plot_data,key,value,`CO2 (direct)`,`CO2 (indirect)`,CH4,N2O,Fgas)
+plot_data$key <- as.factor(plot_data$key)
+plot_data$key <- factor(plot_data$key,levels=levels(plot_data$key)[c(3,4,5,1,2)])
+
+### remove funny sectors ?
+plot_data <- plot_data %>% 
+  filter(subsector!=7.9)
+
+plot_data <- plot_data %>% 
+  mutate(facet=ifelse(subsector==6.1,"Energy sector","Other"))
+
+
+p <- plot_data %>%
+  ggplot(.,aes(y=value,x=reorder(label,total_GHG_plus_indirect),fill=key)) +
+  geom_bar(stat='identity',colour="#737373") +
+  #geom_text(data=plot_data %>% filter(key=="CO2 (direct)"),aes(y=total_GHG_plus_indirect+1.5,x=reorder(label,total_GHG_plus_indirect),label=paste0(ifelse(rate_indirect>0,"+","-"),round(abs(rate_indirect)*100,1),"%"))) +
+  coord_flip() +
+  facet_grid(facet~.,scales="free",space="free") +
+  ylim(0,15) +
+  scale_fill_brewer(type = "qual",palette="Set2") +
+  theme(axis.title.y = element_blank(),
+        legend.position = c(0.75,0.3),
+        legend.title = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.background = element_blank(),
+        legend.spacing.x = unit(0.25, 'cm'),
+        legend.text = element_text(size=11),
+        axis.title.x = element_text(size=12),
+        axis.text.x = element_text(size=12),
+        plot.title = element_text(size = 12),
+        strip.background = element_blank(),
+        strip.text = element_blank()) +
+  ggtitle("\nTotal global emissions in 2018") +
+  ylab("GHG emissions (Gt CO2eq)")
+
+p2 <- plot_data %>% 
+  filter(key=="CO2 (direct)") %>% 
+  ggplot(.,aes(y="a",x=reorder(label,total_GHG_plus_indirect),label=paste0(ifelse(rate_indirect>0,"+","-"),round(abs(rate_indirect)*100,1),"%"))) +
+  geom_text() +
+  coord_flip() +
+  facet_grid(facet~.,scales="free",space="free") +
+  theme(axis.title.y = element_blank(),
+        #axis.text.y = element_blank(),
+        #axis.ticks.y = element_blank(),
+        axis.text.y = element_text(size=11),
+        axis.title.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(size = 12),
+        strip.background = element_blank(),
+        strip.text = element_blank()) +
+  ggtitle("Growth \nsince 2010",)
+
+ggarrange(p2,p,ncol=2,widths=c(0.44,0.56),align = "h")
+
+```
+
+
+
+```{r write,include=FALSE,echo=FALSE}
+
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_sector_trend_plots_",Sys.Date(),".xlsx"),overwrite=T)
+
+
+
+```
