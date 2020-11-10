@@ -4,7 +4,7 @@ author: "William F. Lamb"
 output: 
   word_document:
 knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
   
 ---
 
@@ -28,6 +28,8 @@ library(zoo)
 library(ggpubr)
 library(ggplot2); theme_set(theme_bw())
 library(cluster)
+library(ggrepel)
+
 
 
  vars <- wbsearch(pattern = "population")
@@ -35,25 +37,26 @@ library(cluster)
  
 load('C:\\Users\\lamw\\Documents\\SpiderOak Hive\\Work\\Code\\R\\Database\\SWIID\\SWIID.RData')
 
-
-# sdgs <- wb(country="all",indicator=c("SI.POV.DDAY","SP.DYN.LE00.IN","SH.DYN.MORT","SE.SEC.ENRR","SH.STA.BASS.ZS","EG.ELC.ACCS.ZS","SL.UEM.TOTL.ZS","SP.POP.TOTL"))
+# 
+# sdgs <- wb(country="all",indicator=c("SI.POV.DDAY","SP.DYN.LE00.IN","SH.DYN.MORT","SE.SEC.ENRR","SH.STA.BASS.ZS","EG.ELC.ACCS.ZS","SL.UEM.TOTL.ZS","SP.POP.TOTL","NY.GDP.MKTP.KD"))
 # 
 # sdgs <- sdgs %>%
 #   mutate(indicatorID=ifelse(grepl("SI.POV.DDAY",indicatorID),"Poverty",indicatorID)) %>%
-#   mutate(indicatorID=ifelse(grepl("SP.DYN.LE00.IN",indicatorID),"Health",indicatorID)) %>%
+#   mutate(indicatorID=ifelse(grepl("SP.DYN.LE00.IN",indicatorID),"Life_expectancy",indicatorID)) %>%
 #   mutate(indicatorID=ifelse(grepl("SH.DYN.MORT",indicatorID),"Mortality",indicatorID)) %>%
 #   mutate(indicatorID=ifelse(grepl("SE.SEC.ENRR",indicatorID),"Education",indicatorID)) %>%
 #   mutate(indicatorID=ifelse(grepl("SH.STA.BASS.ZS",indicatorID),"Sanitation",indicatorID)) %>%
 #   mutate(indicatorID=ifelse(grepl("EG.ELC.ACCS.ZS",indicatorID),"Electricity",indicatorID)) %>%
 #   mutate(indicatorID=ifelse(grepl("SL.UEM.TOTL.ZS",indicatorID),"Employment",indicatorID)) %>%
-#   mutate(indicatorID=ifelse(grepl("SP.POP.TOTL",indicatorID),"Population",indicatorID))
+#   mutate(indicatorID=ifelse(grepl("SP.POP.TOTL",indicatorID),"Population",indicatorID)) %>%
+#   mutate(indicatorID=ifelse(grepl("NY.GDP.MKTP.KD",indicatorID),"GDP_PPP",indicatorID))
 # 
-# save(sdgs,file='../Data/sdgs.RData')
+# save(sdgs,file='../../Data/sdgs.RData')
 
 
-load('../Data/sdgs.RData')
-load('../Data/edgar_data_gwp_ar6.RData')
-load('../Data/basic.RData')
+load('../../Data/sdgs.RData')
+load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/basic.RData')
 
 ```
 
@@ -96,7 +99,7 @@ table <- table %>%
   mutate(Mortality=100-(0.1*Mortality)) %>% 
   mutate(year=as.numeric(year)) %>% 
   ungroup() %>% 
-  select(-Health)
+  select(-Life_expectancy)
 
 table <- table %>% 
   filter(year==2018)
@@ -167,7 +170,7 @@ edgar_countries <- edgar_countries %>%
 ```
 
 
-```{r ch1_plot, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=4,fig.path="../Results/Plots/sdgs/",dev=c('png','pdf')}
+```{r ch1_plot, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=4,fig.path="../../Results/Plots/sdgs/",dev=c('png','pdf')}
 # 
 # data <- edgar_GHG_ar6 %>% 
 #   filter(year>1989) %>% 
@@ -222,196 +225,317 @@ edgar_countries %>%
 
 ```
 
-```{r clustering_pathways, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=4,fig.path="../Results/Plots/sdgs/",dev=c('png','pdf')}
-
-emissions_data <- edgar_GHG_ar6 %>% 
-  group_by(country,ISO,region_ar6_5,year) %>% 
-  summarise_at(vars(CO2,GHG),sum,na.rm=TRUE)
-
-emissions_data <- left_join(emissions_data,basic %>% select(ISO,year=Year,pop_UN,gdp_ppp_WB))
-
-############## !!!!!!!!!!!!!!
-emissions_data <- emissions_data %>% 
-  group_by(country) %>% 
-  mutate(gdp_ppp_WB=na.locf(gdp_ppp_WB,na.rm=FALSE))
-############## !!!!!!!!!!!!!!
+```{r time_trend, echo=FALSE,warning=FALSE}
 
 
-emissions_data <- emissions_data %>% 
-  mutate(CO2pc=CO2/pop_UN) %>% 
-  mutate(GHGpc=GHG/pop_UN) %>% 
-  mutate(GDPpc=gdp_ppp_WB/pop_UN) %>% 
-  mutate(var=CO2pc)
+data <- sdgs %>% 
+  select(iso=iso3c,country,year=date,sdg=indicatorID,-indicator,value) %>% 
+  filter(country=="World")
+
+data <- spread(data,sdg,value)
+
+data <- data %>% 
+  select(-Sanitation,-Electricity,-Employment,-Mortality,-iso,-country) %>% 
+  mutate(Poverty=100-Poverty) %>% 
+  mutate(year=as.numeric(year))
 
 
+## join emissions
 
-world <- emissions_data %>% 
+world_emissions <- edgar_GHG_ar6 %>% 
   group_by(year) %>% 
-  summarise_at(vars(pop_UN,CO2,GHG,gdp_ppp_WB),sum,na.rm=TRUE) %>% 
-  filter(year==2018) %>% 
-  select(-year)
+  summarise(CO2=sum(CO2,na.rm=TRUE))
 
-emissions_data <- emissions_data %>% 
-  filter(!is.na(var)) %>% 
-  filter(country!="Qatar") %>% 
-  #filter(country!="Trinidad and Tobago") %>% 
-  mutate(inc=ifelse(year==2018 & pop_UN>1e6,1,0)) %>% 
-  group_by(country) %>% 
-  mutate(inc=max(inc)) %>%
+data <- left_join(data,world_emissions,by="year")
+
+## join energy
+
+energy <- openxlsx::read.xlsx("../../Data/IEA/2020 update/iea_web.xlsx")
+energy <- energy %>% 
+  slice(31)
+energy <- gather(energy,year,Energy,`1960`:`2019`)
+energy <- energy %>% 
+  filter(year>1970) %>% 
+  filter(year<2019) %>% 
+  select(-X1,-TIME) %>% 
+  mutate(Energy=as.numeric(Energy)) %>% 
+  mutate(year=as.numeric(year))
+
+data <- left_join(data,energy,by="year")
+
+
+## normalise to 1990
+
+data <- gather(data,var,value,Education:Energy)
+
+data <- data %>% 
+  group_by(var) %>% 
+  mutate(value=value/nth(value,31)) %>% 
   ungroup() %>% 
-  filter(inc==1)
+  mutate(var=ifelse(var=="Education","Secondary education (% gross enrollment)",var)) %>% 
+  mutate(var=ifelse(var=="GDP_PPP","GDP ($)",var)) %>% 
+  mutate(var=ifelse(var=="Life_expectancy","Life expectancty (years)",var)) %>% 
+  mutate(var=ifelse(var=="CO2","Carbon emissions (CO2)",var)) %>% 
+  mutate(var=ifelse(var=="Population","Population (persons)",var)) %>% 
+  mutate(var=ifelse(var=="Poverty","Poverty headcount (% > $1.90/day)",var)) %>% 
+  mutate(var=ifelse(var=="Energy","Final energy consumption (GJ)",var))
 
-cluster_data <- emissions_data %>% 
-  filter(year %in% c(1980,1985,1990,1995,2000,2005,2010,2015,2018))
-
-cluster_data <- spread(cluster_data %>% select(country,ISO,year,var),year,var)
-
-clusters <- pam(cluster_data %>% select(-country,-ISO),6)
-
-cluster_data <- cbind(cluster_data,cluster=clusters$clustering) ### bind clusters to dataset
-cluster_data$cluster <- as.factor(clusters$clustering) ### convert to factor
-
-emissions_data <- left_join(emissions_data,cluster_data %>% select(ISO,cluster),by=c("ISO"="ISO"))
-
-
-summary_table <- emissions_data %>% 
-  filter(year==2018) %>% 
-  group_by(cluster) %>% 
-  summarise(countries=paste0(country,collapse=", "), pop=sum(pop_UN),CO2=sum(CO2),GHG=sum(GHG),CO2pc=mean(CO2pc),GDP=sum(gdp_ppp_WB,na.rm=T),GDPpc=mean(GDPpc,na.rm=T))
+labels <- data %>% 
+  group_by(var) %>% 
+  mutate(value=na.locf(value,na.rm=FALSE)) %>% 
+  filter(year==2018)
 
 
-summary_table <- summary_table %>% 
-  mutate(Population=pop/world$pop_UN*100) %>% 
-  mutate(`CO2 Emissions`=CO2/world$CO2*100) %>% 
-  mutate(`GHG Emissions`=GHG/world$GHG*100) %>% 
-  mutate(`GDP (ppp)`=GDP/world$gdp_ppp_WB*100) %>% 
-  arrange(CO2pc)
 
-summary_table <- cbind(summary_table,data.frame(rank=c(1:6))) %>% 
-  mutate(rank=factor(rank))
-
-emissions_data <- left_join(emissions_data,summary_table %>% select(cluster,rank),by=c("cluster"="cluster"))
-
-emissions_data <- emissions_data %>% 
-  select(-cluster,cluster=rank)
-
-summary_table <- summary_table %>% 
-  select(-cluster,cluster=rank)
-
-p1 <- emissions_data %>% ggplot(.,aes(x=year,y=var,color=cluster,group=ISO)) +
-  geom_line() +
-  scale_y_continuous(trans = "log",breaks = c(0,1,5,10,20,40,80)) +
-  #geom_text(data=summary_table)
-  facet_grid(.~cluster,scales="free") +
-  scale_x_continuous(breaks=c(1980,2010)) +
-  ylab("CO2 emissions (log tCO2/year)") +
+p1 <- data %>% ggplot(.,aes(x=year,y=value,group=var,color=var)) + 
+  geom_path(size=1.5) +
+  geom_text_repel(inherit.aes=FALSE,data=labels,aes(x=year+2,y=value,color=var,label=str_wrap(var,width=20)),
+                  hjust=0,
+                  direction = "y",
+                  segment.color = 'transparent',
+                  xlim = c(1960,2050)) +
+  theme_bw() +
+  scale_x_continuous(limits=c(1960,2050),breaks=c(1960,1980,2000,2020)) + 
+  scale_color_brewer(palette="Set2") +
   theme(legend.position="none",
-        axis.title.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        plot.title = element_text(size = 11)) +
-  ggtitle("a. Historical carbon emissions pathways grouped by trends and levels")
+        axis.title = element_blank(),panel.grid.minor = element_blank())
 p1
 
-xlsx::write.xlsx(summary_table,"../Results/Data/sdg_clusters.xlsx")
+```
+
+```{r distribution, echo=FALSE,warning=FALSE}
+
+
+codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
+
+
+tfec <- openxlsx::read.xlsx("../../Data/IEA/2020 update/tfec.xlsx")
+tfec <- tfec %>% 
+  mutate(country=tolower(TIME))
+
+tfec <- gather(tfec,year,value,`1960`:`2019`)
+
+tfec <- left_join(tfec,codes,by=c("country"="alternative.name"))
+
+regions <- tfec
+
+tfec <- tfec %>% 
+  filter(!is.na(alpha.3)) %>% 
+  filter(alpha.3!="ZZZZ") %>% 
+  mutate(value=ifelse(value=="..",NA,value)) %>% 
+  mutate(value=as.numeric(value)) %>% 
+  mutate(value=value*1000) %>% 
+  mutate(year=as.numeric(year)) %>% 
+  select(alpha.3,year,Energy=value)
+
+lex_gdp <- sdgs %>% 
+  filter(indicatorID %in% c("GDP_PPP","Life_expectancy","Population")) %>% 
+  select(alpha.3=iso3c,year=date,value,indicatorID) %>% 
+  mutate(year=as.numeric(year))
+
+lex_gdp <- spread(lex_gdp,indicatorID,value)
+
+plot_data <- left_join(lex_gdp,tfec,by = c("year","alpha.3"))
+
+load("../../Data/ipcc_regions.RData")
+
+plot_data <- left_join(plot_data,ipcc_regions %>% select(alpha.3=ISO,region_ar6_5))
+
+p2 <- plot_data %>% filter(year==2018) %>% 
+  filter(alpha.3!="WLD") %>% 
+  ggplot(.,aes(x=Energy/Population,y=Life_expectancy,size=Population,fill=region_ar6_5)) +
+  geom_point(shape = 21,alpha=0.7,stroke=0,colour="#636363") +
+  scale_size(range = c(1, 25)) +
+  theme(legend.position="none",panel.grid.minor = element_blank()) +
+  ylab("Life expectancy at birth (years)") +
+  xlab("Final energy consumption  (GJ/capita)")
+
+p3 <- plot_data %>% filter(year==2018) %>% 
+  filter(alpha.3!="WLD") %>% 
+  ggplot(.,aes(x=Energy/Population,y=GDP_PPP/Population,size=Population,fill=region_ar6_5)) +
+  geom_point(shape = 21,alpha=0.7,stroke=0,colour="#636363") +
+  scale_y_continuous(trans = "log",breaks=c(1000,5000,10000,20000,50000,100000),labels = scales::comma) +
+  scale_x_continuous(trans = "log",breaks=c(0,100,200,300,400,500)) +
+  scale_size(range = c(1, 25)) +
+  #theme(legend.position="none",panel.grid.minor = element_blank()) +
+  ylab("GDP (log PPP 2010$ / capita)") +
+  xlab("Final energy consumption (log GJ / capita)")
+  
+p3
+```
+```{r sdg_figure, echo=FALSE,warning=FALSE,results='asis',fig.width=10,fig.height=6,fig.path="../../Results/Plots/sdgs/",dev=c('png','pdf')}
+
+library(patchwork)
+
+(p1 + plot_spacer()) / (p3 + p2)
 
 
 ```
 
-```{r clusters_descriptive, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=2,fig.path="../Results/Plots/sdgs/",dev=c('png','pdf')}
-
-
-plot_data <- gather(summary_table,key,value,Population:`GDP (ppp)`)
-plot_data$key <- factor(plot_data$key)
-plot_data$key <- factor(plot_data$key,levels = levels(plot_data$key)[c(3,1,2,4)])
-
-p2 <- plot_data %>% 
-  ggplot(.,aes(x=key,y=value,fill=cluster)) +
-  geom_bar(stat='identity',color="#737373",width=0.5) +
-  coord_flip() +
-  facet_grid(.~cluster) +
-  scale_y_continuous(breaks = c(0,20,40)) +
-  theme(legend.position = "none",
-        axis.title = element_blank(),
-        strip.background = element_blank(),
-        strip.text.x = element_blank(),
-        plot.title = element_text(size = 11)) +
-  ggtitle("b. Fraction of global population, GDP and emissions by group")
-
-p2
+```{r clustering_pathways, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=4,fig.path="../../Results/Plots/sdgs/",dev=c('png','pdf')}
+# 
+# emissions_data <- edgar_GHG_ar6 %>% 
+#   group_by(country,ISO,region_ar6_5,year) %>% 
+#   summarise_at(vars(CO2,GHG),sum,na.rm=TRUE)
+# 
+# emissions_data <- left_join(emissions_data,basic %>% select(ISO,year=Year,pop_UN,gdp_ppp_WB))
+# 
+# ############## !!!!!!!!!!!!!!
+# emissions_data <- emissions_data %>% 
+#   group_by(country) %>% 
+#   mutate(gdp_ppp_WB=na.locf(gdp_ppp_WB,na.rm=FALSE))
+# ############## !!!!!!!!!!!!!!
+# 
+# 
+# emissions_data <- emissions_data %>% 
+#   mutate(CO2pc=CO2/pop_UN) %>% 
+#   mutate(GHGpc=GHG/pop_UN) %>% 
+#   mutate(GDPpc=gdp_ppp_WB/pop_UN) %>% 
+#   mutate(var=CO2pc)
+# 
+# 
+# 
+# world <- emissions_data %>% 
+#   group_by(year) %>% 
+#   summarise_at(vars(pop_UN,CO2,GHG,gdp_ppp_WB),sum,na.rm=TRUE) %>% 
+#   filter(year==2018) %>% 
+#   select(-year)
+# 
+# emissions_data <- emissions_data %>% 
+#   filter(!is.na(var)) %>% 
+#   filter(country!="Qatar") %>% 
+#   #filter(country!="Trinidad and Tobago") %>% 
+#   mutate(inc=ifelse(year==2018 & pop_UN>1e6,1,0)) %>% 
+#   group_by(country) %>% 
+#   mutate(inc=max(inc)) %>%
+#   ungroup() %>% 
+#   filter(inc==1)
+# 
+# cluster_data <- emissions_data %>% 
+#   filter(year %in% c(1980,1985,1990,1995,2000,2005,2010,2015,2018))
+# 
+# cluster_data <- spread(cluster_data %>% select(country,ISO,year,var),year,var)
+# 
+# clusters <- pam(cluster_data %>% select(-country,-ISO),6)
+# 
+# cluster_data <- cbind(cluster_data,cluster=clusters$clustering) ### bind clusters to dataset
+# cluster_data$cluster <- as.factor(clusters$clustering) ### convert to factor
+# 
+# emissions_data <- left_join(emissions_data,cluster_data %>% select(ISO,cluster),by=c("ISO"="ISO"))
+# 
+# 
+# summary_table <- emissions_data %>% 
+#   filter(year==2018) %>% 
+#   group_by(cluster) %>% 
+#   summarise(countries=paste0(country,collapse=", "), pop=sum(pop_UN),CO2=sum(CO2),GHG=sum(GHG),CO2pc=mean(CO2pc),GDP=sum(gdp_ppp_WB,na.rm=T),GDPpc=mean(GDPpc,na.rm=T))
+# 
+# 
+# summary_table <- summary_table %>% 
+#   mutate(Population=pop/world$pop_UN*100) %>% 
+#   mutate(`CO2 Emissions`=CO2/world$CO2*100) %>% 
+#   mutate(`GHG Emissions`=GHG/world$GHG*100) %>% 
+#   mutate(`GDP (ppp)`=GDP/world$gdp_ppp_WB*100) %>% 
+#   arrange(CO2pc)
+# 
+# summary_table <- cbind(summary_table,data.frame(rank=c(1:6))) %>% 
+#   mutate(rank=factor(rank))
+# 
+# emissions_data <- left_join(emissions_data,summary_table %>% select(cluster,rank),by=c("cluster"="cluster"))
+# 
+# emissions_data <- emissions_data %>% 
+#   select(-cluster,cluster=rank)
+# 
+# summary_table <- summary_table %>% 
+#   select(-cluster,cluster=rank)
+# 
+# p1 <- emissions_data %>% ggplot(.,aes(x=year,y=var,color=cluster,group=ISO)) +
+#   geom_line() +
+#   scale_y_continuous(trans = "log",breaks = c(0,1,5,10,20,40,80)) +
+#   #geom_text(data=summary_table)
+#   facet_grid(.~cluster,scales="free") +
+#   scale_x_continuous(breaks=c(1980,2010)) +
+#   ylab("CO2 emissions (log tCO2/year)") +
+#   theme(legend.position="none",
+#         axis.title.x = element_blank(),
+#         panel.grid.minor.y = element_blank(),
+#         plot.title = element_text(size = 11)) +
+#   ggtitle("a. Historical carbon emissions pathways grouped by trends and levels")
+# p1
+# 
+# xlsx::write.xlsx(summary_table,"../../Results/Data/sdg_clusters.xlsx")
+# 
 
 ```
 
-```{r clusters_sdgs, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=4,fig.path="../Results/Plots/sdgs/",dev=c('png','pdf')}
+```{r clusters_descriptive, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=2,fig.path="../../Results/Plots/sdgs/",dev=c('png','pdf')}
+# 
+# 
+# plot_data <- gather(summary_table,key,value,Population:`GDP (ppp)`)
+# plot_data$key <- factor(plot_data$key)
+# plot_data$key <- factor(plot_data$key,levels = levels(plot_data$key)[c(3,1,2,4)])
+# 
+# p2 <- plot_data %>% 
+#   ggplot(.,aes(x=key,y=value,fill=cluster)) +
+#   geom_bar(stat='identity',color="#737373",width=0.5) +
+#   coord_flip() +
+#   facet_grid(.~cluster) +
+#   scale_y_continuous(breaks = c(0,20,40)) +
+#   theme(legend.position = "none",
+#         axis.title = element_blank(),
+#         strip.background = element_blank(),
+#         strip.text.x = element_blank(),
+#         plot.title = element_text(size = 11)) +
+#   ggtitle("b. Fraction of global population, GDP and emissions by group")
+# 
+# p2
+
+```
+
+```{r clusters_sdgs, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=4,fig.path="../../Results/Plots/sdgs/",dev=c('png','pdf')}
+
+# 
+# yy <- left_join(emissions_data,table %>%                     select(-country,-Population),by=c("ISO"="iso","year"="year"))
 
 
-yy <- left_join(emissions_data,table %>%                     select(-country,-Population),by=c("ISO"="iso","year"="year"))
 
-# blarg <- yy %>% 
-#   group_by(cluster,year) %>% 
-#   summarise_at(vars(Education,Electricity,Employment,Health,Poverty,Sanitation),list(~min(.),~max(.)),na.rm=TRUE)
+
+
+
+
+
+
+# yy <- gather(yy,sdg,value,Education:Sanitation) %>% 
+#   filter(year==2000 | year==2015) %>% 
+#   mutate(year=as.factor(year))
 # 
-# blarg <- blarg %>% 
-#   filter(year==2000 | year==2015)
+# yy <- left_join(yy,labels,by = c("sdg"="sdg"))
 # 
-# blarg <- gather(blarg,minmax,value,Education_min:Sanitation_max)
+# yy$year <- factor(yy$year,levels(yy$year)[c(2,1)])
 # 
-# 
-# blarg <- blarg %>% 
-#   mutate(sdg=minmax) %>% 
-#   mutate(sdg=str_remove(sdg,"_min")) %>% 
-#   mutate(sdg=str_remove(sdg,"_max")) %>% 
-#   mutate(minmax=ifelse(grepl("min",minmax),"min","max"))
-# 
-# blarg <- blarg %>%
-#   mutate(value=ifelse(is.infinite(value),NA,value))
-# 
-# blarg <- spread(blarg,minmax,value)
-# #blarg <- spread(blarg,year,min)
-# 
-# p3 <- ggplot(blarg,aes(x=sdg,ymin=min,ymax=max,color=cluster,fill=factor(year))) +
-#   geom_linerange(position = position_dodge(0.5),size=3) +
+# p3 <- ggplot(yy,aes(x=label,y=value,fill=cluster,color=year)) +
+#   geom_boxplot(position = position_dodge(0.65),width=0.5) +
 #   facet_grid(.~cluster) +
 #   coord_flip() +
-#   ylim(0,100) +
+#   scale_y_continuous(breaks = c(0,50,100),limits=c(0,100)) +
+#   scale_colour_manual(values=c("#737373","#737373")) +
 #   theme(legend.position="none",
-#         axis.title.y = element_blank(),
+#         axis.title = element_blank(),
 #         strip.background = element_blank(),
-#         strip.text.x = element_blank())
+#         strip.text.x = element_blank(),
+#         plot.title = element_text(size = 11)) +
+#   ggtitle("c. Key SDG indicators by group, 2000 and 2015 (higher vs. lower boxplots)")
 # p3
-
-
-yy <- gather(yy,sdg,value,Education:Sanitation) %>% 
-  filter(year==2000 | year==2015) %>% 
-  mutate(year=as.factor(year))
-
-yy <- left_join(yy,labels,by = c("sdg"="sdg"))
-
-yy$year <- factor(yy$year,levels(yy$year)[c(2,1)])
-
-p3 <- ggplot(yy,aes(x=label,y=value,fill=cluster,color=year)) +
-  geom_boxplot(position = position_dodge(0.65),width=0.5) +
-  facet_grid(.~cluster) +
-  coord_flip() +
-  scale_y_continuous(breaks = c(0,50,100),limits=c(0,100)) +
-  scale_colour_manual(values=c("#737373","#737373")) +
-  theme(legend.position="none",
-        axis.title = element_blank(),
-        strip.background = element_blank(),
-        strip.text.x = element_blank(),
-        plot.title = element_text(size = 11)) +
-  ggtitle("c. Key SDG indicators by group, 2000 and 2015 (higher vs. lower boxplots)")
-p3
 
 ```
 
 
-```{r combined_sdg_plots, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=8,fig.path="../Results/Plots/sdgs/",dev=c('png','pdf')}
+```{r combined_sdg_plots, echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=8,fig.path="../../Results/Plots/sdgs/",dev=c('png','pdf')}
 
 
 
 
-
-ggarrange(p1,p2,p3,nrow=3,ncol=1,align="v",heights = c(.4,.18,.42))
+# 
+# ggarrange(p1,p2,p3,nrow=3,ncol=1,align="v",heights = c(.4,.18,.42))
 
 ```
 

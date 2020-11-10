@@ -122,15 +122,14 @@ rm(codes)
 
 ########### join region categorisation from WGIII TSU ###########
 
-load('Data/tsu_codes.RData')
+load('Data/ipcc_regions.RData')
 
-edgar_GHG <- left_join(edgar_GHG,tsu_codes %>% select(-name),by=c("ISO"="ISO"))
+edgar_GHG <- left_join(edgar_GHG,ipcc_regions %>% select(-name),by=c("ISO"="ISO"))
 
 missing_region <- edgar_GHG %>% 
   filter(is.na(region_ar6_5) | is.na(region_ar6_10) | is.na(region_ar6_22) | is.na(region_ar6_dev) | is.na(region_ar6_5_short)) %>%
   select(ISO,EDGAR_country) %>% 
   unique()
-
 
 edgar_GHG <- edgar_GHG %>% 
   mutate(region_ar6_5 = as.character(region_ar6_5)) %>% 
@@ -168,12 +167,27 @@ edgar_GHG$region_ar6_5_short <- factor(edgar_GHG$region_ar6_5_short,levels(edgar
 
 ############## calculate gwps based on ar6 values
 
+## apply all gwps except CH4
+gwps <- gwps %>% filter(gas!="CH4")
 edgar_GHG_ar6 <- edgar_GHG
 for (row in 1:nrow(gwps)) {
   col <- gwps[row, "gas"]
   gwp  <- gwps[row, "gwp_ar6"]
   edgar_GHG_ar6[col] <- edgar_GHG_ar6[col]*gwp
 }
+
+## apply CH4 gwps based on more detailed breakdown
+
+edgar_GHG_ar6 <- left_join(edgar_GHG_ar6,gwps_ch4 %>% select(sector_code,gwp_ch4=value),
+                           by = "sector_code")
+  
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
+  mutate(CH4=ifelse(!is.na(gwp_ch4),CH4*gwp_ch4,CH4))
+
+## any missing?
+missing_ch4 <- edgar_GHG_ar6 %>% 
+  filter(!is.na(CH4) & is.na(gwp_ch4))
+
 
 fgas_list <- gwps %>% 
   filter(gas!="CO2") %>% 

@@ -75,7 +75,7 @@
      objecttolerance="10"
      gridtolerance="10"
      guidetolerance="10"
-     inkscape:pageopacity="0"
+     inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:window-width="1920"
      inkscape:window-height="1027"
@@ -88,8 +88,8 @@
      fit-margin-right="0"
      fit-margin-bottom="0"
      inkscape:zoom="1.2666667"
-     inkscape:cx="476.87832"
-     inkscape:cy="164.74631"
+     inkscape:cx="294.90464"
+     inkscape:cy="227.9042"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
@@ -1051,14 +1051,15 @@
        style="fill:#d9d9d9;fill-opacity:1;fill-rule:nonzero;stroke:#333333;stroke-width:1.07000005;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
        d="m 33.123928,115.2 27.370001,0 0,104.13 -27.370001,0 0,-104.13 z" /><text
        id="text4774"
-       style="font-variant:normal;font-weight:normal;font-size:9px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#1a1a1a;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:9px;line-height:125%;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';text-align:start;writing-mode:lr-tb;text-anchor:start;fill:#1a1a1a;fill-opacity:1;fill-rule:nonzero;stroke:none"
        transform="matrix(0,1,1,0,0,0)"
-       x="127.67992"
-       y="45.29393"><tspan
-         id="tspan4776"
+       x="133.73676"
+       y="45.29393"
+       sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         y="45.29393"
-         x="127.67992 134.17792 136.17592 140.67592 143.17792 148.18192 151.31392 153.3119 157.8119 162.81592 164.8139 167.31592 170.31291 175.31691 180.32091 185.32491 189.82491 192.32692 194.32491 199.32892 204.33292">Historical reduction </tspan></text>
+         id="tspan5721"
+         x="133.73676"
+         y="45.29393">Historical growth </tspan></text>
 <text
        id="text4778"
        style="font-variant:normal;font-weight:normal;font-size:9px;font-family:Helvetica;-inkscape-font-specification:Helvetica;writing-mode:lr-tb;fill:#1a1a1a;fill-opacity:1;fill-rule:nonzero;stroke:none"

@@ -5,7 +5,7 @@ output:
   word_document:
     toc: yes
 knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
   
 ---
 
@@ -38,17 +38,10 @@ library(maps)
 library(ggrepel)
 library(patchwork)
 
-
-source("small_figures.R")
-source("decomp_figure_countries.R")
-source("decomp_figure_sectors.R")
-source("waterfall_plot.R")
-
-
-load('../Data/edgar_data_gwp_ar6.RData')
-load('../Data/gwps.RData')
-load('../Data/basic.RData')
-load('../Data/land.RData')
+load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/gwps.RData')
+load('../../Data/basic.RData')
+load('../../Data/land.RData')
 
 
 # set palette
@@ -68,7 +61,7 @@ wb <- openxlsx::createWorkbook(title = paste0("ipcc_wg2_region_data_",Sys.Date()
 
 ```{r, wg2_regions, include=FALSE, echo=FALSE}
 
-regions <- openxlsx::read.xlsx("../Data/Codes and classifications/Regions_Countries_WGII.xlsx")
+regions <- openxlsx::read.xlsx("../../Data/Codes and classifications/Regions_Countries_WGII.xlsx")
 
 regions <- regions %>% 
   select(wg2_region=WGII_Region_checked,ISO=ISO_A3)
@@ -290,7 +283,7 @@ gas_sector_plot <- function(data,region) {
 
 # Africa
 
-```{r Africa,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
+```{r Africa,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
 
 region="Africa"
 
@@ -313,7 +306,7 @@ openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data
 
 # Asia
 
-```{r Asia, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
+```{r Asia, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
 
 region="Asia"
 
@@ -337,7 +330,7 @@ openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data
 
 # Australasia
 
-```{r Australasia,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
+```{r Australasia,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
 
 region="Australasia"
 
@@ -361,7 +354,7 @@ openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data
 
 # Central and South America
 
-```{r Central and South America,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
+```{r Central and South America,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
 
 region="Central and\nS. America"
 
@@ -385,7 +378,7 @@ openxlsx::writeData(wb, "C. & S. Am. gas and sector",gas_sector$data, colNames =
 
 # Europe
 
-```{r Europe, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
+```{r Europe, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
 
 region="Europe"
 
@@ -408,7 +401,7 @@ openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data
 
 # North America
 
-```{r North America, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
+```{r North America, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
 
 region="North America"
 
@@ -432,7 +425,7 @@ openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data
 
 # Small Islands
 
-```{r Small Islands,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../Results/Plots/WG2_regions/",dev=c('png','pdf')}
+```{r Small Islands,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
 
 region="Small Islands"
 
@@ -456,7 +449,7 @@ openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data
 
 ```{r write,echo=FALSE,warning=FALSE}
 
-openxlsx::saveWorkbook(wb,paste0("../Results/Data/ipcc_wg2_region_data_",Sys.Date(),".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_wg2_region_data_",Sys.Date(),".xlsx"),overwrite=T)
 
 ```
 
