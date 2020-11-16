@@ -4,7 +4,7 @@ author: "William F. Lamb"
 output: 
   word_document:
 knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results/activity") })
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results/activity") })
   
 ---
 
@@ -19,8 +19,9 @@ library(ggplot2); theme_set(theme_bw())
 library(data.table)
 library(janitor)
 
-load('../Data/edgar_data_gwp_ar6.RData')
-load('../Data/land.RData')
+load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/land.RData')
+load('../../Data/basic.RData')
 
 # edgar_land <- left_join(blue %>% filter(year>1969),edgar_GHG_ar6 %>% select(ISO:year) %>% filter(year>1969) %>%  distinct(),by = c("ISO", "year"))
 #   
@@ -37,7 +38,7 @@ load('../Data/land.RData')
 # 
 # edgar_land <- edgar_land[names(edgar_GHG_ar6)]
 # edgar_GHG_ar6 <- rbind(edgar_GHG_ar6,edgar_land)
-load('../Data/activity.RData')
+load('../../Data/activity.RData')
 
 wb <- openxlsx::createWorkbook(title = paste("ipcc_activity_data_",Sys.Date()))
 
@@ -47,7 +48,7 @@ wb <- openxlsx::createWorkbook(title = paste("ipcc_activity_data_",Sys.Date()))
 
 ```
 
-``` {r buildings_CO2_fraction, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3.5,fig.path="../Results/Plots/",dev=c('png','pdf')}
+``` {r buildings_CO2_fraction, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3.5,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
 buildings <- edgar_GHG_ar6 %>% 
   filter(chapter_title=="Buildings") %>% 
@@ -74,6 +75,7 @@ buildings %>%
   ggtitle("Fraction of CO2 in total GHG emissions (Buildings)")
 
 ```
+
 ``` {r afolu_CO2_fraction, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3.5,fig.path="../Results/Plots/",dev=c('png','pdf')}
 # 
 # afolu <- edgar_GHG_ar6 %>% 
@@ -105,11 +107,11 @@ buildings %>%
 ```
 
 
-``` {r energy_fossil_share, echo=FALSE,warning=FALSE,fig.width=6,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
+``` {r energy_fossil_share, echo=FALSE,warning=FALSE,fig.width=6,fig.height=4,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
 
 
-fossil_share <- read.csv("../Data/kaya_data_fossil_share.csv",header=FALSE)
+fossil_share <- read.csv("../../Data/kaya/kaya_data_fossil_share.csv",header=FALSE)
 handle <- as.character(fossil_share$V1[1])
 handle <- strsplit(handle,",")
 handle <- as.data.frame(handle) %>% 
@@ -252,6 +254,26 @@ transport %>%
 
 
 ```
+
+``` {r buildings, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
+
+floor_space <- act %>% 
+  filter(product %in% c("Residential floor area (10^9 m2)","Services floor area (10^9 m2)"))
+
+floor_space <- floor_space %>% 
+  mutate(product=ifelse(product=="Residential floor area (10^9 m2)","residential",product)) %>% 
+  mutate(product=ifelse(product=="Services floor area (10^9 m2)","services",product))
+
+floor_space <- spread(floor_space,product,value)
+
+floor_space <- floor_space %>% 
+  mutate(pop=pop*1e6) %>% 
+  mutate(residential=residential*1e9) %>% 
+  mutate(residential_pc=residential/pop)
+
+```
+
+
 
 ``` {r industry, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
 

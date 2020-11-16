@@ -65,23 +65,30 @@ blarg <- edgar_GHG_ar6 %>%
 #ch = 11
 gather_trend_data <- function(edgar_GHG_ar6,ch) {
   
-  ## Trend figure
+  ## sum emissions for the sector
   trend_data <- edgar_GHG_ar6 %>%
     filter(year>1989) %>%
     filter(chapter==ch) %>%
     group_by(year,subsector,subsector_title) %>%
-    summarise(value=sum(GHG,na.rm=TRUE)) %>%
-    mutate(value=value/1e9) %>%
+    summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>% 
+    mutate_at(vars(CO2,CH4,N2O,Fgas,GHG),list(~./1e9)) %>%
+    mutate(CO2_land=NA,CO2_indirect=NA) %>% 
     ungroup()
+  
+  # PREPARE LAND DATA
+  land_totals <- land %>%
+      group_by(year,subsector,subsector_title) %>%
+      summarise(GHG=sum(value,na.rm=TRUE)) %>%
+      mutate(GHG=GHG/1e9)
+  
+  land_totals <- land_totals %>%
+      ungroup() %>% 
+      mutate(CO2_land=GHG) %>% 
+      mutate(CO2=NA,CH4=NA,N2O=NA,Fgas=NA,CO2_indirect=NA) %>% 
+      select(year,subsector,subsector_title,CO2,CH4,N2O,Fgas,GHG,CO2_land,CO2_indirect)
   
   # ADD LAND IF AFOLU
   if (ch==7) {
-    
-    land_totals <- land %>%
-      group_by(year,subsector,subsector_title) %>%
-      summarise(value=sum(value,na.rm=TRUE)) %>%
-      mutate(value=value/1e9) %>%
-      ungroup()
     
     trend_data <- rbind(trend_data,land_totals)
     
@@ -89,21 +96,20 @@ gather_trend_data <- function(edgar_GHG_ar6,ch) {
   # ADD LAND IF TOTAL
   if (ch==1) {
     
-    land_totals <- land %>%
-      group_by(year,subsector,subsector_title) %>%
-      summarise(value=sum(value,na.rm=TRUE)) %>%
-      mutate(value=value/1e9) %>%
-      ungroup() %>%
+    land_totals <- land_totals %>%
       mutate(subsector=1) %>%
-      mutate(subsector_title="AFOLU") %>%
-      ungroup()
+      mutate(subsector_title="AFOLU")
     
     trend_data <- rbind(trend_data,land_totals)
     trend_data <- trend_data %>%
       group_by(year,subsector,subsector_title) %>%
-      summarise(value=sum(value))
+      summarise_at(vars(CO2,CH4,N2O,Fgas,GHG,CO2_land,CO2_indirect),sum,na.rm=TRUE)
     
   }
+  
+  trend_ghg_data <- trend_data
+  trend_data <- trend_data %>% 
+    select(year,subsector,subsector_title,value=GHG)
   
   # ADD INDIRECT EMISSIONS IF NOT TOTAL OR ENERGY
   if (ch!=1) {
@@ -432,7 +438,6 @@ total_data <- edgar_GHG_ar6 %>%
   select(chapter,subsector,subsector_title=chapter_title,everything())
 
 trend_data <- gather_trend_data(total_data,ch)
-
 
 ## align factors and labels
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
@@ -843,6 +848,11 @@ p2 <- plot_data %>%
   ggtitle("Growth \nsince 2010",)
 
 ggarrange(p2,p,ncol=2,widths=c(0.44,0.56),align = "h")
+
+```
+
+```{r sector_ghgs,include=FALSE,echo=FALSE}
+
 
 ```
 

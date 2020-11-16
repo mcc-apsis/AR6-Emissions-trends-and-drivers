@@ -5,7 +5,7 @@ date: "7 6 2020"
 output: 
   word_document:
 knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
 ---
 
 ```{r setup, include=FALSE}
@@ -21,8 +21,8 @@ library(janitor)
 
 wb <- openxlsx::createWorkbook(title = "sector_kaya_data",Sys.Date())
 
-load('../Data/edgar_data_gwp_ar6.RData')
-load('../Data/land.RData')
+load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/land.RData')
 
 land <- land %>%
   filter(year>1969) %>% 
@@ -36,11 +36,11 @@ land <- land %>%
          CH4=NA,N2O=NA,Fgas=NA,GHG=mean) %>% 
   select(-blue,-houghton,-mean)
 
-load('../Data/basic.RData')
-load("../Data/tsu_codes.RData")
+load('../../Data/basic.RData')
+load("../../Data/ipcc_regions.RData")
 
 # load data from Robbie
-kaya_data <- openxlsx::read.xlsx("../Data/kaya_data_flat.xlsx")
+kaya_data <- openxlsx::read.xlsx("../../Data/kaya/kaya_data_flat.xlsx")
 names(kaya_data) <- tolower(names(kaya_data))
 kaya_data <- kaya_data %>% select(ISO=iso,everything())
 
@@ -70,12 +70,8 @@ kaya_data <- kaya_data %>%
   filter(year<2019) %>% 
   filter(year>1989)
 
-blarg <- kaya_data %>% 
-  filter(ISO=="WLD") %>% 
-  filter(sector=="Total")
-
 # join IPCC regions
-kaya_data <- left_join(kaya_data,tsu_codes %>% select(ISO,name,region_ar6_5,region_ar6_5_short,region_ar6_10),by=c("ISO"="ISO"))
+kaya_data <- left_join(kaya_data,ipcc_regions %>% select(ISO,name,region_ar6_5,region_ar6_5_short,region_ar6_10),by=c("ISO"="ISO"))
 
 kaya_data <- kaya_data %>% 
   select(ISO,name,region_ar6_5,region_ar6_5_short,region_ar6_10,sector,year,everything()) %>% 
@@ -101,9 +97,23 @@ world_pop <- kaya_data %>%
   group_by(year) %>% 
   summarise(POP=sum(POP,na.rm=TRUE)/1e6)
 
-# add indirect emissions
 
 
+# blarg <- kaya_data %>% 
+#   filter(ISO=="WLD") %>% 
+#   filter(sector=="Total")
+# 
+# blarg <- kaya_data %>% 
+#   filter(ISO=="WLD") %>% 
+#   filter(year==2018) %>% 
+#   select(sector,energy,CO2)
+# 
+# eddy <- edgar_GHG_ar6 %>% 
+#   filter(year==2018) %>% 
+#   group_by(chapter_title) %>% 
+#   summarise(eddy=sum(CO2,na.rm=TRUE))
+# 
+# blarg <- left_join(blarg,eddy,by=c("sector"="chapter_title"))
 
 ```
 
@@ -179,7 +189,7 @@ kaya_plots_10 <- function(kaya,sector_label) {
   output_data <- output_data %>% 
     select(region_ar6_10,sector,var,rate_2010_2017=rate,everything())
   
-  kaya_plot_data <- gather(kaya_plot_data %>% select(-GDP,-energy),var,value,GDP_POP,POP,CO2,CO2_energy,energy_GDP)
+  kaya_plot_data <- gather(kaya_plot_data %>% select(-GDP),var,value,GDP_POP,POP,CO2,energy,CO2_energy,energy_GDP)
   
   kaya_plot_data <- kaya_plot_data %>% 
     group_by(region_ar6_10,var) %>% 
@@ -209,7 +219,7 @@ kaya_plots_10 <- function(kaya,sector_label) {
 
 ```
 
-```{r total_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+```{r total_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 p <- kaya_plots_10(kaya,"Total")
 p$p
@@ -224,7 +234,7 @@ openxlsx::writeData(wb, sheet = "all_sectors_normalised",p$normalised_data, colN
 
 ```
 
-```{r AFOLU_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+```{r AFOLU_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 # p <- kaya_plots_10(kaya,"AFOLU")
 # p$p
@@ -236,7 +246,7 @@ openxlsx::writeData(wb, sheet = "all_sectors_normalised",p$normalised_data, colN
 
 # Energy systems
 
-```{r energy_systems_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+```{r energy_systems_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 p <- kaya_plots_10(kaya,"Energy systems")
 p$p
@@ -254,7 +264,7 @@ openxlsx::writeData(wb, sheet = "energy_systems_normalised",p$normalised_data, c
 
 # Buildings
 
-```{r buildings_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+```{r buildings_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 p <- kaya_plots_10(kaya,"Buildings")
 p$p
@@ -269,7 +279,7 @@ openxlsx::writeData(wb, sheet = "buildings_normalised",p$normalised_data, colNam
 
 # Transport
 
-```{r transport_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+```{r transport_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 p <- kaya_plots_10(kaya,"Transport")
 p$p
@@ -285,7 +295,7 @@ openxlsx::writeData(wb, sheet = "transport_normalised",p$normalised_data, colNam
 
 # Industry
 
-```{r industry_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+```{r industry_10,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
 
 p <- kaya_plots_10(kaya,"Industry")
 p$p
@@ -302,16 +312,16 @@ openxlsx::writeData(wb, sheet = "industry_normalised",p$normalised_data, colName
 
 # AFOLU (Hong et al. decomposition)
 
-```{r AFOLU_hong,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../Results/Plots/Kaya/",dev=c('png','pdf')}
+```{r AFOLU_hong,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
 
-hong_a <- openxlsx::read.xlsx('../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Ag_production_kcal')
+hong_a <- openxlsx::read.xlsx('../../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Ag_production_kcal')
 names(hong_a) <- c("country","product",1961:2017)
 hong_a <- gather(hong_a,year,ag_production_kcal,`1961`:`2017`)
 hong_a <- hong_a %>% 
   group_by(year,country) %>% 
   summarise(ag_production_kcal=sum(ag_production_kcal))
 
-hong_b <- openxlsx::read.xlsx('../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Land_area_hectares')
+hong_b <- openxlsx::read.xlsx('../../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Land_area_hectares')
 names(hong_b) <- c("country","product",1961:2017)
 hong_b <- gather(hong_b,year,land_area_hectares,`1961`:`2017`)
 hong_b <- hong_b %>% 
@@ -427,11 +437,11 @@ openxlsx::writeData(wb, sheet = "AFOLU_normalised",spread(hong_kaya %>% select(-
 
 ``` {r write,include=TRUE,warning=FALSE}
 
-openxlsx::saveWorkbook(wb,paste0("../Results/Data/sector_kaya_analysis_",Sys.Date(),".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/sector_kaya_analysis_",Sys.Date(),".xlsx"),overwrite=T)
 
 openxlsx::addWorksheet(wb2,"afolu_data")
 openxlsx::writeData(wb2, sheet = "afolu_data",all_data, colNames = T, rowNames = F)
-openxlsx::saveWorkbook(wb2,"../Results/Data/kaya_data.xlsx",overwrite=T)
+openxlsx::saveWorkbook(wb2,"../../Results/Data/kaya_data.xlsx",overwrite=T)
 
 
 ```
@@ -489,7 +499,7 @@ sector_test <- left_join(sector_test,total,by = c("year", "var"))
 openxlsx::addWorksheet(wb,"sector_totals")
 openxlsx::writeData(wb, sheet = "sector_totals", sector_test, colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,"../Results/Data/kaya_tests.xlsx",overwrite=T)
+openxlsx::saveWorkbook(wb,"../../Results/Data/kaya_tests.xlsx",overwrite=T)
 
 
 ```
