@@ -1,0 +1,136 @@
+---
+title: "emissions_by_country"
+author: "William F. Lamb"
+date: "17 11 2020"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+library(patchwork)
+library(xlsx)
+library(ggplot2); theme_set(theme_bw())
+
+source("small_figures.R")
+#source("../decomp_figure_countries.R")
+#source("../decomp_figure_sectors.R")
+
+
+load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/gwps.RData')
+load("../../Data/land.RData")
+load('../../Data/basic.RData')
+
+
+# set palette
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+
+uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
+                            uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
+
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_data_countries",Sys.Date()))
+
+```
+
+
+```{r per_capita_by_region,echo=FALSE,warning=FALSE}
+
+per_capita <- edgar_GHG_ar6 %>% 
+  group_by(country,ISO,year,region_ar6_5) %>% 
+  summarise(CO2=sum(CO2,na.rm=TRUE),GHG=sum(GHG,na.rm=TRUE)) %>% 
+  ungroup()
+
+per_capita <- left_join(per_capita,basic %>% select(Year,ISO,pop_UN),by=c("year"="Year","ISO"="ISO"))
+
+per_capita <- per_capita %>% 
+  filter(year==2018) %>% 
+  mutate(CO2_pc = CO2/pop_UN) %>% 
+  mutate(GHG_pc = GHG/pop_UN)
+
+### remove intl. shipping, aviation and countries at zero emissions and small countries
+per_capita <- per_capita %>% 
+  filter(region_ar6_5!="Intl. Aviation") %>% 
+  filter(region_ar6_5!="Intl. Shipping") %>% 
+  filter(CO2_pc>0) %>% 
+  filter(pop_UN>1e6)
+
+
+all_countries <- per_capita
+
+per_capita <- gather(per_capita,var,value,CO2_pc:GHG_pc)
+
+per_capita <- per_capita %>%
+  filter(var=="GHG_pc") %>% 
+  group_by(region_ar6_5,var) %>% 
+  summarise(max=max(value,na.rm=T),min=min(value,na.rm=T),mean=mean(value,na.rm=T),median=median(value,na.rm=T))
+
+
+
+
+```
+
+
+
+```{r save,echo=FALSE,warning=FALSE,fig.width=8,fig.height=4}
+
+all_countries %>% ggplot(.,aes(x=region_ar6_5,y=GHG_pc,fill=region_ar6_5)) +
+  geom_boxplot() +
+  coord_flip() +
+  theme(legend.position="none",axis.title.y = element_blank())
+
+
+```
+
+```{r cumulative_emissions,echo=FALSE,warning=FALSE}
+
+cumulative <- edgar_GHG_ar6 %>% 
+  group_by(country,ISO,year,region_ar6_dev) %>% 
+  summarise(CO2=sum(CO2,na.rm=TRUE),GHG=sum(GHG,na.rm=TRUE)) %>% 
+  ungroup()
+
+cumulative_1990 <- cumulative %>% 
+  filter(year>1989) %>% 
+  group_by(region_ar6_dev) %>% 
+  summarise(GHG_since_1990=sum(GHG/1e9))
+
+cumulative_2010 <- cumulative %>% 
+  filter(year>2009) %>% 
+  group_by(region_ar6_dev) %>% 
+  summarise(GHG_since_2010=sum(GHG/1e9))
+
+cumulative <- left_join(cumulative_1990,cumulative_2010)
+
+total_2010 <- sum(cumulative$GHG_since_2010) 
+total_1990 <- sum(cumulative$GHG_since_1990)
+
+cumulative <- cumulative %>% 
+  mutate(fraction_since_1990=GHG_since_1990/total_1990) %>% 
+  mutate(fraction_since_2010=GHG_since_2010/total_2010)
+
+```
+
+```{r save,echo=FALSE,warning=FALSE}
+
+
+openxlsx::addWorksheet(wb,"country_emissions_2018")
+openxlsx::writeData(wb,"country_emissions_2018",all_countries, colNames = T, rowNames = F)
+
+openxlsx::addWorksheet(wb,"region_summary_2018")
+openxlsx::writeData(wb,"region_summary_2018",per_capita, colNames = T, rowNames = F)
+
+openxlsx::addWorksheet(wb,"cumulative_GHG_emissions")
+openxlsx::writeData(wb,"cumulative_GHG_emissions",cumulative, colNames = T, rowNames = F)
+
+
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_data_countries",".xlsx"),overwrite=T)
+
+```

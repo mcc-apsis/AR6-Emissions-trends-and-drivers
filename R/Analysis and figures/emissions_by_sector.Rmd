@@ -785,7 +785,7 @@ top_sectors <- top_sectors %>%
 
 plot_data <- top_sectors %>%
   ungroup() %>%
-  arrange(desc(total_GHG_plus_indirect)) %>% 
+  arrange(desc(total_GHG_plus_indirect))# %>% 
   head(20)
 
 plot_data <- plot_data %>%

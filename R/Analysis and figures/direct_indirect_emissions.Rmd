@@ -137,9 +137,10 @@ p1 <- scope1_sectors %>% ggplot(.,aes(x=1,y=GHG,fill=chapter_title)) +
         panel.grid.minor = element_blank())
 p1
 
+scope2_sectors$var <- as.factor(scope2_sectors$var)
 
 scope2_sectors <- scope2_sectors %>% 
-  arrange(chapter_title,desc(GHG))
+  arrange(chapter_title,desc(var))
 
 blarg <- scope2_sectors %>% 
   filter(var=="GHG") %>% 
@@ -223,7 +224,7 @@ openxlsx::writeData(wb,"indirect emissions",scope2_sectors, colNames = T, rowNam
 openxlsx::writeData(wb,"indirect emissions - subsectors",scope2_subsectors, colNames = T, rowNames = F)
 
 
-openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_indirect_emissions_plot_",Sys.Date(),".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_plot_indirect_emissions",".xlsx"),overwrite=T)
 
 
 

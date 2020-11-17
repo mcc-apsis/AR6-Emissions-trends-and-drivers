@@ -1,0 +1,227 @@
+---
+title: "Long term CO2 emissions trends, sources and sinks"
+author: "William F. Lamb"
+date: "30 10 2020"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+  
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(patchwork)
+library(xlsx)
+library(ggplot2); theme_set(theme_bw())
+
+source("small_figures.R")
+
+#load('../Data/edgar_data_gwp_ar6.RData')
+#load("../Data/edgar_data_all.RData")
+load('../../Data/gwps.RData')
+load("../../Data/land.RData")
+
+
+# set palette
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+
+uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
+                            uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
+
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_plot_CO2",Sys.Date()))
+
+```
+
+
+```{r budget_trend, echo=FALSE,warning=FALSE,fig.width=10,fig.height=3}
+
+######### load the global carbon budget ######### 
+
+gcb <- openxlsx::read.xlsx('../../Data/Land and GCB/CDIAC_fossilfuel_updated_GCP2019.xlsx',sheet="CDIAC CO2",rows=3:271,cols=1:9)
+names(gcb) <- c("Year","Total","Gas","Oil","Coal","Cement","Flaring","Net land-use","Total_CO2")
+
+budget_data <- gather(gcb,key,value,-Year) %>% 
+  filter(key!="Total_CO2",key!="Total") %>% 
+  filter(Year>=1850) %>% 
+  select(year=Year,everything())
+
+budget_data$key <- as.factor(budget_data$key)
+budget_data$key <- factor(budget_data$key,levels(budget_data$key)[c(1,2,3,4,6,5)])
+
+shares <- budget_data %>% 
+  filter(year %in% c(1850,1900,1950,2000,2018)) %>% 
+  group_by(year) %>% 
+  mutate(totals=sum(value)) %>% 
+  ungroup() %>% 
+  group_by(year,key) %>% 
+  mutate(fractions=(value/totals)*100)
+
+
+shares <- locate_shares(shares,"key",5)
+
+
+line_data <- data.frame(x=c(1850,1850,1900,1900,1950,1950,2000,2000,2018,2018),y=c(0,45))
+
+
+p1 <- budget_data %>% 
+  ggplot(.,aes(x=year,y=value,fill=key,color=key)) + 
+  geom_area(colour="#737373") +
+  
+  geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+  
+  geom_text(data=shares,aes(x=year+3.5,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
+  
+  geom_text(data=shares %>% filter(key=="Cement"),
+            aes(x=year,y=47,label=paste(round(totals,0),"Gt")),size=3.5,colour="#252525")+
+  
+  ylab("Carbon emissions (GtCO2/yr)") +
+  big_trend_theme +
+  theme(legend.position = c(0.15,0.7),
+        legend.title = element_blank(),
+        legend.background = element_blank())
+
+p1
+```
+```{r cumulative_CO2, echo=FALSE,warning=FALSE,fig.width=4,fig.height=3}
+
+
+###### calculate cumulative CO2 emissions in different time frames
+
+cumulative_CO2 <- gcb %>% 
+  select(Year,value=Total_CO2) %>% 
+  filter(Year>=1850) %>% 
+  mutate(key=NA) %>%
+  #mutate(key=ifelse(Year>1850 & Year < 2010,'1850- 2009',key)) %>% 
+  #mutate(key=ifelse(Year>=2010,'2010- 2018',key)) %>% 
+  mutate(key=ifelse(Year>1850 & Year < 1990,'1850- 1990',key)) %>% 
+  mutate(key=ifelse(Year>=1990,'1990- 2018',key)) %>% 
+  filter(!is.na(key))
+
+cumulative_CO2 <- cumulative_CO2 %>% 
+  mutate(key=as.factor(key)) %>% 
+  group_by(key) %>% 
+  summarise(value=sum(value)) %>% 
+  add_row(key="1.5 budget (2020-)",value=390) %>% 
+  add_row(key="2.0 budget (2020-)",value=1140)
+
+#cumulative_CO2$key <- factor(cumulative_CO2$key,levels(cumulative_CO2$key)[c(4,3,2,1)])
+
+
+cumulative_CO2$end <- cumsum(cumulative_CO2$value)
+cumulative_CO2$end[cumulative_CO2$key=="2.0 budget"] <- cumulative_CO2$end[cumulative_CO2$key=="2.0 budget"] - cumulative_CO2$value[cumulative_CO2$key=="1.5 budget"]
+cumulative_CO2$start <- c(0, head(cumulative_CO2$end, -1))
+cumulative_CO2$start[cumulative_CO2$key=="2.0 budget"] <- cumulative_CO2$start[cumulative_CO2$key=="1.5 budget"]
+cumulative_CO2 <- cbind(cumulative_CO2,id=c(1,2,3,4))
+
+color_scale <- c("#ffffcc","#a1dab4","#41b6c4","#225ea8")
+
+p2 <- cumulative_CO2 %>% 
+  ggplot(.,aes(fill=key)) +
+  geom_rect(aes(x=key,
+    xmin = id - 0.4,
+    xmax = id + 0.4,
+    ymin = start,
+    ymax = end),
+    colour = "#737373") +
+  
+  geom_text(aes(x=id,y=end+150,label=paste(round(value,0)))) +
+  
+  ylab('Carbon emissions,\n cumulative (GtCO2)') +
+  ylim(0,4200) +
+  big_trend_theme +
+  scale_fill_manual(values=color_scale) +
+  scale_x_discrete(labels = function(key) str_wrap(key, width = 9)) +
+  theme(legend.position= "none",
+        axis.title.x = element_blank())
+p2
+
+```
+
+```{r budget_dates, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3}
+
+
+# time_data <- data.frame(target=c("1.5oC target","2oC target"),budget=c(420,1170)) %>% 
+#   group_by(budget) %>% 
+#   mutate(current_emissions=budget/as.vector(budget_data %>% filter(year==2017) %>% summarise(total=sum(value)))[[1]]) %>% 
+#   mutate(current_emissions=round(current_emissions,0)+2017) %>% 
+#   ungroup()
+
+# 
+# time_data <- cbind(time_data,data.frame(three=c(2030,2084),seven=c(2037,NA)))
+# time_data <- gather(time_data,key,value,-budget,-target) %>% 
+#   mutate(key=as.factor(key))
+# 
+# time_data <- time_data %>% 
+#   mutate(value=value-1)
+#
+# time_data$key <- factor(time_data$key,levels(time_data$key)[c(2,3,1)])
+# 
+# 
+# p3 <- time_data %>% 
+#   ggplot(.,aes(x=key,y=value,fill=target)) + 
+#   geom_bar(stat='identity',colour="#737373") +
+#   geom_text(aes(x=key,y=value+2,label=round(value-2017,0))) +
+#   #scale_y_continuous(limits=c(2017,2100),oob =rescale_none) +
+#   coord_flip(ylim = c(2017,2100)) +
+#   facet_grid(target~.) +
+#   theme_bw() +
+#   theme(legend.position='none',
+#         axis.title.y=element_blank()) +
+#   ylab('Year of budget exceedance') 
+# 
+# p3
+time_data <- openxlsx::read.xlsx("../../Data/co2_budget_analysis.xlsx",sheet=4,startRow=43)
+
+time_data <- time_data %>% 
+  mutate(Rate=as.factor(Rate)) %>% 
+  mutate(Budget=as.factor(Budget))
+#time_data$Rate <- factor(time_data$Rate,levels(time_data$Rate)[c(3,2,1)])
+time_data$Budget <- factor(time_data$Budget,levels(time_data$Budget)[c(2,1)])
+
+
+p3 <- time_data %>% ggplot(.,aes(x=Year.of.exceedance,y=Budget)) +
+  geom_point(color="red") +
+  geom_text(aes(x=Year.of.exceedance+1,y=Budget,label=Year.of.exceedance),hjust=0,size=4) +
+  geom_point(inherit.aes = FALSE,data=time_data,aes(x=Net.zero,y=Budget),colour="blue") +
+  geom_text(aes(x=Net.zero+1,y=Budget,label=Net.zero),hjust=0,size=4) +
+  facet_grid(Rate~.) +
+  scale_x_continuous(limits = c(2020,2100)) +
+  theme(legend.position='none',
+         axis.title.y=element_blank()) +
+   xlab('Year of budget exceedance') 
+
+
+
+
+
+```
+
+```{r co2_trends_spm, echo=FALSE,warning=FALSE,fig.width=10,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+
+p1 / (p2 + p3 + plot_layout(widths = c(1,2.5)))
+
+# p4<- ggarrange(p2,p3,ncol=2,widths=c(2,1))
+# 
+# p <- ggarrange(p1,p4,nrow=2)
+# p
+
+
+# 
+# openxlsx::addWorksheet(wb,"Fig2_budget")
+# openxlsx::writeData(wb, sheet = "Fig2_budget", spread(budget_data,year,value), colNames = T, rowNames = F)
+
+
+openxlsx::addWorksheet(wb,"budget_trend")
+openxlsx::addWorksheet(wb,"cumulative_co2")
+
+openxlsx::writeData(wb, sheet = "budget_trend", spread(budget_data,year,value), colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "cumulative_co2", cumulative_CO2, colNames = T, rowNames = F)
+
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_plot_co2",".xlsx"),overwrite=T)
+
+```

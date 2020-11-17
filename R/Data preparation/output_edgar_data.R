@@ -216,8 +216,6 @@ saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_iiasa.xlsx",overwrite = T)
 
 
 
-
-
 ############################################################   regional file
 
 # regions <- edgar_GHG %>%
