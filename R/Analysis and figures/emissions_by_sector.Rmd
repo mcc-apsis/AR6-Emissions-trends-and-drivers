@@ -250,6 +250,9 @@ trend_figure <- function(trend_data,chapter) {
   
 }
 
+
+
+
 ```
 
 

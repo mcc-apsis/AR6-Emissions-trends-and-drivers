@@ -56,6 +56,8 @@ per_capita <- per_capita %>%
   mutate(CO2_pc = CO2/pop_UN) %>% 
   mutate(GHG_pc = GHG/pop_UN)
 
+all_countries <- per_capita
+
 ### remove intl. shipping, aviation and countries at zero emissions and small countries
 per_capita <- per_capita %>% 
   filter(region_ar6_5!="Intl. Aviation") %>% 
@@ -63,18 +65,21 @@ per_capita <- per_capita %>%
   filter(CO2_pc>0) %>% 
   filter(pop_UN>1e6)
 
-
-all_countries <- per_capita
-
-per_capita <- gather(per_capita,var,value,CO2_pc:GHG_pc)
-
 per_capita <- per_capita %>%
-  filter(var=="GHG_pc") %>% 
-  group_by(region_ar6_5,var) %>% 
-  summarise(max=max(value,na.rm=T),min=min(value,na.rm=T),mean=mean(value,na.rm=T),median=median(value,na.rm=T))
+  group_by(region_ar6_5) %>% 
+  summarise(GHG_pc_max=max(GHG_pc,na.rm=T),GHG_pc_min=min(GHG_pc,na.rm=T))
 
+region_averages <- all_countries %>% 
+  filter(region_ar6_5!="Intl. Aviation") %>% 
+  filter(region_ar6_5!="Intl. Shipping") %>% 
+  group_by(region_ar6_5) %>% 
+  summarise_at(vars(CO2,GHG,pop_UN),sum,na.rm=TRUE)
 
+per_capita <- left_join(per_capita,region_averages,by = "region_ar6_5")
 
+per_capita <- per_capita %>% 
+  mutate(GHG_mean = GHG/pop_UN) %>% 
+  mutate(CO2_mean = CO2/pop_UN)
 
 ```
 
@@ -90,35 +95,93 @@ all_countries %>% ggplot(.,aes(x=region_ar6_5,y=GHG_pc,fill=region_ar6_5)) +
 
 ```
 
-```{r cumulative_emissions,echo=FALSE,warning=FALSE}
+```{r cumulative_emissions_income,echo=FALSE,warning=FALSE}
 
-cumulative <- edgar_GHG_ar6 %>% 
+cumulative_emissions_income <- edgar_GHG_ar6 %>% 
   group_by(country,ISO,year,region_ar6_dev) %>% 
   summarise(CO2=sum(CO2,na.rm=TRUE),GHG=sum(GHG,na.rm=TRUE)) %>% 
   ungroup()
 
-cumulative_1990 <- cumulative %>% 
+cumulative_1990 <- cumulative_emissions_income %>% 
   filter(year>1989) %>% 
   group_by(region_ar6_dev) %>% 
   summarise(GHG_since_1990=sum(GHG/1e9))
 
-cumulative_2010 <- cumulative %>% 
+cumulative_2010 <- cumulative_emissions_income %>% 
   filter(year>2009) %>% 
   group_by(region_ar6_dev) %>% 
   summarise(GHG_since_2010=sum(GHG/1e9))
 
-cumulative <- left_join(cumulative_1990,cumulative_2010)
+cumulative_emissions_income <- left_join(cumulative_1990,cumulative_2010)
 
-total_2010 <- sum(cumulative$GHG_since_2010) 
-total_1990 <- sum(cumulative$GHG_since_1990)
+total_2010 <- sum(cumulative_emissions_income$GHG_since_2010) 
+total_1990 <- sum(cumulative_emissions_income$GHG_since_1990)
 
-cumulative <- cumulative %>% 
+cumulative_emissions_income <- cumulative_emissions_income %>% 
   mutate(fraction_since_1990=GHG_since_1990/total_1990) %>% 
   mutate(fraction_since_2010=GHG_since_2010/total_2010)
 
 ```
 
+```{r cumulative_emissions_geo,echo=FALSE,warning=FALSE}
+
+cumulative_emissions_geo <- edgar_GHG_ar6 %>% 
+  group_by(country,ISO,year,region_ar6_5) %>% 
+  summarise(CO2=sum(CO2,na.rm=TRUE),GHG=sum(GHG,na.rm=TRUE)) %>% 
+  ungroup()
+
+cumulative_1990 <- cumulative_emissions_geo %>% 
+  filter(year>1989) %>% 
+  group_by(region_ar6_5) %>% 
+  summarise(GHG_since_1990=sum(GHG/1e9))
+
+cumulative_2010 <- cumulative_emissions_geo %>% 
+  filter(year>2009) %>% 
+  group_by(region_ar6_5) %>% 
+  summarise(GHG_since_2010=sum(GHG/1e9))
+
+cumulative_emissions_geo <- left_join(cumulative_1990,cumulative_2010)
+
+total_2010 <- sum(cumulative_emissions_geo$GHG_since_2010) 
+total_1990 <- sum(cumulative_emissions_geo$GHG_since_1990)
+
+cumulative_emissions_geo <- cumulative_emissions_geo %>% 
+  mutate(fraction_since_1990=GHG_since_1990/total_1990) %>% 
+  mutate(fraction_since_2010=GHG_since_2010/total_2010)
+
+```
+
+```{r region_comparison,echo=FALSE,warning=FALSE}
+
+blarg <- edgar_GHG_ar6 %>%
+  filter(year==2018) %>% 
+  group_by(region_ar6_dev) %>% 
+  summarise(GHG=sum(GHG,na.rm=T)/1e9)
+
+blarg2 <- edgar_GHG_ar6 %>%
+  filter(year==2018) %>% 
+  group_by(region_ar6_5) %>% 
+  summarise(GHG=sum(GHG,na.rm=T)/1e9)
+
+
+regions <- edgar_GHG_ar6 %>% 
+  filter(year==2018) %>%
+  group_by(country,ISO,year,region_ar6_dev,region_ar6_5) %>% 
+  summarise(GHG=sum(GHG,na.rm=T))
+
+regions <- left_join(regions,basic %>% select(Year,ISO,pop_UN),by=c("year"="Year","ISO"="ISO"))
+
+
+regions <- regions %>% 
+  filter(region_ar6_5=="Developed countries" | region_ar6_dev=="developed")
+
+
+```
+
+
 ```{r save,echo=FALSE,warning=FALSE}
+
+
 
 
 openxlsx::addWorksheet(wb,"country_emissions_2018")
@@ -127,8 +190,14 @@ openxlsx::writeData(wb,"country_emissions_2018",all_countries, colNames = T, row
 openxlsx::addWorksheet(wb,"region_summary_2018")
 openxlsx::writeData(wb,"region_summary_2018",per_capita, colNames = T, rowNames = F)
 
-openxlsx::addWorksheet(wb,"cumulative_GHG_emissions")
-openxlsx::writeData(wb,"cumulative_GHG_emissions",cumulative, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,"cumulative_GHG_emissions_income")
+openxlsx::writeData(wb,"cumulative_GHG_emissions_income",cumulative_emissions_income, colNames = T, rowNames = F)
+
+openxlsx::addWorksheet(wb,"cumulative_GHG_emissions_geo")
+openxlsx::writeData(wb,"cumulative_GHG_emissions_geo",cumulative_emissions_geo, colNames = T, rowNames = F)
+
+openxlsx::addWorksheet(wb,"region_comparison")
+openxlsx::writeData(wb,"region_comparison",regions, colNames = T, rowNames = F)
 
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_data_countries",".xlsx"),overwrite=T)
