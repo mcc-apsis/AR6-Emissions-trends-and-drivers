@@ -18,6 +18,8 @@ library(xlsx)
 library(ggpubr)
 library(ggplot2); theme_set(theme_bw())
 library(zoo)
+library(cluster)
+
 
 load('../../Data/edgar_data_gwp_ar6.RData')
 load('../../Data/basic.RData')
@@ -281,9 +283,6 @@ cluster_data <- peak_roll %>%
 cluster_data <- spread(cluster_data %>% select(country,ISO,year,CO2_rm),year,CO2_rm)
 
 
-library(cluster)
-
-
 # clusters <- pam(cluster_data %>% select(-country,-ISO),5)
 # cluster_data <- cbind(cluster_data,cluster=clusters$clustering) ### bind clusters to dataset
 # cluster_data$cluster <- as.factor(clusters$clustering) ### convert to factor
@@ -337,6 +336,13 @@ peak_roll %>% ggplot(.,aes(x=year,y=CO2_rm,group=country,colour=cluster)) +
 
 
 ```
+
+```{r map,echo=FALSE,warning=FALSE,fig.width=8,fig.height=2,fig.path="../../Results/Plots/Peak/",dev=c('png','pdf')}
+
+
+
+```
+
 
 ```{r fractions,echo=FALSE,warning=FALSE,fig.width=8,fig.height=2,fig.path="../../Results/Plots/Peak/",dev=c('png','pdf')}
 
