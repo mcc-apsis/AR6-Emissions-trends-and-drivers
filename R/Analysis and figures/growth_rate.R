@@ -1,57 +1,10 @@
-
-# rm(list = ls())
-# library(tidyverse)
-# 
-# 
-# load('Data/edgar_data_gwp_ar6.RData')
-# 
-# time_start=1970
-# 
-# usa <- edgar_GHG_ar6 %>%
-#   filter(country=="United Kingdom") %>%
-#   group_by(year) %>%
-#   summarise(GHG=sum(GHG,na.rm=TRUE)) %>%
-#   filter(year>=time_start)
-# 
-# 
-# usa <- usa %>%
-#   mutate(rate_linear=(last(GHG)/first(GHG))^(1/(last(year)-first(year)))-1)
-# 
-# 
-# asd <- aagr(usa,"GHG")
-
-# aagr <- function(data,var) {
-#   
-#   data <- data %>% 
-#     mutate(leap_years = leap_year(years)) %>% 
-#     mutate(adjusted = ifelse(leap_years==TRUE,!!as.name(var)*365/366,!!as.name(var)))
-#   
-#   fit <- lm(log(adjusted) ~ year,data = data)
-#   
-#   data <- data %>% 
-#     mutate(rate=fit$coefficients[2]) %>% 
-#     mutate(predicted_x = exp(predict(fit,data %>% select(year))))
-#   
-#   return(data)
-# }
-# 
-# asd <- growth_rate(usa$year,usa$GHG)
-# years <- usa$year
-# y=usa$GHG
-
 library(lubridate)
 
 growth_rate <- function(years,y) {
   
   data <- data.frame(years,y)
   
-  # data <- data %>% 
-  #   mutate(leap_years = leap_year(years)) %>% 
-  #   mutate(adjusted = ifelse(leap_years==TRUE,y*365/366,y))
-  data <- data %>% 
-    mutate(adjusted=y)
-  
-  fit <- lm(log(adjusted) ~ years,data = data)
+  fit <- lm(log(y) ~ years,data = data)
   
   data <- data %>% 
     mutate(rate=fit$coefficients[2]) %>% 
@@ -62,13 +15,11 @@ growth_rate <- function(years,y) {
 }
 
 
-# 
-# ggplot(asd,aes(y=GHG,x=year)) + 
-#   geom_path()+
-#   geom_path(aes(x=year,y=predicted_x),color="red")
-
-
-
+# data <- data %>% 
+#   mutate(leap_years = leap_year(years)) %>% 
+#   mutate(adjusted = ifelse(leap_years==TRUE,y*365/366,y))
+# data <- data %>% 
+#   mutate(adjusted=y)
 
 ################## Code from Robbie and Glen (Matlab)
 

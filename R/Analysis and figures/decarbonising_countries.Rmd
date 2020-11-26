@@ -494,39 +494,50 @@ p2 / p1 / p3 + plot_layout(heights = c(2,1,1))
 
 ```
 
-```{r quadrants,echo=FALSE,warning=FALSE,fig.width=5,fig.height=7,fig.path="../../Results/Plots/Peak/",dev=c('png','pdf')}
+```{r rate_plots,echo=FALSE,warning=FALSE,fig.width=6,fig.height=7,fig.path="../../Results/Plots/Peak/",dev=c('png','pdf')}
 
-
-data %>% 
+p1 <- data %>% 
   filter(year==2018) %>% 
-  ggplot(.,aes(x=reorder(country,desc(rate_CO2_peak)),rate_CO2_peak)) +
-  geom_point(color="blue") +
-  geom_point(inherit.aes=FALSE,aes(x=reorder(country,desc(rate_CO2_peak)),rate_GHG_peak),color="red") +
+  ggplot(.,aes(y="a",x=reorder(country,desc(rate_CO2_peak)),label=peak_year))+
+  geom_text(size =3.5,color="#636363") +
   coord_flip() +
   facet_grid(cluster~.,scales="free_y",space="free") +
-  ylab("Average annual growth rate since peak (%)") +
-  theme(axis.title.y = element_blank())
-
-
-
-p2 <- plot_data %>% 
-  filter(key=="CO2 (direct)") %>% 
-  ggplot(.,aes(y="a",x=reorder(label,total_GHG_plus_indirect),label=paste0(ifelse(rate_indirect>0,"+","-"),round(abs(rate_indirect)*100,1),"%"))) +
-  geom_text() +
-  coord_flip() +
-  facet_grid(facet~.,scales="free",space="free") +
+  ylab("Peak year") +
   theme(axis.title.y = element_blank(),
-        #axis.text.y = element_blank(),
-        #axis.ticks.y = element_blank(),
-        axis.text.y = element_text(size=11),
-        axis.title.x = element_blank(),
+        #axis.title.x = element_blank(),
         axis.ticks.x = element_blank(),
         axis.text.x = element_blank(),
         panel.grid.major.x = element_blank(),
         plot.title = element_text(size = 12),
         strip.background = element_blank(),
         strip.text = element_blank()) +
-  ggtitle("Growth \nsince 2010",)
+  ggtitle("Country CO2 and GHG reduction rates since peak")
+
+
+
+rate_data <- data %>% 
+  ungroup() %>% 
+  mutate(country=as.factor(country))
+
+rate_data$country=fct_reorder(rate_data$country,desc(rate_data$rate_CO2_peak))
+
+rate_data <- gather(rate_data,growth_rate,value,rate_CO2_peak,rate_GHG_peak)
+
+p2 <- rate_data %>% 
+  filter(year==2018) %>% 
+  ggplot(.,aes(x=country,y=value,color=growth_rate)) +
+  geom_point() +
+  coord_flip() +
+  facet_grid(cluster~.,scales="free_y",space="free") +
+  scale_color_brewer(labels=c("CO2 emissions","GHG emissions"),palette=) +
+  ylab("Average annual growth rate since peak (%)") +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position="bottom",
+        plot.background = element_blank())
+
+p1 + p2 + plot_layout(widths = c(1,6))
 
 
 ```
