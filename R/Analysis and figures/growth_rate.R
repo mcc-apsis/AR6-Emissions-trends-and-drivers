@@ -45,9 +45,11 @@ growth_rate <- function(years,y) {
   
   data <- data.frame(years,y)
   
+  # data <- data %>% 
+  #   mutate(leap_years = leap_year(years)) %>% 
+  #   mutate(adjusted = ifelse(leap_years==TRUE,y*365/366,y))
   data <- data %>% 
-    mutate(leap_years = leap_year(years)) %>% 
-    mutate(adjusted = ifelse(leap_years==TRUE,y*365/366,y))
+    mutate(adjusted=y)
   
   fit <- lm(log(adjusted) ~ years,data = data)
   
