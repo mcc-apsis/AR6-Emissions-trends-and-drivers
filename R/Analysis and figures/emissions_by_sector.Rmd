@@ -58,6 +58,33 @@ blarg <- edgar_GHG_ar6 %>%
   group_by(year,subsector_title,chapter,chapter_title) %>%
   summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE)
 
+
+
+
+
+
+
+# Buildings data for Yamina Saheb
+
+# blarg <- edgar_GHG_ar6 %>% 
+#   filter(chapter_title=="Buildings") %>%
+#   filter(region_ar6_10=="Europe") %>% 
+#   group_by(country,region_ar6_10,year,chapter_title,subsector_title) %>% 
+#   summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE)
+# 
+# indirect_CO2_countries <- indirect_CO2_countries %>% 
+#   filter(chapter_title=="Buildings") %>%
+#   filter(region_ar6_10=="Europe") %>% 
+#   group_by(country,region_ar6_10,year,chapter_title,subsector_title) %>% 
+#   summarise(CO2_indirect=sum(CO2_indirect,na.rm=TRUE))
+# 
+# blarg <- left_join(blarg,indirect_CO2_countries,by = c("country", "region_ar6_10", "year", "chapter_title", "subsector_title"))
+# 
+# blarg <- blarg %>% 
+#   mutate(CO2_indirect=CO2_indirect*1e9)
+# 
+# openxlsx::write.xlsx(blarg,"Europe_buildings.xlsx")
+
 ```
 
 ```{r trend_plots,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=7,fig.path="../Results/Plots/",dev=c('png','pdf')}
@@ -864,6 +891,8 @@ ggarrange(p2,p,ncol=2,widths=c(0.44,0.56),align = "h")
 ```{r write,include=FALSE,echo=FALSE}
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_sector_trend_plots_",Sys.Date(),".xlsx"),overwrite=T)
+
+
 
 
 
