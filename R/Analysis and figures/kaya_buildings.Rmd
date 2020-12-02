@@ -1,0 +1,46 @@
+---
+title: "Kaya buildings"
+author: "William F. Lamb"
+date: "2 12 2020"
+output: word_document
+---
+
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(gganimate)
+library(openxlsx)
+library(ggplot2); theme_set(theme_bw())
+library(data.table)
+library(janitor)
+
+wb <- openxlsx::createWorkbook(title = "sector_kaya_data",Sys.Date())
+
+load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/land.RData')
+
+land <- land %>%
+  filter(year>1969) %>% 
+  mutate(chapter=7,
+         chapter_title="AFOLU",
+         sector_code="land_CO2",
+         description="Land-use CO2",
+         subsector=7.7,
+         subsector_title="Land-use CO2",
+         CO2=mean,
+         CH4=NA,N2O=NA,Fgas=NA,GHG=mean) %>% 
+  select(-blue,-houghton,-mean)
+
+load('../../Data/basic.RData')
+load("../../Data/ipcc_regions.RData")
+
+
+```
