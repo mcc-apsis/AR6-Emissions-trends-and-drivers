@@ -17,6 +17,7 @@ library(ggpubr)
 library(ggplot2); theme_set(theme_bw())
 library(RColorBrewer)
 library(ggrepel)
+library(patchwork)
 
 source("small_figures.R")
 
@@ -869,7 +870,7 @@ openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),reg
 
 # Top emitting sectors + indirect emissions
 
-```{r top_subsectors_indirect,echo=FALSE,warning=FALSE,results='asis',fig.width=10,fig.height=7,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r top_subsectors_indirect,echo=FALSE,warning=FALSE,results='asis',fig.width=9,fig.height=5,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 top_sectors <- edgar_GHG_ar6  %>%
   filter(year>1989) %>%
@@ -946,8 +947,8 @@ top_sectors <- top_sectors %>%
 
 plot_data <- top_sectors %>%
   ungroup() %>%
-  arrange(desc(total_GHG_plus_indirect))# %>% 
-head(20)
+  arrange(desc(total_GHG_plus_indirect)) %>% 
+  head(15)
 
 plot_data <- plot_data %>%
   mutate(label=paste0(subsector_title," (",chapter_title,")")) %>% 
@@ -1008,14 +1009,10 @@ p2 <- plot_data %>%
         strip.text = element_blank()) +
   ggtitle("Growth \nsince 2010",)
 
-ggarrange(p2,p,ncol=2,widths=c(0.44,0.56),align = "h")
+p2 + p + plot_layout(widths=c(1,5))
 
 ```
 
-```{r sector_ghgs,include=FALSE,echo=FALSE}
-
-
-```
 
 
 

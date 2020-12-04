@@ -63,7 +63,7 @@ plot_data <- plot_data %>%
 
 ## Add land use CO2
 
-plot_data <- left_join(plot_data,land %>% select(-blue,-houghton),by=c("year","region_ar6_10"))
+plot_data <- left_join(plot_data,land %>% select(region_ar6_10,year,mean),by=c("year","region_ar6_10"))
 plot_data <- plot_data %>% 
   mutate(mean=mean/1e9) %>% 
   mutate(value=ifelse(region_ar6_5_short!="AIRSEA",value+mean,value))
