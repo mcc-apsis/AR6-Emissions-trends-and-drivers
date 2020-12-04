@@ -40,7 +40,7 @@ load('../../Data/basic.RData')
 load("../../Data/ipcc_regions.RData")
 
 # load data from Robbie
-kaya_data <- openxlsx::read.xlsx("../../Data/kaya/kaya_data_flat.xlsx")
+kaya_data <- openxlsx::read.xlsx("../../Data/kaya/kaya_data_flat_201201.xlsx")
 names(kaya_data) <- tolower(names(kaya_data))
 kaya_data <- kaya_data %>% select(ISO=iso,everything())
 
@@ -97,7 +97,7 @@ world_pop <- kaya_data %>%
   group_by(year) %>% 
   summarise(POP=sum(POP,na.rm=TRUE)/1e6)
 
-
+save(file='../../Data/kaya/kaya.RData',kaya_data)
 
 # blarg <- kaya_data %>% 
 #   filter(ISO=="WLD") %>% 
@@ -441,7 +441,7 @@ openxlsx::saveWorkbook(wb,paste0("../../Results/Data/sector_kaya_analysis_",Sys.
 
 openxlsx::addWorksheet(wb2,"afolu_data")
 openxlsx::writeData(wb2, sheet = "afolu_data",all_data, colNames = T, rowNames = F)
-openxlsx::saveWorkbook(wb2,"../../Results/Data/kaya_data.xlsx",overwrite=T)
+#openxlsx::saveWorkbook(wb2,"../../Results/Data/kaya_data.xlsx",overwrite=T)
 
 
 ```

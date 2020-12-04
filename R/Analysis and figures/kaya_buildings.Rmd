@@ -22,25 +22,253 @@ library(ggplot2); theme_set(theme_bw())
 library(data.table)
 library(janitor)
 
-wb <- openxlsx::createWorkbook(title = "sector_kaya_data",Sys.Date())
-
-load('../../Data/edgar_data_gwp_ar6.RData')
-load('../../Data/land.RData')
-
-land <- land %>%
-  filter(year>1969) %>% 
-  mutate(chapter=7,
-         chapter_title="AFOLU",
-         sector_code="land_CO2",
-         description="Land-use CO2",
-         subsector=7.7,
-         subsector_title="Land-use CO2",
-         CO2=mean,
-         CH4=NA,N2O=NA,Fgas=NA,GHG=mean) %>% 
-  select(-blue,-houghton,-mean)
-
-load('../../Data/basic.RData')
 load("../../Data/ipcc_regions.RData")
+load('../../Data/basic.RData')
+load('../../Data/activity.RData')
+load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/indirect_CO2.RData')
+
+
+
+# floor space from IEA EE indicators
+# residential/services energy from IEA EE indicators
+# GHG from EDGAR, indirect CO2 from IEA
+# pop from UN
+
+## floor space and pop from IEA EE indicators
+
+floor_space <- act %>% 
+  filter(product %in% c("Residential floor area (10^9 m2)","Services floor area (10^9 m2)"))
+
+floor_space <- floor_space %>% 
+  mutate(product=ifelse(product=="Residential floor area (10^9 m2)","residential",product)) %>% 
+  mutate(product=ifelse(product=="Services floor area (10^9 m2)","services",product))
+
+floor_space <- floor_space %>% 
+  mutate(value=value*1e9) %>% 
+  mutate(pop=pop*1e6)
+
+floor_space <- floor_space %>% 
+  mutate(subsector_title=ifelse(product=="residential","Residential","Non-residential")) %>% 
+  select(-activity,-product,-region_ar6_5,-region_ar6_5_short) %>% 
+  select(everything(),floor_space_m2=value,pop_persons=pop)
+
+
+## energy from IEA EE indicators
+
+energy <- IEA_EE %>% 
+  filter(end_use %in% c("Total Residential","Total Services")) %>% 
+  filter(product=="Total final energy (PJ)")
+
+energy <- energy %>%
+  mutate(subsector_title=ifelse(end_use=="Total Residential","Residential","Non-residential")) %>% 
+  mutate(value=value*1e6) %>% 
+  select(-product,-end_use,-region_ar6_5,-region_ar6_5_short) %>% 
+  select(everything(),tot_fin_energy_GJ=value)
+
+## CO2 direct
+
+co2 <- edgar_GHG_ar6 %>% 
+  filter(chapter_title=="Buildings") %>% 
+  group_by(country,ISO,year,subsector_title) %>% 
+  summarise(CO2_t=sum(CO2,na.rm=TRUE))
+
+## CO2 indirect
+
+co2_indirect <- indirect_CO2_countries %>% 
+  filter(chapter_title=="Buildings") %>% 
+  group_by(country,ISO,year,subsector_title) %>% 
+  summarise(CO2_indirect_t=sum(CO2_indirect*1e9,na.rm=TRUE))
+
+## join all
+
+data <- left_join(co2,co2_indirect,by = c("country", "ISO", "year", "subsector_title"))
+data <- left_join(data,energy,by = c("country", "ISO", "year", "subsector_title"))
+data <- left_join(data,floor_space,by = c("country", "ISO", "year", "subsector_title"))
+
+```
+
+```{r residential_calc, include=FALSE}
+
+## filter complete rows and years
+
+kaya_residential <- data %>% 
+  filter(subsector_title=="Residential") %>% 
+  filter_at(vars(CO2_t:floor_space_m2),all_vars(!is.na(.)))
+
+#sum co2 direct and indirect
+
+kaya_residential <- kaya_residential %>% 
+  mutate(CO2_direct_indirect_t=CO2_t+CO2_indirect_t)
+
+# calculate kaya components
+
+kaya_residential <- kaya_residential %>% 
+  mutate(floor_area_population = floor_space_m2/pop_persons) %>% 
+  mutate(energy_floor_area = tot_fin_energy_GJ/floor_space_m2) %>% 
+  mutate(CO2_energy=CO2_direct_indirect_t/tot_fin_energy_GJ)
+
+## gather and normalise data to 1 in 2000
+
+kaya_residential <- gather(kaya_residential,var,value,CO2_direct_indirect_t,pop_persons,floor_area_population,energy_floor_area,CO2_energy)
+
+kaya_residential <- kaya_residential %>%
+  group_by(country,var) %>%
+  mutate(value=value/first(value))
+
+## filter complete years
+
+kaya_residential <- kaya_residential %>% 
+  select(country,ISO,year,var,value)
+
+kaya_residential <- spread(kaya_residential,year,value)
+kaya_residential <- kaya_residential %>% 
+  filter(!is.na(`2000`))
+kaya_residential <- gather(kaya_residential,year,value,`2000`:`2017`)
+kaya_residential <- kaya_residential %>% 
+  mutate(value=as.numeric(value)) %>% 
+  mutate(year=as.numeric(year))
+
+#kaya_residential <- spread(kaya_residential,var,value)
+#openxlsx::write.xlsx(kaya_residential,file="buildings_kaya.xlsx")
+
+```
+
+## Residential
+
+```{r residential_plot,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9}
+
+
+# plot
+
+kaya_residential %>% ggplot(.,aes(x=year,y=value,color=var)) +
+  geom_path() +
+  facet_wrap(country~.) +
+  theme(legend.position = "bottom",
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.minor = element_blank())
 
 
 ```
+
+```{r services_calc, include=FALSE}
+
+## filter complete rows and years
+
+kaya_non_residential <- data %>% 
+  filter(subsector_title=="Non-residential") %>% 
+  filter_at(vars(CO2_t:floor_space_m2),all_vars(!is.na(.)))
+
+#sum co2 direct and indirect
+
+kaya_non_residential <- kaya_non_residential %>% 
+  mutate(CO2_direct_indirect_t=CO2_t+CO2_indirect_t)
+
+# calculate kaya components
+
+kaya_non_residential <- kaya_non_residential %>% 
+  mutate(floor_area_population = floor_space_m2/pop_persons) %>% 
+  mutate(energy_floor_area = tot_fin_energy_GJ/floor_space_m2) %>% 
+  mutate(CO2_energy=CO2_direct_indirect_t/tot_fin_energy_GJ)
+
+## gather and normalise data to 1 in 2000
+
+kaya_non_residential <- gather(kaya_non_residential,var,value,CO2_direct_indirect_t,pop_persons,floor_area_population,energy_floor_area,CO2_energy)
+
+kaya_non_residential <- kaya_non_residential %>%
+  group_by(country,var) %>%
+  mutate(value=value/first(value))
+
+## filter complete years
+
+kaya_non_residential <- kaya_non_residential %>% 
+  select(country,ISO,year,var,value)
+
+kaya_non_residential <- spread(kaya_non_residential,year,value)
+kaya_non_residential <- kaya_non_residential %>% 
+  filter(!is.na(`2000`))
+kaya_non_residential <- gather(kaya_non_residential,year,value,`2000`:`2017`)
+kaya_non_residential <- kaya_non_residential %>% 
+  mutate(value=as.numeric(value)) %>% 
+  mutate(year=as.numeric(year))
+
+```
+
+## Non-residential
+
+```{r non_residential_plot,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9}
+
+
+# plot
+
+kaya_non_residential %>% ggplot(.,aes(x=year,y=value,color=var)) +
+  geom_path() +
+  facet_wrap(country~.) +
+  theme(legend.position = "bottom",
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.minor = element_blank())
+
+
+```
+
+```{r new_iea_data, include=FALSE}
+
+data <- read.xlsx('../../Data/kaya/IEA_buildings.xlsx',sheet="Chap 9 data ")
+
+data <- gather(data,year,value,`1990`:`2018`)
+
+data <- data %>% 
+  mutate(var=ifelse(Variable=="Residential energy demand (Total)","energy_residential_EJ",NA)) %>%
+  mutate(var=ifelse(Variable=="Services energy demand (Total)","energy_services_EJ",var)) %>% 
+  mutate(var=ifelse(Variable=="Total residential floor area","floor_area_mm2",var)) %>% 
+  mutate(var=ifelse(Variable=="Services sector value added","services_va",var)) %>% 
+  mutate(var=ifelse(Variable=="Population","population_m",var))
+  
+data <- spread(data %>% select(-Variable,-Unit),var,value)
+
+## map regions
+
+
+weo_regions <- read.xlsx('../../Data/kaya/IEA_buildings.xlsx',sheet=1)
+weo_regions <- weo_regions %>% 
+  filter(!is.na(region_ar6_10)) %>% 
+  select(-region_ar6_5,-differences)
+
+weo_regions <- weo_regions %>% 
+  separate(weo_regions,c("one","two","three","four","five","six"))
+weo_regions <- gather(weo_regions,x,weo_regions,one:six)
+weo_regions <- weo_regions %>% 
+  select(-x) %>% 
+  filter(!is.na(weo_regions))
+
+weo_regions <- left_join()
+
+
+co2_weo <- left_join(co2,ipcc_regions,by = "ISO")
+
+
+
+# The kaya decomposition should be performed separately for residential and non-residential buildings as the drivers vary per building use: 
+# •	Residential buildings
+# 
+# CO2= Population *[Floor area/Population]*[Energy/Floor area]*[CO2/Energy]
+# 
+# Source of data: 
+# 	Population: the source used for Ch2 calculations but also included in IEA/Beyond2020/EE indicators/Activity
+# 	Floor area: IEA Beyond 2020/EE indicators/Activity
+# 	Energy (Total final energy): IEA Beyond 2020/EE indicators/Residential_Energy
+# 	CO2: Total (direct+indirect+others) emissions from William’s previous calculations
+# 
+# •	Non-residential buildings
+# 
+# CO2= Value added*[Energy/Value Added]*[CO2/Energy] 
+# 
+# Source of data: 
+# 	Value-added (Total services: Value added (10^9 USD PPP 2010): IEA/Beyond2020/EE indicators/Activity
+# 	Energy (Total final energy): IEA Beyond 2020/EE indicators/Services_Energy
+# 	CO2: Total (direct+indirect+others) emissions from William’s previous calculations
+
+```
+
