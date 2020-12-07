@@ -63,7 +63,7 @@ land <- land %>%
   filter(year>1989) %>% 
   filter(year<2019) %>% 
   mutate(subsector=7.7) %>% 
-  mutate(subsector_title="Land-use CO2") %>% 
+  mutate(subsector_title="Land-use (CO2)") %>% 
   select(region_ar6_10,year,subsector,subsector_title,value=mean)
 
 land <- left_join(land,regions,by = "region_ar6_10")
@@ -259,17 +259,13 @@ trend_figure <- function(trend_data,chapter) {
   shares <- left_join(shares,growth_data %>% select(-value) %>% filter(year %in% c(1990,2000,2010)),by="year")
   
   colours <- c("#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
-  if (chapter!=1) {
-    if (chapter!=6) {
+  if (chapter==9) {
+      colours <- c("#bdbdbd","#969696","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
+  }
+  if (chapter==11 | chapter==10) {
       colours <- c("#bdbdbd","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
       
-      if (chapter==9) {
-        
-        colours <- c("#bdbdbd","#969696","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
-        
-      }
     }
-  }
   
   p <- trend_data %>%
     ggplot(.,aes(x=year,y=value,fill=subsector_title)) +
@@ -447,16 +443,13 @@ gather_region_data <- function(edgar_GHG_ar6,ch) {
 plot_region_figure <- function(region_data,chapter) {
   
   colours <- c("#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
-  if (chapter!=1) {
-    if (chapter!=6) {
-      colours <- c("#bdbdbd","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
-      if (chapter==9) {
-        
-        colours <- c("#bdbdbd","#969696","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
-        
-      }
-    }
+  if (chapter==9) {
+      colours <- c("#bdbdbd","#969696","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
   }
+  if (chapter==11 | chapter==10) {
+      colours <- c("#bdbdbd","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
+      
+    }
   
   p <- region_data %>% ggplot(.,aes(x=year,y=value,fill=subsector_title)) +
     geom_bar(stat='identity',colour="#737373") +
@@ -826,23 +819,32 @@ ch = chapters$chapter[i]
 
 ############  Overall trend
 
-trend_data <- gather_trend_data(edgar_GHG_ar6 %>% filter(subsector_title!="Fuel combustion (REMOVE FROM FIGURES)"),ch)
+trend_data <- gather_trend_data(edgar_GHG_ar6,ch)
+
+trend_data <- trend_data %>% 
+  filter(subsector_title!="Indirect CO2") %>% 
+  filter(subsector_title!="Fuel combustion (REMOVE FROM FIGURES)")
 
 ## align factors and labels
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
-trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,4,2,5,7,6,1,8)])
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,2,4,6,5,7,1)])
 
 p1 <- trend_figure(trend_data,ch)
+p1 <- p1 + ggtitle("a. AFOLU global trends in GHG emissions and removals")
 
 ############  Region plot
 
-region_data <- gather_region_data(edgar_GHG_ar6 %>% filter(subsector_title!="Fuel combustion (REMOVE FROM FIGURES)"),ch)
+region_data <- gather_region_data(edgar_GHG_ar6,ch)
+
+region_data <- region_data %>% 
+  filter(subsector_title!="Fuel combustion (REMOVE FROM FIGURES)") %>%                                     filter(subsector_title!="Indirect CO2")
 
 ## align factors and labels
 region_data$subsector_title <- as.factor(region_data$subsector_title)
-region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(3,4,2,5,7,6,1,8)])
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,2,4,6,5,7,1)])
 
 p2 <- plot_region_figure(region_data,ch)
+p2 <- p2 + ggtitle("b. AFOLU regional trends in GHG emissions and removals")
 
 
 ############ Plot everything
@@ -938,7 +940,7 @@ subsector_gases <- edgar_GHG_ar6 %>%
 
 top_sectors <- left_join(top_sectors,subsector_gases,by = c("year", "chapter", "chapter_title", "subsector", "subsector_title"))
 top_sectors <- top_sectors %>% 
-  mutate(CO2=ifelse(subsector_title=="Land-use CO2",total_GHG,CO2))
+  mutate(CO2=ifelse(subsector_title=="Land-use (CO2)",total_GHG,CO2))
 
 top_sectors <- top_sectors %>% 
   select(`CO2 (direct)`=CO2,`CO2 (indirect)`=CO2_indirect,everything())
