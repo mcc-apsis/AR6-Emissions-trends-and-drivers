@@ -88,6 +88,45 @@ data <- left_join(data,floor_space,by = c("country", "ISO", "year", "subsector_t
 
 ```
 
+```{r floor_area_descriptive,echo=FALSE,warning=FALSE,fig.width=6,fig.height=4,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+floor_space_plot <- floor_space %>% 
+  mutate(floor_space_percapita = floor_space_m2/pop_persons) %>% 
+  filter(country!="Ukraine")
+
+floor_space_plot <- left_join(floor_space_plot,basic %>% select(ISO,year=Year,gdp_ppp_WB),by = c("ISO", "year"))
+
+floor_space_plot <- floor_space_plot %>% 
+  filter(year %in% c(2000,2017)) %>% 
+  filter(subsector_title=="Residential") %>% 
+  mutate(gdp_pc = gdp_ppp_WB/pop_persons)
+
+
+library(RColorBrewer)
+
+
+floor_space_plot <- floor_space_plot %>% 
+  filter(country %in% c("Australia","Canada","Czech Republic","Finland","Hungary","France","Germany","Japan","United Kingdom","Mexico","United States")) 
+
+mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(length(unique(floor_space_plot$country)))
+
+
+  
+floor_space_plot %>% ggplot(.,aes(x=gdp_pc,y=floor_space_percapita,color=country,group=country)) +
+  geom_path() +
+  geom_point() +
+  geom_text(data=floor_space_plot %>% filter(year==2017),
+            inherit.aes=FALSE,aes(x=gdp_pc+1000,y=floor_space_percapita,label=country,color=country),hjust=0) + 
+  scale_color_manual(values=mycolors) +
+  xlim(15000,65000) +
+  theme(legend.position="none") +
+  ggtitle("Residential floor space vs. GDP per capita (2000 & 2017)") +
+  ylab("Floor space per capita (m2/person)") +
+  xlab("GDP per capita (US$ PPP)")
+
+```
+
+
 ```{r residential_calc, include=FALSE}
 
 # ## filter complete rows and years
@@ -212,6 +251,8 @@ data <- left_join(data,floor_space,by = c("country", "ISO", "year", "subsector_t
 
 
 ```
+
+
 
 ```{r gather_data, include=FALSE}
 
@@ -343,7 +384,7 @@ residential <- residential %>%
 
 ```
 
-```{r residential_plot,echo=FALSE,warning=FALSE,fig.width=8,fig.height=7}
+```{r residential_plot,echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
 
 # plot
@@ -401,7 +442,7 @@ nonresidential <- nonresidential %>%
 
 ```
 
-```{r nonresidential_plot,echo=FALSE,warning=FALSE,fig.width=8,fig.height=7}
+```{r nonresidential_plot,echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
 
 # plot

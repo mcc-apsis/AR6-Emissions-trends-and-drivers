@@ -807,112 +807,61 @@ sector_cluster_data <- sector_cluster_data %>%
   group_by(country,cluster,chapter_title,subsector_title,abs_CO2_tot,abs_GHG_tot) %>% 
   summarise(CO2_peak = first(CO2),
             CO2_2018 = last(CO2),
-            abs_CO2 = first(CO2)-last(CO2),
+            abs_CO2 = -(first(CO2)-last(CO2)),
             GHG_peak = first(GHG),
             GHG_2018 = last(GHG),
-            abs_GHG = first(GHG)-last(GHG))
+            abs_GHG = -(first(GHG)-last(GHG)))
 
 
 # reverse signs
-
-sector_cluster_country_data <- sector_cluster_data
 
 sector_cluster_data <- sector_cluster_data %>% 
   group_by(cluster,chapter_title,subsector_title) %>% 
   summarise_at(vars(CO2_peak,CO2_2018,abs_CO2,GHG_peak,GHG_2018,abs_GHG),sum,na.rm=TRUE)
 
-sector_cluster_data <- sector_cluster_data %>%
-  group_by(cluster) %>% 
-  mutate(abs_CO2_tot=sum(abs_CO2)) %>% 
-  mutate(abs_GHG_tot=sum(abs_GHG))
-
-sector_cluster_data <- sector_cluster_data %>%
-  mutate(abs_CO2_fraction = (abs_CO2/abs_CO2_tot)*-100) %>% 
-  mutate(abs_GHG_fraction = (abs_GHG/abs_GHG_tot)*-100)
+sector_cluster_data <- sector_cluster_data %>% 
+  group_by(cluster,chapter_title,subsector_title) %>% 
+  mutate(rel_GHG = (abs_GHG/GHG_peak)*100)
 
 ```
 
-```{r cluster_subsectors_CO2,echo=FALSE,warning=FALSE,fig.width=7,fig.height=6,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r cluster_subsectors_GHG,echo=FALSE,warning=FALSE,fig.width=9,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
-
-# order rows
 
 plot_data <- sector_cluster_data %>% 
-  filter(abs(abs_CO2_fraction)>2) %>% 
-  arrange(cluster,abs_CO2)
+  #filter(GHG_2018>15) %>% 
+  filter(subsector_title!="Biomass burning (CO2, CH4) (AFOLU)") %>% 
+  filter(subsector_title!="Biomass energy systems (Energy systems)") %>% 
+  filter(subsector_title!="Non-CO2 (all buildings) (Buildings)") %>% 
+  filter(subsector_title!="Rice cultivation (CH4) (AFOLU)") %>% 
+  filter(subsector_title!="Rail  (Transport)") %>% 
+  filter(subsector_title!="Other incl. Indirect N2O (Transport)") %>% 
+  filter(subsector_title!="Other incl. Indirect N2O (Energy systems)") %>% 
+  filter(subsector_title!="Inland Shipping (Transport)") %>% 
+  arrange(chapter_title)
+
 
 plot_data$order <- 1:length(plot_data$cluster)
-
 plot_data$subsector_title <- fct_reorder(plot_data$subsector_title,plot_data$order)
 
-annotes <- data.frame(cluster=c("1","2","3"),country=c(1,10,20))
 
-
-plot_data %>% 
-  #filter(abs(abs_CO2_fraction)>2) %>% 
-  ggplot(.,aes(x=order,y=-abs_CO2,fill=chapter_title)) +
-  geom_bar(stat='identity',color="#636363",width = 0.75) +
-  geom_text(aes(x=order,y=-abs_CO2,label=paste0(ifelse(abs_CO2_fraction>0,"+",""),round(abs_CO2_fraction,1),"%"),hjust = ifelse(abs_CO2 <= 0, -0.1, 1.1)),size=3,colour="#636363",size=3.5) +
-  geom_text(data=annotes,inherit.aes=FALSE,aes(x=country,y=-1000,label=paste0("Group ",cluster)),color="#636363",hjust=0,vjust=0,size=3.5,show.legend=FALSE) +
+plot_data %>% ggplot(.,aes(x=subsector_title,y=GHG_peak,fill=chapter_title)) + 
+  geom_bar(stat='identity',color="#636363",width = 0.75,alpha=0.3) +
+  geom_bar(aes(x=subsector_title,y=GHG_2018),stat='identity',color="#636363",width = 0.75) +
+  geom_text(aes(x=subsector_title,y=ifelse(GHG_peak>GHG_2018,GHG_peak,GHG_2018),label=paste0(ifelse(rel_GHG>0,"+",""),round(rel_GHG,1),"%")),hjust = -0.15,size=3,colour="#636363",size=3.5) +
+  scale_y_continuous(expand=expand_scale(mult = c(0.1, 0.5))) +
   coord_flip() +
-  scale_x_continuous(
-    breaks = plot_data$order,
-    labels = plot_data$subsector_title
-  ) +
-  ylim(-1000,300) +
-  ylab("Mt CO2") +
-  facet_grid(cluster~.,scales="free",space="free") +
+  facet_grid(.~cluster,scales="free") +
   theme(axis.title.y = element_blank(),
         legend.position="bottom",
         legend.title=element_blank(),
         plot.title = element_text(size = 11),
         plot.background = element_blank(),
-        strip.background = element_blank(),
-        strip.text = element_blank(),
         panel.grid.minor.y = element_blank()) +
-  ggtitle("CO2 Emissions change in subsectors by cluster since peak year")
-
-```
-
-```{r cluster_subsectors_GHG,echo=FALSE,warning=FALSE,fig.width=7.5,fig.height=7,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
-
-
-# filter to > 2% and order rows
-
-plot_data <- sector_cluster_data %>% 
-  filter(abs(abs_GHG_fraction)>2) %>% 
-  arrange(cluster,abs_GHG)
-
-plot_data$order <- 1:length(plot_data$cluster)
-
-plot_data$subsector_title <- fct_reorder(plot_data$subsector_title,plot_data$order)
-
-annotes <- data.frame(cluster=c("1","2","3"),country=c(1,15,25))
-
-plot_data %>% 
-  #filter(abs(abs_CO2_fraction)>2) %>% 
-  ggplot(.,aes(x=order,y=-abs_GHG,fill=chapter_title)) +
-  geom_bar(stat='identity',color="#636363",width = 0.75) +
-  geom_text(aes(x=order,y=-abs_GHG,label=paste0(ifelse(abs_GHG_fraction>0,"+",""),round(abs_GHG_fraction,1),"%"),hjust = ifelse(abs_GHG <= 0, -0.1, 1.1)),size=3,colour="#636363",size=3.5) +
-  geom_text(data=annotes,inherit.aes=FALSE,aes(x=country,y=-1000,label=paste0("Group ",cluster)),color="#636363",hjust=0,vjust=0,size=3.5,show.legend=FALSE) +
-  coord_flip() +
-  scale_x_continuous(
-    breaks = plot_data$order,
-    labels = plot_data$subsector_title
-  ) +
-  ylim(-1000,300) +
-  ylab("Mt CO2eq") +
-  facet_grid(cluster~.,scales="free",space="free") +
-  theme(axis.title.y = element_blank(),
-        legend.position="bottom",
-        legend.title=element_blank(),
-        plot.title = element_text(size = 11),
-        plot.background = element_blank(),
-        strip.background = element_blank(),
-        strip.text = element_blank(),
-        panel.grid.minor.y = element_blank()) +
-  ggtitle("GHG Emissions change in subsectors by cluster since peak year")
-
+  ylab("Annual GHG emissions (MtCO2eq)") +
+  ggtitle("Subsector GHG emissions at peak vs 2018 by cluster")
+  
+  
 ```
 
 ```{r calc_rolling_Rates,echo=FALSE,warning=FALSE,include=FALSE}
