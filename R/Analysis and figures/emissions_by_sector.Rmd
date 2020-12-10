@@ -841,7 +841,7 @@ region_data <- region_data %>%
 
 ## align factors and labels
 region_data$subsector_title <- as.factor(region_data$subsector_title)
-trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,2,4,6,5,7,1)])
+region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(3,2,4,6,5,7,1)])
 
 p2 <- plot_region_figure(region_data,ch)
 p2 <- p2 + ggtitle("b. AFOLU regional trends in GHG emissions and removals")

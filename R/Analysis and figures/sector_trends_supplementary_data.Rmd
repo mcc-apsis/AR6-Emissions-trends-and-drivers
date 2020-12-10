@@ -148,8 +148,7 @@ fossil_share <- gather(fossil_share,year,value,`1971`:`2019`)
 fossil_share <- spread(fossil_share,var,value)
 
 fossil_share <- fossil_share %>% 
-  filter(year>1989) %>% 
-  filter(year<2019) %>% 
+  filter(year %in% c(1990,2000,2010,2018)) %>% 
   select(-`FALSE`,ISO=country) %>% 
   mutate(year=as.numeric(year))%>% 
   mutate(fossilshare=as.numeric(fossilshare))%>% 
@@ -171,6 +170,7 @@ plot_data %>%
   filter(!is.na(region_ar6_10)) %>% 
   ggplot(.,aes(x=year,y=value,colour=region_ar6_10)) +
   geom_path() +
+  geom_point() +
   geom_text(data=plot_data %>% filter(year==2018),
             aes(x=year+1,y=value,label=region_ar6_10,hjust=0),
             position=position_jitter(width=0,height=0.0)) +

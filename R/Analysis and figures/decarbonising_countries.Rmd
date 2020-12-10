@@ -48,6 +48,29 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2"
 
 ```
 
+```{r thingforMichael,echo=FALSE,warning=FALSE,include=FALSE}
+
+
+data <- edgar_GHG_ar6 %>%
+  filter(region_ar6_dev=="developed") %>% 
+  filter(year %in% c(2010,2018)) %>% 
+  group_by(ISO,country,year) %>% 
+  summarise_at(vars(CO2,GHG),sum,na.rm=TRUE)
+
+data <- data %>% 
+  group_by(country) %>% 
+  mutate(rel_CO2=(first(CO2)-last(CO2))/first(CO2)) %>% 
+  mutate(rel_GHG=(first(GHG)-last(GHG))/first(GHG))
+
+
+data <- data %>% 
+  filter(rel_CO2>0)
+
+openxlsx::write.xlsx(data,"countries.xlsx")
+
+
+```
+
 ```{r calculate_rates,echo=FALSE,warning=FALSE,include=FALSE}
 
 ## gather data
@@ -968,9 +991,10 @@ p1 <- rolling_rates %>% ggplot(.,aes(x=country,y=rate_rolling_CO2,fill=as.factor
         strip.background = element_blank(),
         strip.text = element_blank(),
         plot.margin = unit(c(0,0,0,0),units="cm")) +
-  ggtitle(str_wrap("5 year rolling average CO2 growth rates vs. Paris compatible scenario rates",width=35))
+  ggtitle(str_wrap("a. 5 year rolling average CO2 growth rates",width=35))
 
 p3 <- scenario_data %>% ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregated_category)) +
+  geom_hline(yintercept=0) +
   geom_hline(data=lines,aes(yintercept=median,color=aggregated_category),linetype="dashed") +
   geom_boxplot() +
   coord_flip() +
@@ -978,7 +1002,7 @@ p3 <- scenario_data %>% ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregate
   scale_color_manual(values=c("#e78ac3","#a6d854","#ffd92f")) +
   scale_fill_manual(values=c("#e78ac3","#a6d854","#ffd92f")) +
   scale_x_discrete(labels = function(aggregated_category) str_wrap(aggregated_category, width = 18)) +
-  scale_y_continuous(limits=c(-15,15),breaks=c(-10,-5,0,5,10)) +
+  scale_y_continuous(limits=c(-15,15),breaks=c(-15,-10,-5,0,5,10,15)) +
   theme(axis.title.y = element_blank(),
         plot.title = element_text(size = 11),
         plot.background = element_blank(),
@@ -986,7 +1010,8 @@ p3 <- scenario_data %>% ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregate
         strip.text = element_blank(),
         plot.margin = unit(c(0,0,0,0),units="cm"),
         legend.position="none",
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank()) +
+  ggtitle(str_wrap("b. Average CO2 growth rates in scenarios compatible with warming targets",width=35))
 
  p2 <- rolling_rates %>% ggplot(.,aes(x=country,y=year,fill=threshold_CO2)) +
   geom_tile(color="white",size=0.2) +
@@ -1005,7 +1030,7 @@ p3 <- scenario_data %>% ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregate
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         plot.margin = unit(c(0,0,0,0),units="cm")) +
-   ggtitle(str_wrap("Years where rolling average CO2 growth rates < -4%",width=35))
+   ggtitle(str_wrap("c. Years where rolling average CO2 growth rates < -4%",width=35))
 
 (p1 + p2) / (p3 + plot_spacer()) + plot_layout(heights=c(6,1))
 
