@@ -18,6 +18,7 @@ library(openxlsx)
 library(ggplot2); theme_set(theme_bw())
 library(data.table)
 library(janitor)
+library(patchwork)
 
 load('../../Data/edgar_data_gwp_ar6.RData')
 load('../../Data/land.RData')
@@ -48,7 +49,7 @@ wb <- openxlsx::createWorkbook(title = paste("ipcc_activity_data_",Sys.Date()))
 
 ```
 
-``` {r buildings_CO2_fraction, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3.5,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+``` {r buildings_CO2_fraction, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3.5,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
 buildings <- edgar_GHG_ar6 %>% 
   filter(chapter_title=="Buildings") %>% 
@@ -76,7 +77,7 @@ buildings %>%
 
 ```
 
-``` {r afolu_CO2_fraction, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3.5,fig.path="../Results/Plots/",dev=c('png','pdf')}
+``` {r afolu_CO2_fraction, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3.5,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 # 
 # afolu <- edgar_GHG_ar6 %>% 
 #   filter(chapter_title=="AFOLU") %>% 
@@ -107,7 +108,7 @@ buildings %>%
 ```
 
 
-``` {r energy_fossil_share, echo=FALSE,warning=FALSE,fig.width=6,fig.height=4,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+``` {r energy_fossil_share, echo=FALSE,warning=FALSE,fig.width=6,fig.height=4,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
 
 
@@ -182,9 +183,55 @@ plot_data %>%
   ggtitle("Fossil fuel share of electricity and heat production")
 
 ```
+``` {r land, echo=FALSE,warning=FALSE,fig.width=7,fig.height=5,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
+land <- openxlsx::read.xlsx('../../Data/supplemetary data/land.xlsx')
 
-``` {r sums, echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../Results/Plots/",dev=c('png','pdf')}
+names(land) <- c("type","region","1990","2000","2010","2018")
+
+land <- land %>% 
+  fill(type)
+
+land <- gather(land,year,value,`1990`:`2018`)
+
+land <- land %>% 
+  mutate(value=value/1e6) %>% 
+  filter(type!="Wood Harvest (Pg C)")
+
+p1 <- land %>% ggplot(.,aes(x=year,y=value,color=region,group=region)) +
+  geom_path() +
+  geom_point() +
+  facet_grid(.~type) +
+  theme(legend.position="none",
+        legend.title=element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  ylab("Area (million km2)")
+
+land <- land %>%
+  group_by(type,region) %>% 
+  mutate(value=value/first(value))
+
+p2 <- land %>% ggplot(.,aes(x=year,y=value,color=region,group=region)) +
+  geom_path() +
+  geom_point() +
+  facet_grid(.~type) +
+  theme(legend.position="bottom",
+        legend.title=element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.text.x = element_text(angle = 45,hjust=1)) +
+  ylab(str_wrap("Area (million km2) normalised to 1 in 1990",width=25))
+
+p1 / p2 + plot_layout(heights=c(1,1.1))
+
+```
+
+``` {r sums, echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
 sums <- act %>% 
   group_by(year,product,activity) %>% 
@@ -199,7 +246,7 @@ sums %>%
 
 ```
 
-``` {r maps, echo=FALSE,warning=FALSE,fig.width=8,fig.path="../Results/Plots/",dev=c('png','pdf')}
+``` {r maps, echo=FALSE,warning=FALSE,fig.width=8,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
 
 isos <- openxlsx::read.xlsx("C:\\Users\\lamw\\Documents\\SpiderOak Hive\\Work\\Code\\R\\.Place names and codes\\output\\ISOcodes.xlsx",sheet="alternative_names")
@@ -234,7 +281,7 @@ ggplot() +
 
 
 
-``` {r transport, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
+``` {r transport, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
 transport <- act %>% 
   filter(grepl("pkm|tkm|vkm|stock", product))
@@ -255,7 +302,7 @@ transport %>%
 
 ```
 
-``` {r buildings, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../Results/Plots/",dev=c('png','pdf')}
+``` {r buildings, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
 floor_space <- act %>% 
   filter(product %in% c("Residential floor area (10^9 m2)","Services floor area (10^9 m2)"))
@@ -275,7 +322,7 @@ floor_space <- floor_space %>%
 
 
 
-``` {r industry, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="../Results/Plots/",dev=c('png','pdf')}
+``` {r industry, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
 top_countries <- function(data) {
   

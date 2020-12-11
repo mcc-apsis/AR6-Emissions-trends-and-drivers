@@ -2,10 +2,7 @@
 title: "Kaya buildings"
 author: "William F. Lamb"
 date: "2 12 2020"
-output: word_document
----
-
-output: 
+output: output: 
   word_document:
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
@@ -28,6 +25,7 @@ load('../../Data/activity.RData')
 load('../../Data/edgar_data_gwp_ar6.RData')
 load('../../Data/indirect_CO2.RData')
 
+wb <- openxlsx::createWorkbook(title = "kaya_buildings")
 
 
 # floor space from IEA EE indicators
@@ -127,136 +125,9 @@ floor_space_plot %>% ggplot(.,aes(x=gdp_pc,y=floor_space_percapita,color=country
 ```
 
 
-```{r residential_calc, include=FALSE}
+```{r gather_historical_data, include=FALSE}
 
-# ## filter complete rows and years
-# 
-# kaya_residential <- data %>% 
-#   filter(subsector_title=="Residential") %>% 
-#   filter_at(vars(CO2_t:floor_space_m2),all_vars(!is.na(.)))
-# 
-# #sum co2 direct and indirect
-# 
-# kaya_residential <- kaya_residential %>% 
-#   mutate(CO2_direct_indirect_t=CO2_t+CO2_indirect_t)
-# 
-# # calculate kaya components
-# 
-# kaya_residential <- kaya_residential %>% 
-#   mutate(floor_area_population = floor_space_m2/pop_persons) %>% 
-#   mutate(energy_floor_area = tot_fin_energy_GJ/floor_space_m2) %>% 
-#   mutate(CO2_energy=CO2_direct_indirect_t/tot_fin_energy_GJ)
-# 
-# ## gather and normalise data to 1 in 2000
-# 
-# kaya_residential <- gather(kaya_residential,var,value,CO2_direct_indirect_t,pop_persons,floor_area_population,energy_floor_area,CO2_energy)
-# 
-# kaya_residential <- kaya_residential %>%
-#   group_by(country,var) %>%
-#   mutate(value=value/first(value))
-# 
-# ## filter complete years
-# 
-# kaya_residential <- kaya_residential %>% 
-#   select(country,ISO,year,var,value)
-# 
-# kaya_residential <- spread(kaya_residential,year,value)
-# kaya_residential <- kaya_residential %>% 
-#   filter(!is.na(`2000`))
-# kaya_residential <- gather(kaya_residential,year,value,`2000`:`2017`)
-# kaya_residential <- kaya_residential %>% 
-#   mutate(value=as.numeric(value)) %>% 
-#   mutate(year=as.numeric(year))
-# 
-# #kaya_residential <- spread(kaya_residential,var,value)
-# #openxlsx::write.xlsx(kaya_residential,file="buildings_kaya.xlsx")
-
-```
-
-## Residential
-
-```{r old_residential_plot,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9}
-
-
-# # plot
-# 
-# kaya_residential %>% ggplot(.,aes(x=year,y=value,color=var)) +
-#   geom_path() +
-#   facet_wrap(country~.) +
-#   theme(legend.position = "bottom",
-#         axis.title = element_blank(),
-#         legend.title = element_blank(),
-#         panel.grid.minor = element_blank())
-
-
-```
-
-```{r services_calc, include=FALSE}
-
-# ## filter complete rows and years
-# 
-# kaya_non_residential <- data %>% 
-#   filter(subsector_title=="Non-residential") %>% 
-#   filter_at(vars(CO2_t:floor_space_m2),all_vars(!is.na(.)))
-# 
-# #sum co2 direct and indirect
-# 
-# kaya_non_residential <- kaya_non_residential %>% 
-#   mutate(CO2_direct_indirect_t=CO2_t+CO2_indirect_t)
-# 
-# # calculate kaya components
-# 
-# kaya_non_residential <- kaya_non_residential %>% 
-#   mutate(floor_area_population = floor_space_m2/pop_persons) %>% 
-#   mutate(energy_floor_area = tot_fin_energy_GJ/floor_space_m2) %>% 
-#   mutate(CO2_energy=CO2_direct_indirect_t/tot_fin_energy_GJ)
-# 
-# ## gather and normalise data to 1 in 2000
-# 
-# kaya_non_residential <- gather(kaya_non_residential,var,value,CO2_direct_indirect_t,pop_persons,floor_area_population,energy_floor_area,CO2_energy)
-# 
-# kaya_non_residential <- kaya_non_residential %>%
-#   group_by(country,var) %>%
-#   mutate(value=value/first(value))
-# 
-# ## filter complete years
-# 
-# kaya_non_residential <- kaya_non_residential %>% 
-#   select(country,ISO,year,var,value)
-# 
-# kaya_non_residential <- spread(kaya_non_residential,year,value)
-# kaya_non_residential <- kaya_non_residential %>% 
-#   filter(!is.na(`2000`))
-# kaya_non_residential <- gather(kaya_non_residential,year,value,`2000`:`2017`)
-# kaya_non_residential <- kaya_non_residential %>% 
-#   mutate(value=as.numeric(value)) %>% 
-#   mutate(year=as.numeric(year))
-
-```
-
-## Non-residential
-
-```{r old_non_residential_plot,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9}
-
-
-# plot
-
-# kaya_non_residential %>% ggplot(.,aes(x=year,y=value,color=var)) +
-#   geom_path() +
-#   facet_wrap(country~.) +
-#   theme(legend.position = "bottom",
-#         axis.title = element_blank(),
-#         legend.title = element_blank(),
-#         panel.grid.minor = element_blank())
-
-
-```
-
-
-
-```{r gather_data, include=FALSE}
-
-data <- read.xlsx("../../Data/kaya/Buildings 2020-12-04  Dataset for Kaya decomposition.xlsx",sheet=2)
+data <- read.xlsx("../../Data/supplemetary data/2020-12-07 Data for plots to Will2.xlsx",sheet=1)
 
 data <- gather(data,year,value,`1990`:`2018`) %>% 
   filter(!is.na(Region))
@@ -269,6 +140,18 @@ co2_buildings <- co2_buildings %>%
 
 co2_buildings <- co2_buildings %>%  
   mutate(CO2_total_t = CO2_t+CO2_indirect_t)
+
+# Move Belarus and Macedonia from Eurasia to Europe and Israel from Middle East to Europe
+
+co2_buildings <- co2_buildings %>%
+  ungroup() %>% 
+  mutate(region_ar6_10=ifelse(country=="Belarus","Europe",region_ar6_10)) %>% 
+  mutate(region_ar6_10=ifelse(country=="Macedonia, FYR","Europe",region_ar6_10)) %>% 
+  mutate(region_ar6_10=ifelse(country=="Israel","Europe",region_ar6_10)) 
+
+co2_buildings <- co2_buildings %>%
+  mutate(region_ar6_10=ifelse(region_ar6_10=="Southern Asia","Southern Asia, South East Asia and Developing Pacific",region_ar6_10)) %>% 
+  mutate(region_ar6_10=ifelse(region_ar6_10=="South-East Asia and Developing Pacific","Southern Asia, South East Asia and Developing Pacific",region_ar6_10))
 
 co2_buildings <- co2_buildings %>% 
   group_by(region_ar6_10,year,subsector_title) %>% 
@@ -290,17 +173,30 @@ data <- data %>%
 
 data <- rbind(data,co2_buildings)
 
+
 pop <- basic %>% select(ISO,year=Year,pop_UN)
 pop <- left_join(pop,ipcc_regions,by = "ISO")
-pop <- pop %>% 
-  filter(year %in% c(1990,2000,2005,2010,2015,2018)) %>% 
-  group_by(region_ar6_10,year) %>% 
-  summarise(value=sum(pop_UN)) %>% 
+
+
+pop <- pop %>%
+  ungroup() %>% 
+  mutate(region_ar6_10=ifelse(ISO=="BLR","Europe",region_ar6_10)) %>% 
+  mutate(region_ar6_10=ifelse(ISO=="MKD","Europe",region_ar6_10)) %>% 
+  mutate(region_ar6_10=ifelse(ISO=="ISR","Europe",region_ar6_10)) 
+
+pop <- pop %>%
+  mutate(region_ar6_10=ifelse(region_ar6_10=="Southern Asia","Southern Asia, South East Asia and Developing Pacific",region_ar6_10)) %>% 
+  mutate(region_ar6_10=ifelse(region_ar6_10=="South-East Asia and Developing Pacific","Southern Asia, South East Asia and Developing Pacific",region_ar6_10))
+
+pop <- pop %>%
+  filter(year %in% c(1990,2000,2005,2010,2015,2018)) %>%
+  group_by(region_ar6_10,year) %>%
+  summarise(value=sum(pop_UN)) %>%
   filter(!is.na(region_ar6_10))
-pop <- pop %>% 
-  mutate(Variable="Population") %>% 
-  mutate(Unit="persons") %>% 
-  select(Region=region_ar6_10,Variable,Unit,year,value) %>% 
+pop <- pop %>%
+  mutate(Variable="Population") %>%
+  mutate(Unit="persons") %>%
+  select(Region=region_ar6_10,Variable,Unit,year,value) %>%
   ungroup()
 
 data <- rbind(data,pop %>% mutate(subsector_title="Residential"))
@@ -327,25 +223,6 @@ data <- rbind(data,co2_buildings)
 data <- data %>% 
   mutate(Variable=paste0(Variable," (",Unit,")"))
 
-# The kaya decomposition should be performed separately for residential and non-residential buildings as the drivers vary per building use: 
-# •	Residential buildings
-# 
-# CO2= Population *[Floor area/Population]*[Energy/Floor area]*[CO2/Energy]
-# 
-# Source of data: 
-# 	Population: the source used for Ch2 calculations but also included in IEA/Beyond2020/EE indicators/Activity
-# 	Floor area: IEA Beyond 2020/EE indicators/Activity
-# 	Energy (Total final energy): IEA Beyond 2020/EE indicators/Residential_Energy
-# 	CO2: Total (direct+indirect+others) emissions from William’s previous calculations
-# 
-# •	Non-residential buildings
-# 
-# CO2= Value added*[Energy/Value Added]*[CO2/Energy] 
-# 
-# Source of data: 
-# 	Value-added (Total services: Value added (10^9 USD PPP 2010): IEA/Beyond2020/EE indicators/Activity
-# 	Energy (Total final energy): IEA Beyond 2020/EE indicators/Services_Energy
-# 	CO2: Total (direct+indirect+others) emissions from William’s previous calculations
 ```
 
 
@@ -370,6 +247,10 @@ residential <- residential %>%
   mutate(co2_energy = co2/energy)
 
 
+openxlsx::addWorksheet(wb,"residential")
+openxlsx::writeData(wb, sheet = "residential",residential, colNames = T, rowNames = F)
+
+
 residential <- gather(residential,var,value,co2,pop,floor_pop,energy_floor,co2_energy)
 
 
@@ -378,24 +259,29 @@ residential <- residential %>%
   mutate(value=value/first(value))
 
 residential <- residential %>% 
-  mutate(value=value-1)
+  mutate(value=value-1) %>% 
+  filter(region!="World") 
 
+
+openxlsx::addWorksheet(wb,"residential (normalised)")
+openxlsx::writeData(wb, sheet = "residential (normalised)",residential, colNames = T, rowNames = F)
 
 
 ```
+
+## Residential
 
 ```{r residential_plot,echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
 
 # plot
 
-
 residential %>% 
   filter(var!="co2") %>% 
   ggplot(.,aes(x=year,y=value,fill=var)) +
   geom_bar(stat='identity',color="#636363") +
   geom_point(data=residential %>% filter(var=="co2"),color="#636363")+
-  facet_wrap(region~.) +
+  facet_wrap(region~.,labeller = label_wrap_gen(width=40,multi_line = TRUE),scales="free") +
   scale_fill_brewer(palette = "Set2") +
   theme(legend.position = "bottom",
         axis.title = element_blank(),
@@ -420,27 +306,33 @@ nonresidential <- nonresidential %>%
   mutate(energy = energy*1e6) %>% 
   mutate(value=value*1e6)
 
+#CO2= Value added*[Energy/Value Added]*[CO2/Energy] 
+
 nonresidential <- nonresidential %>% 
-  mutate(value_pop = value/pop) %>% 
   mutate(energy_value = energy/value) %>% 
   mutate(co2_energy = co2/energy)
 
-nonresidential <- nonresidential %>% 
-  filter(year %in% c(1990,2000,2010,2018))
+openxlsx::addWorksheet(wb,"non-residential")
+openxlsx::writeData(wb, sheet = "non-residential",nonresidential, colNames = T, rowNames = F)
 
-nonresidential <- gather(nonresidential,var,value,co2,pop,value_pop,energy_value,co2_energy)
 
+nonresidential <- gather(nonresidential,var,value,co2,value,energy_value,co2_energy)
 
 nonresidential <- nonresidential %>% 
   group_by(region,var) %>% 
   mutate(value=value/first(value))
 
 nonresidential <- nonresidential %>% 
-  mutate(value=value-1)
+  mutate(value=value-1) %>% 
+  filter(region!="World") 
 
+openxlsx::addWorksheet(wb,"non-residential (normalised)")
+openxlsx::writeData(wb, sheet = "non-residential (normalised)",nonresidential, colNames = T, rowNames = F)
 
 
 ```
+
+## Non-residential
 
 ```{r nonresidential_plot,echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
@@ -452,12 +344,21 @@ nonresidential %>%
   ggplot(.,aes(x=year,y=value,fill=var)) +
   geom_bar(stat='identity',color="#636363") +
   geom_point(data=nonresidential %>% filter(var=="co2"),color="#636363")+
-  facet_wrap(region~.) +
+  facet_wrap(region~.,labeller = label_wrap_gen(width=40,multi_line = TRUE),scales="free") +
   scale_fill_brewer(palette = "Set2") +
   theme(legend.position = "bottom",
         axis.title = element_blank(),
         legend.title = element_blank(),
         panel.grid.minor = element_blank())
+
+
+```
+
+```{r save}
+
+
+openxlsx::saveWorkbook(wb,"../../Results/Data/building_kaya.xlsx",overwrite=T)
+
 
 
 ```

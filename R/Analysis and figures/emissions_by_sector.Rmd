@@ -18,6 +18,7 @@ library(ggplot2); theme_set(theme_bw())
 library(RColorBrewer)
 library(ggrepel)
 library(patchwork)
+library(zoo)
 
 source("small_figures.R")
 
@@ -803,6 +804,109 @@ openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),rates, colNames = T, rowNames = F,startRow = 10)
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+
+
+```
+
+
+# Buildings (Scope 3)
+
+```{r buildings_with_scope3,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+## Which chapter?
+i=4
+ch = chapters$chapter[i]
+
+############  Overall trend
+
+trend_data <- gather_trend_data(edgar_GHG_ar6,ch)
+
+trend_data <- trend_data %>% 
+  mutate(subsector_title=ifelse(subsector_title=="Residential","Residential (direct CO2)",subsector_title)) %>% 
+  mutate(subsector_title=ifelse(subsector_title=="Non-residential","Non-residential (direct CO2)",subsector_title)) %>% 
+  mutate(subsector_title=ifelse(subsector_title=="Non-CO2 (all buildings)","All buildings (non-CO2)",subsector_title))
+
+## add in scope 3 emissions
+
+scope3 <- openxlsx::read.xlsx("../../Data/supplemetary data/2020-12-07 Data for plots to Will2.xlsx",sheet=1)
+
+year_fill <- data.frame(year = seq(1990,2018,1),value=NA)
+year_fill <- year_fill %>% 
+  filter(year %in% c(1990,2000,2005,2010,2015,2018) == FALSE) %>% 
+  mutate(Unit="MtCO2")
+year_fill <- spread(year_fill,year,value)
+
+scope3 <- left_join(scope3,year_fill,by="Unit")
+scope3 <- gather(scope3,year,value,-Region,-Variable,-Unit)
+scope3 <- scope3 %>% 
+  filter(Variable %in% c("Emissions from cement used for buildings construction and renovation",
+                         "Emissions from steel used for buildings construction and renovation")) %>% 
+  mutate(subsector=9.5) %>% 
+  mutate(subsector_title="Embodied emissions") %>% 
+  arrange(year) %>% 
+  select(region_ar6_10=Region,year,subsector,subsector_title,value)
+
+# sum up cement and steel, MtCO2 to GtCO2
+scope3 <- scope3 %>% 
+  group_by(region_ar6_10,year,subsector,subsector_title) %>% 
+  summarise(value=sum(value)/1000)
+
+## interpolate missing years
+scope3 <- scope3 %>% 
+  group_by(region_ar6_10) %>% 
+  mutate(value=na.approx(value)) %>% 
+  ungroup()
+
+trend_data <- rbind(trend_data,scope3 %>% filter(region_ar6_10=="World") %>% select(-region_ar6_10))
+trend_data <- trend_data %>% 
+  mutate(year=as.numeric(year))
+
+
+## align factors and labels
+trend_data$subsector_title <- as.factor(trend_data$subsector_title)
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(6,4,3,5,2,1)])
+
+p1 <- trend_figure(trend_data,ch)
+
+############  Region plot
+
+region_data <- gather_region_data(edgar_GHG_ar6,ch)
+
+scope3 <- scope3 %>% 
+  filter(region_ar6_10!="Southern Asia, South East Asia and Developing Pacific") %>% 
+  filter(region_ar6_10!="World") %>% 
+  filter(year %in% c(1990,2000,2010,2018)) %>% 
+  mutate(subsector=as.character(subsector))
+
+scope3 <- left_join(scope3,regions,by = "region_ar6_10")
+
+region_data <- bind_rows(region_data,scope3)
+
+## align factors and labels
+region_data$subsector_title <- as.factor(region_data$subsector_title)
+region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(6,4,3,5,1,2)])
+
+p2 <- plot_region_figure(region_data,ch)
+
+
+############ Plot everything
+ggarrange(p1,p2,nrow=2,align = "h")
+
+
+############ Calculate growth rates
+rates <- calculate_growth_rates(trend_data)
+
+
+############ Save data
+trend_data <- spread(trend_data,year,value)
+region_data <- spread(region_data,year,value)
+
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," scope3 trend"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," scope3 regions"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," scope3 trend"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," scope3 trend"),rates, colNames = T, rowNames = F,startRow = 10)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," scope3 regions"),region_data, colNames = T, rowNames = F)
 
 
 ```
