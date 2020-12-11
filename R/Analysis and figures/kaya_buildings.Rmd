@@ -2,10 +2,10 @@
 title: "Kaya buildings"
 author: "William F. Lamb"
 date: "2 12 2020"
-output: output: 
-  word_document:
+output: word_document
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+
 ---
 
 ```{r setup, include=FALSE}
@@ -109,7 +109,7 @@ floor_space_plot <- floor_space_plot %>%
 mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(length(unique(floor_space_plot$country)))
 
 
-  
+
 floor_space_plot %>% ggplot(.,aes(x=gdp_pc,y=floor_space_percapita,color=country,group=country)) +
   geom_path() +
   geom_point() +
@@ -133,7 +133,7 @@ data <- gather(data,year,value,`1990`:`2018`) %>%
   filter(!is.na(Region))
 
 co2_buildings <- left_join(co2,co2_indirect,by = c("country", "ISO", "region_ar6_10", "year", "subsector_title"))
-  
+
 co2_buildings <- co2_buildings %>% 
   mutate(CO2_indirect_t=ifelse(is.na(CO2_indirect_t),0,CO2_indirect_t)) %>% 
   mutate(CO2_t=ifelse(is.na(CO2_t),0,CO2_t))
@@ -260,7 +260,8 @@ residential <- residential %>%
 
 residential <- residential %>% 
   mutate(value=value-1) %>% 
-  filter(region!="World") 
+  filter(region!="World") %>% 
+  ungroup()
 
 
 openxlsx::addWorksheet(wb,"residential (normalised)")
@@ -278,11 +279,12 @@ openxlsx::writeData(wb, sheet = "residential (normalised)",residential, colNames
 
 residential %>% 
   filter(var!="co2") %>% 
-  ggplot(.,aes(x=year,y=value,fill=var)) +
-  geom_bar(stat='identity',color="#636363") +
-  geom_point(data=residential %>% filter(var=="co2"),color="#636363")+
+  ggplot(.) +
+  geom_bar(stat='identity',color="#636363",aes(x=year,y=value,fill=var)) +
+  geom_point(data=residential %>% filter(var=="co2"),aes(x=year,y=value,color=var))+
   facet_wrap(region~.,labeller = label_wrap_gen(width=40,multi_line = TRUE),scales="free") +
-  scale_fill_brewer(palette = "Set2") +
+  scale_fill_brewer(palette = "Set2",labels=c("CO2/Energy","Energy/Floor area","Floor area/Population","Population")) +
+  scale_color_manual(values="#636363",labels="CO2") +
   theme(legend.position = "bottom",
         axis.title = element_blank(),
         legend.title = element_blank(),
@@ -324,7 +326,8 @@ nonresidential <- nonresidential %>%
 
 nonresidential <- nonresidential %>% 
   mutate(value=value-1) %>% 
-  filter(region!="World") 
+  filter(region!="World") %>% 
+  ungroup()
 
 openxlsx::addWorksheet(wb,"non-residential (normalised)")
 openxlsx::writeData(wb, sheet = "non-residential (normalised)",nonresidential, colNames = T, rowNames = F)
@@ -341,11 +344,12 @@ openxlsx::writeData(wb, sheet = "non-residential (normalised)",nonresidential, c
 
 nonresidential %>% 
   filter(var!="co2") %>% 
-  ggplot(.,aes(x=year,y=value,fill=var)) +
-  geom_bar(stat='identity',color="#636363") +
-  geom_point(data=nonresidential %>% filter(var=="co2"),color="#636363")+
+  ggplot(.) +
+  geom_bar(stat='identity',color="#636363",aes(x=year,y=value,fill=var)) +
+  geom_point(data=nonresidential %>% filter(var=="co2"),aes(x=year,y=value,color=var))+
   facet_wrap(region~.,labeller = label_wrap_gen(width=40,multi_line = TRUE),scales="free") +
-  scale_fill_brewer(palette = "Set2") +
+  scale_fill_brewer(palette = "Set2",labels=c("CO2/Energy","Energy/Value added","Value added")) +
+  scale_color_manual(values="#636363",labels="CO2") +
   theme(legend.position = "bottom",
         axis.title = element_blank(),
         legend.title = element_blank(),
@@ -353,6 +357,221 @@ nonresidential %>%
 
 
 ```
+
+# scenarios
+
+
+```{r scenarios_data,echo=FALSE,warning=FALSE}
+
+
+
+data_sd <- read.xlsx("../../Data/supplemetary data/2020-12-07 Data for plots to Will2.xlsx",sheet=2)
+
+data_sd <- gather(data_sd,year,value,`2020`:`2050`) %>% 
+  filter(!is.na(Region)) %>% 
+  mutate(scenario="Sustainable development")
+
+data_sp <- read.xlsx("../../Data/supplemetary data/2020-12-07 Data for plots to Will2.xlsx",sheet=3)
+
+data_sp <- gather(data_sp,year,value,`2020`:`2050`) %>% 
+  filter(!is.na(Region)) %>% 
+  mutate(scenario="Stated policy")
+
+data_cp <- read.xlsx("../../Data/supplemetary data/2020-12-07 Data for plots to Will2.xlsx",sheet=4)
+
+data_cp <- gather(data_cp,year,value,`2020`:`2050`) %>% 
+  filter(!is.na(Region)) %>% 
+  mutate(scenario="Current policy")
+
+data <- bind_rows(data_sd,data_sp)
+data <- bind_rows(data,data_cp)
+
+names(data) <- c("region","variable","unit","year","value","scenario")
+
+
+data <- data %>% 
+  mutate(subsector_title=ifelse(grepl("Residential",variable),"Residential",NA)) %>% 
+  mutate(subsector_title=ifelse(grepl("Non-residential",variable),"Non-residential",subsector_title)) %>%   mutate(subsector_title=ifelse(grepl("Population",variable),"Residential",subsector_title))
+
+data <- data %>% 
+  filter(!is.na(subsector_title))
+
+```
+
+```{r scenarios_residential_calc,echo=FALSE,warning=FALSE}
+
+
+scenario_residential <- data %>% 
+  filter(subsector_title=="Residential") %>% 
+  select(-unit,-subsector_title)
+
+scenario_residential <- spread(scenario_residential,variable,value)
+
+names(scenario_residential) <- c("region","year","scenario","pop","energy","floor","co2")
+
+scenario_residential <- scenario_residential %>% 
+  mutate(energy = energy*1e6) %>% 
+  mutate(floor = floor*1e6)
+
+scenario_residential <- scenario_residential %>% 
+  mutate(floor_pop = floor/pop) %>% 
+  mutate(energy_floor = energy/floor) %>% 
+  mutate(co2_energy = co2/energy)
+
+
+openxlsx::addWorksheet(wb,"scenario residential")
+openxlsx::writeData(wb, sheet = "scenario residential",scenario_residential, colNames = T, rowNames = F)
+
+
+scenario_residential <- gather(scenario_residential,var,value,co2,pop,floor_pop,energy_floor,co2_energy)
+
+scenario_residential <- scenario_residential %>% 
+  filter(year %in% c(2020,2030,2040,2050)) %>% 
+  group_by(scenario,region,var) %>% 
+  mutate(value=value/first(value))
+
+scenario_residential <- scenario_residential %>% 
+  mutate(value=value-1) %>% 
+  ungroup()
+
+
+openxlsx::addWorksheet(wb,"scenario residential (norm)")
+openxlsx::writeData(wb, sheet = "scenario residential (norm)",scenario_residential, colNames = T, rowNames = F)
+
+
+
+
+
+
+```
+
+# Residential 
+
+```{r scenarios_residential,echo=FALSE,warning=FALSE,fig.width=6,fig.height=9,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+# plot
+
+scenario_residential %>% 
+  filter(region!="World") %>%  
+  filter(var!="co2") %>% 
+  ggplot(.) +
+  geom_bar(stat='identity',color="#636363",aes(x=year,y=value,fill=var)) +
+  geom_point(data=scenario_residential %>% filter(var=="co2") %>% filter(region!="World"),aes(x=year,y=value,color=var))+
+  facet_grid(region~scenario,labeller = label_wrap_gen(width=40,multi_line = TRUE),scales="free") +
+  scale_fill_brewer(palette = "Set2",labels=c("CO2/Energy","Energy/Floor area","Floor area/Population","Population")) +
+  scale_color_manual(values="#636363",labels="CO2") +
+  theme(legend.position = "bottom",
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.minor = element_blank())
+
+```
+
+```{r scenarios_residential_world,echo=FALSE,warning=FALSE,fig.width=6,fig.height=3,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+# plot
+
+scenario_residential %>% 
+  filter(region=="World") %>%  
+  filter(var!="co2") %>% 
+  ggplot(.) +
+  geom_bar(stat='identity',color="#636363",aes(x=year,y=value,fill=var)) +
+  geom_point(data=scenario_residential %>% filter(var=="co2") %>% filter(region=="World"),aes(x=year,y=value,color=var))+
+  facet_grid(.~scenario,labeller = label_wrap_gen(width=40,multi_line = TRUE),scales="free",space="free") +
+  scale_fill_brewer(palette = "Set2",labels=c("CO2/Energy","Energy/Floor area","Floor area/Population","Population")) +
+  scale_color_manual(values="#636363",labels="CO2") +
+  theme(legend.position = "bottom",
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.minor = element_blank())
+
+```
+
+# Non-residential
+
+```{r scenarios_nonresidential_calc,echo=FALSE,warning=FALSE}
+
+
+scenario_nonresidential <- data %>% 
+  filter(subsector_title=="Non-residential") %>% 
+  select(-unit,-subsector_title)
+
+scenario_nonresidential <- spread(scenario_nonresidential,variable,value)
+
+names(scenario_nonresidential) <- c("region","year","scenario","energy","co2","value")
+
+scenario_nonresidential <- scenario_nonresidential  %>% 
+  mutate(energy = energy*1e6) %>% 
+  mutate(value=value*1e6)
+
+
+#CO2= Value added*[Energy/Value Added]*[CO2/Energy] 
+
+scenario_nonresidential <- scenario_nonresidential %>% 
+  mutate(energy_value = energy/value) %>% 
+  mutate(co2_energy = co2/energy)
+
+openxlsx::addWorksheet(wb,"scenario non-residential")
+openxlsx::writeData(wb, sheet = "scenario non-residential",scenario_nonresidential, colNames = T, rowNames = F)
+
+
+scenario_nonresidential <- gather(scenario_nonresidential,var,value,co2,value,energy_value,co2_energy)
+
+scenario_nonresidential <- scenario_nonresidential %>% 
+  filter(year %in% c(2020,2030,2040,2050)) %>% 
+  group_by(scenario,region,var) %>% 
+  mutate(value=value/first(value))
+
+scenario_nonresidential <- scenario_nonresidential %>% 
+  mutate(value=value-1) %>% 
+  ungroup()
+
+openxlsx::addWorksheet(wb,"scenario non-residential (norm)")
+openxlsx::writeData(wb, sheet = "scenario non-residential (norm)",scenario_nonresidential, colNames = T, rowNames = F)
+
+
+
+
+
+
+```
+
+```{r scenarios_nonresidential,echo=FALSE,warning=FALSE,fig.width=6,fig.height=9,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+# plot
+
+scenario_nonresidential %>% 
+  filter(region!="World") %>%  
+  filter(var!="co2") %>% 
+  ggplot(.) +
+  geom_bar(aes(x=year,y=value,fill=var),stat='identity',color="#636363") +
+  geom_point(data=scenario_nonresidential %>% filter(var=="co2") %>% filter(region!="World"),aes(x=year,y=value,color=var))+
+  facet_grid(region~scenario,labeller = label_wrap_gen(width=40,multi_line = TRUE),scales="free") +
+  scale_fill_brewer(palette = "Set2",labels=c("CO2/Energy","Energy/Added value","Added value")) +
+  scale_color_manual(values="#636363",labels="CO2") +
+  theme(legend.position = "bottom",
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.minor = element_blank())
+
+```
+
+```{r scenarios_nonresidential_world,echo=FALSE,warning=FALSE,fig.width=6,fig.height=3,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+# plot
+
+scenario_nonresidential %>% 
+  filter(region=="World") %>%
+  filter(var!="co2") %>% 
+  ggplot(.) +
+  geom_bar(stat='identity',color="#636363",aes(x=year,y=value,fill=var)) +
+  geom_point(data=scenario_nonresidential %>% filter(var=="co2") %>% filter(region=="World"),aes(x=year,y=value,color=var)) +
+  facet_grid(.~scenario,labeller = label_wrap_gen(width=40,multi_line = TRUE),scales="free",space="free") +
+  scale_fill_brewer(palette = "Set2",labels=c("CO2/Energy","Energy/Added value","Added value")) +
+  scale_color_manual(values="#636363",labels="CO2") +
+  theme(legend.position = "bottom",
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.minor = element_blank())
+
+```
+
 
 ```{r save}
 
