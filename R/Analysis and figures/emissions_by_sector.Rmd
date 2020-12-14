@@ -32,12 +32,18 @@ growth_rate <- function(years,y) {
   data <- data.frame(years,y)
   
   fit <- lm(log(y) ~ years,data = data)
-  
-  data <- data %>% 
-    mutate(rate=fit$coefficients[2]) %>% 
-    mutate(predicted_x = exp(predict(fit,data %>% select(years)))) %>% 
+
+  data <- data %>%
+    mutate(rate=fit$coefficients[2]) %>%
+    mutate(predicted_x = exp(predict(fit,data %>% select(years)))) %>%
     mutate(st_error = sqrt(diag(vcov(fit)))[2])
   
+  
+  # data <- data %>% 
+  #   mutate(rate=((last(y)/first(y))^(1/length(data$years)))-1) %>% 
+  #   mutate(rate=rate*100)
+  # 
+  # return(data$rate[1])
   return(fit$coefficients[2])
 }
 
@@ -101,6 +107,7 @@ blarg <- edgar_GHG_ar6 %>%
 # openxlsx::write.xlsx(blarg,"Europe_buildings.xlsx")
 
 ```
+
 
 ```{r trend_plots,echo=FALSE,warning=FALSE}
 

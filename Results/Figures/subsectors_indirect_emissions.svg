@@ -22,16 +22,40 @@
   <defs
      id="defs4">
     <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker6241"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mend">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6,-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="fill:#8c8c8c;fill-opacity:1;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
+         id="path6243" />
+    </marker>
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect6233"
+       is_visible="true" />
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect6193"
+       is_visible="true" />
+    <marker
        inkscape:stockid="Arrow2Mend"
        orient="auto"
        refY="0"
        refX="0"
        id="Arrow2Mend"
        style="overflow:visible"
-       inkscape:isstock="true">
+       inkscape:isstock="true"
+       inkscape:collect="always">
       <path
          id="path8113"
-         style="fill:#8c8c8c;fill-opacity:1;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
+         style="fill:#000000;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
          d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
          transform="scale(-0.6,-0.6)"
          inkscape:connector-curvature="0" />
@@ -335,6 +359,44 @@
        effect="spiro"
        id="path-effect8080-9-0"
        is_visible="true" />
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker6241-0"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mend">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6,-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="fill:#8c8c8c;fill-opacity:1;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
+         id="path6243-8" />
+    </marker>
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect6233-1"
+       is_visible="true" />
+    <marker
+       inkscape:isstock="true"
+       style="overflow:visible"
+       id="marker6241-8"
+       refX="0"
+       refY="0"
+       orient="auto"
+       inkscape:stockid="Arrow2Mend">
+      <path
+         inkscape:connector-curvature="0"
+         transform="scale(-0.6,-0.6)"
+         d="M 8.7185878,4.0337352 -2.2072895,0.01601326 8.7185884,-4.0017078 c -1.7454984,2.3720609 -1.7354408,5.6174519 -6e-7,8.035443 z"
+         style="fill:#8c8c8c;fill-opacity:1;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:0.625;stroke-linejoin:round;stroke-opacity:1"
+         id="path6243-3" />
+    </marker>
+    <inkscape:path-effect
+       effect="spiro"
+       id="path-effect6233-9"
+       is_visible="true" />
   </defs>
   <sodipodi:namedview
      id="base"
@@ -343,9 +405,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.70000001"
-     inkscape:cx="104.22013"
-     inkscape:cy="222.34289"
+     inkscape:zoom="1.4"
+     inkscape:cx="394.24344"
+     inkscape:cy="217.39938"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -366,7 +428,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -3096,49 +3158,49 @@
     <flowRoot
        xml:space="preserve"
        id="flowRoot9996-9"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:19.52787399px;line-height:175%;font-family:Dialog;-inkscape-font-specification:'Dialog, Normal';text-align:end;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:end;fill:#353535;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       transform="matrix(0.70477125,0,0,0.70347276,889.24179,1021.9955)"><flowRegion
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:19.5278759px;line-height:150%;font-family:Dialog;-inkscape-font-specification:'Dialog, Normal';text-align:end;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:end;fill:#353535;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       transform="matrix(0.70477125,0,0,0.70347276,889.24179,1006.985)"><flowRegion
          id="flowRegion9998-9"><rect
            id="rect10000-0"
            width="207.85915"
            height="157.89389"
            x="944.49261"
            y="186.94403"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:19.52787399px;line-height:175%;font-family:Dialog;-inkscape-font-specification:'Dialog, Normal';text-align:end;writing-mode:lr-tb;text-anchor:end;fill:#353535;fill-opacity:1" /></flowRegion><flowPara
-         id="flowPara10006-3">CO2 emissions reallocated to sectors that use electricity and heat</flowPara></flowRoot>    <path
-       style="fill:none;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:1.50000012;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Mend-9-8)"
-       d="m 1640.7825,1109.6394 c -10.1453,6.658 -21.0015,12.2318 -32.3244,16.5961 -21.008,8.0973 -43.6271,11.9896 -66.1334,11.3802"
-       id="path8078-9-5"
-       inkscape:path-effect="#path-effect8080-6-3"
-       inkscape:original-d="m 1640.7825,1109.6394 c 0,0 -15.2551,13.2003 -32.3244,16.5961 -17.0693,3.3957 -66.1334,11.3802 -66.1334,11.3802"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="czc" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:1.50000012;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Mend-4-7)"
-       d="m 1646.3798,1105.494 c -4.7318,4.9094 -9.7355,9.5568 -14.9804,13.9137 -32.608,27.0872 -74.7632,42.4391 -117.1536,42.6646"
-       id="path8078-2-0"
-       inkscape:path-effect="#path-effect8080-9-3"
-       inkscape:original-d="m 1646.3798,1105.494 c 0,0 10.234,0.8288 -14.9804,13.9137 -25.2144,13.0848 -117.1536,42.6646 -117.1536,42.6646"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="czc" />
-    <text
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:19.5278759px;line-height:150%;font-family:Dialog;-inkscape-font-specification:'Dialog, Normal';text-align:end;writing-mode:lr-tb;text-anchor:end;fill:#353535;fill-opacity:1" /></flowRegion><flowPara
+         id="flowPara10006-3">CO2 emissions reallocated to sectors that use electricity and heat</flowPara></flowRoot>    <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.75px;line-height:175%;font-family:Dialog;-inkscape-font-specification:'Dialog, Normal';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#4d4d4d;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       x="1497.1476"
-       y="1214.8134"
+       x="1512.1476"
+       y="1208.3848"
        id="text4464-2"
        sodipodi:linespacing="175%"><tspan
          sodipodi:role="line"
          id="tspan4466-8"
-         x="1497.1476"
-         y="1214.8134">etc.</tspan></text>
+         x="1512.1476"
+         y="1208.3848">etc.</tspan></text>
     <path
-       style="fill:none;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:1.50000012;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#Arrow2Mend-4-3)"
-       d="m 1644.1292,1107.0057 c -11.0928,14.948 -23.3179,29.0556 -36.5358,42.1621 -24.145,23.9414 -51.6149,44.5249 -81.3737,60.9742"
-       id="path8078-2-02"
-       inkscape:path-effect="#path-effect8080-9-0"
-       inkscape:original-d="m 1644.1292,1107.0057 c 0,0 -11.3214,29.0772 -36.5358,42.1621 -25.2144,13.0848 -81.3737,60.9742 -81.3737,60.9742"
+       style="fill:none;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:1.50000009;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker6241)"
+       d="m 1578.6995,1103.8109 0,46.692 c 0,0.9277 0.01,1.8594 -0.1252,2.7778 -0.1306,0.9184 -0.4127,1.8288 -0.9367,2.5943 -0.5241,0.7655 -1.2916,1.36 -2.1632,1.6777 -0.8716,0.3177 -1.8174,0.3496 -2.7451,0.3496 l -27.54,0"
+       id="path6231"
+       inkscape:path-effect="#path-effect6233"
+       inkscape:original-d="m 1578.6995,1103.8109 0,46.692 c 0.2135,9.1526 0.5979,7.3994 -5.9702,7.3994 l -27.54,0"
        inkscape:connector-curvature="0"
-       sodipodi:nodetypes="czc" />
+       sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:1.50000012;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker6241-0)"
+       d="m 1578.6998,1099.1028 0,31.5243 c 0,0.7686 -0.025,1.5517 -0.2829,2.2759 -0.2577,0.7241 -0.7416,1.3659 -1.3699,1.8086 -0.6283,0.4428 -1.3798,0.6866 -2.1399,0.8006 -0.7601,0.1141 -1.5324,0.1106 -2.301,0.1106 l -18.7045,0"
+       id="path6231-2"
+       inkscape:path-effect="#path-effect6233-1"
+       inkscape:original-d="m 1578.6998,1099.1028 0,31.5243 c 0.2179,6.1794 0.6102,4.9957 -6.0937,4.9957 l -18.7045,0"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#8c8c8c;stroke-width:1.50000012;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#marker6241-8)"
+       d="m 1578.6998,1149.1504 0,29.3418 c 0,0.7919 -0.01,1.5865 -0.1136,2.3709 -0.1086,0.7844 -0.3212,1.5581 -0.6741,2.267 -0.7058,1.4178 -2.0103,2.5386 -3.5381,2.9558 l -32.4026,10.6066"
+       id="path6231-1"
+       inkscape:path-effect="#path-effect6233-9"
+       inkscape:original-d="m 1578.6998,1149.1504 0,29.3418 c -0.1392,4.6802 2.378,6.0785 -4.3258,7.5937 l -32.4026,10.6066"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="cccc" />
   </g>
 </svg>

@@ -321,6 +321,46 @@ floor_space <- floor_space %>%
 ```
 
 
+``` {r transport, echo=FALSE,warning=FALSE,fig.width=6,fig.height=4,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+passengerkm <- act %>% 
+  filter(product %in% c("Passenger-kilometres (10^9 pkm)"))
+
+passengerkm <- left_join(passengerkm,basic %>% select(ISO,year=Year,gdp_ppp_WB),by = c("ISO", "year"))
+
+passengerkm <- passengerkm %>% 
+  mutate(pop=pop*1e6) %>% 
+  mutate(value_pc =(value*1e9)/pop) %>% 
+  mutate(gdp_pc = gdp_ppp_WB/pop)
+
+
+passengerkm <- passengerkm %>% 
+  filter(activity=="Cars/light trucks") %>% 
+  filter(year %in% c(2000,2017))
+
+passengerkm <- passengerkm %>% 
+  filter(country %in% c("Australia","Canada","France","Germany","Hungary","Japan","United States","United Kingdom","Brazil","Czech Republic","Finland"))
+
+library(RColorBrewer)
+mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(length(unique(passengerkm$country)))
+
+
+passengerkm %>% ggplot(.,aes(x=gdp_pc,y=value_pc,color=country)) +
+  geom_path() +
+  geom_point() +
+  geom_text(data=passengerkm %>% filter(year==2017),
+            inherit.aes=FALSE,aes(x=gdp_pc+1000,y=value_pc,label=country,color=country),hjust=0) + 
+  scale_color_manual(values=mycolors) +
+  xlim(10000,65000) +
+  theme(legend.position="none") +
+  ggtitle("Travel distance vs. GDP per capita (2000 & 2017)") +
+  ylab("Passenger km (cars/light trucks)\n per capita (km/person)") +
+  xlab("GDP per capita (US$ PPP)")
+
+
+```
+
+
 
 ``` {r industry, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
 
