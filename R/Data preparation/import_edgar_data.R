@@ -70,6 +70,9 @@ landfill <- landfill %>%
   mutate(IPCC.detailed="6A1") %>% 
   mutate(IPCC_detailed_description="Managed waste disposal on land")
 
+#landfill <- landfill %>% 
+#  mutate(CH4=CH4*1000)
+
 names <- edgar_GHG %>% 
   select(ISO,EDGAR_country,CO2:SF6,-CH4) %>% 
   mutate_at(vars(CO2:SF6),funs(.+NA)) %>% 
@@ -78,7 +81,6 @@ names <- edgar_GHG %>%
 landfill <- left_join(landfill,names,by=c("ISO"="ISO")) 
 landfill <- landfill %>% 
   select(ISO,EDGAR_country,year,IPCC.detailed,IPCC_detailed_description,CO2,CH4,everything())
-
 
 edgar_GHG <- edgar_GHG %>% 
   filter(IPCC.detailed!="6A1")

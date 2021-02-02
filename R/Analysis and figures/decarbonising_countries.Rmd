@@ -50,24 +50,74 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2"
 
 ```{r thingforMichael,echo=FALSE,warning=FALSE,include=FALSE}
 
+# 
+# data <- edgar_GHG_ar6 %>%
+#   filter(region_ar6_dev=="developed") %>% 
+#   filter(year %in% c(2010,2018)) %>% 
+#   group_by(ISO,country,year) %>% 
+#   summarise_at(vars(CO2,GHG),sum,na.rm=TRUE)
+# 
+# data <- data %>% 
+#   group_by(country) %>% 
+#   mutate(rel_CO2=(first(CO2)-last(CO2))/first(CO2)) %>% 
+#   mutate(rel_GHG=(first(GHG)-last(GHG))/first(GHG))
+# 
+# 
+# data <- data %>% 
+#   filter(rel_CO2>0)
+# 
+# openxlsx::write.xlsx(data,"countries.xlsx")
+#
 
-data <- edgar_GHG_ar6 %>%
-  filter(region_ar6_dev=="developed") %>% 
-  filter(year %in% c(2010,2018)) %>% 
-  group_by(ISO,country,year) %>% 
-  summarise_at(vars(CO2,GHG),sum,na.rm=TRUE)
+```
+
+```{r calculate_rates_2005,echo=FALSE,warning=FALSE,include=FALSE}
+
+
+## gather data
+
+data <- edgar_GHG_ar6 %>% 
+  group_by(ISO,country,year,region_ar6_10) %>% 
+  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE)
+
+## join population and GDP data
+
+data <- left_join(data,basic %>% select(ISO,Year,pop_UN,gdp_ppp_WB),by=c("ISO"="ISO","year"="Year"))
+
+## filter to countries above 1m population
 
 data <- data %>% 
   group_by(country) %>% 
-  mutate(rel_CO2=(first(CO2)-last(CO2))/first(CO2)) %>% 
-  mutate(rel_GHG=(first(GHG)-last(GHG))/first(GHG))
+  mutate(include=ifelse(max(pop_UN)>1e6,1,0)) %>% 
+  ungroup() %>% 
+  filter(include==1) %>% 
+  select(-include)
 
+## filter to 2005-2018
 
 data <- data %>% 
-  filter(rel_CO2>0)
+  filter(year>=2005)
 
-openxlsx::write.xlsx(data,"countries.xlsx")
 
+## calculate GHG growth
+
+rates_GHG <- data %>% filter(country=="nothing") # create empty dataframe
+
+for (i in 1:length(unique(data$country))) {
+  
+  temp_data <- data %>% 
+    filter(country==unique(data$country)[i])
+  
+  rates <- growth_rate(temp_data$year,temp_data$GHG)
+  
+  temp_data$rate_GHG_peak <- rates$rate*100
+  temp_data$fit <- rates$data$predicted_x
+  temp_data$st_error <- rates$data$st_error
+  
+  rates_GHG <- rbind(rates_GHG,temp_data)
+}
+rates_GHG <- rates_GHG %>% 
+  filter(year==2018)
 
 ```
 

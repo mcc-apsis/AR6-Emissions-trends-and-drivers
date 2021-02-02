@@ -37,7 +37,8 @@ uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','G
                             uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
 
 
-wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_data_countries",Sys.Date()))
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_region_and_countries_plot")
+
 
 ```
 
@@ -137,6 +138,11 @@ p1 <- plot_data %>%
   ggtitle("a. Trends in global and regional greenhouse gas emissions")
 p1
 
+
+openxlsx::addWorksheet(wb,"region_trend")
+openxlsx::writeData(wb, sheet = "region_trend", spread(plot_data,year,value), colNames = T, rowNames = F)
+
+
 ```
 
 
@@ -191,8 +197,8 @@ countries <- countries %>%
   ungroup() %>% 
   arrange(desc(GHG)) %>% 
   mutate(cumulative_GHG=cumsum(GHG)) %>% 
-  mutate(cutoff = ifelse(cumulative_GHG<threshold,1,0)) %>% 
-  filter(cutoff==1)
+  mutate(cutoff = ifelse(cumulative_GHG<threshold,1,0))# %>% 
+  #filter(cutoff==1)
 
 countries <- gather(countries,var,value,avg_growth,abs_growth,emissions_pc,emissions_pgdp)
 
@@ -208,6 +214,7 @@ plot_theme <- theme_bw() +
 
 #rate
 p2 <- countries %>% 
+  filter(cutoff==1) %>% 
   filter(var=="avg_growth") %>% 
   ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_5_short)) +
   geom_bar(stat='identity',colour="#525252") + 
@@ -220,6 +227,7 @@ p2 <- countries %>%
 
 #absolute
 p3 <- countries %>% 
+  filter(cutoff==1) %>% 
   filter(var=="abs_growth") %>% 
   ggplot(.,aes(x = reorder(country,value),y = value/1e9, fill=region_ar6_5_short)) +
   geom_bar(stat='identity',colour="#737373") + 
@@ -232,6 +240,7 @@ p3 <- countries %>%
 
 #pc
 p4 <- countries %>% 
+  filter(cutoff==1) %>% 
   filter(var=="emissions_pc") %>%  
   ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_5_short)) +
   geom_bar(stat='identity',colour="#737373") + 
@@ -244,6 +253,7 @@ p4 <- countries %>%
 
 #pgdp
 p5 <- countries %>% 
+  filter(cutoff==1) %>% 
   filter(var=="emissions_pgdp") %>% 
   ggplot(.,aes(x = reorder(country,value),y = value*1000, fill=region_ar6_5_short)) +
   geom_bar(stat='identity',colour="#737373") + 
@@ -254,6 +264,10 @@ p5 <- countries %>%
     annotate(geom = 'text', label = 'Year: 2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
 
+
+
+openxlsx::addWorksheet(wb,"countries_2018")
+openxlsx::writeData(wb, sheet = "countries_2018", countries, colNames = T, rowNames = F)
 
 
 ```
@@ -366,27 +380,27 @@ cumulative_emissions_geo <- cumulative_emissions_geo %>%
 
 ```{r region_comparison,echo=FALSE,warning=FALSE}
 
-blarg <- edgar_GHG_ar6 %>%
-  filter(year==2018) %>% 
-  group_by(region_ar6_dev) %>% 
-  summarise(GHG=sum(GHG,na.rm=T)/1e9)
-
-blarg2 <- edgar_GHG_ar6 %>%
-  filter(year==2018) %>% 
-  group_by(region_ar6_5) %>% 
-  summarise(GHG=sum(GHG,na.rm=T)/1e9)
-
-
-regions <- edgar_GHG_ar6 %>% 
-  filter(year==2018) %>%
-  group_by(country,ISO,year,region_ar6_dev,region_ar6_5) %>% 
-  summarise(GHG=sum(GHG,na.rm=T))
-
-regions <- left_join(regions,basic %>% select(Year,ISO,pop_UN),by=c("year"="Year","ISO"="ISO"))
-
-
-regions <- regions %>% 
-  filter(region_ar6_5=="Developed countries" | region_ar6_dev=="developed")
+# blarg <- edgar_GHG_ar6 %>%
+#   filter(year==2018) %>% 
+#   group_by(region_ar6_dev) %>% 
+#   summarise(GHG=sum(GHG,na.rm=T)/1e9)
+# 
+# blarg2 <- edgar_GHG_ar6 %>%
+#   filter(year==2018) %>% 
+#   group_by(region_ar6_5) %>% 
+#   summarise(GHG=sum(GHG,na.rm=T)/1e9)
+# 
+# 
+# regions <- edgar_GHG_ar6 %>% 
+#   filter(year==2018) %>%
+#   group_by(country,ISO,year,region_ar6_dev,region_ar6_5) %>% 
+#   summarise(GHG=sum(GHG,na.rm=T))
+# 
+# regions <- left_join(regions,basic %>% select(Year,ISO,pop_UN),by=c("year"="Year","ISO"="ISO"))
+# 
+# 
+# regions <- regions %>% 
+#   filter(region_ar6_5=="Developed countries" | region_ar6_dev=="developed")
 
 
 ```
@@ -394,9 +408,9 @@ regions <- regions %>%
 
 ```{r save,echo=FALSE,warning=FALSE}
 
-
-openxlsx::addWorksheet(wb,"country_emissions_2018")
-openxlsx::writeData(wb,"country_emissions_2018",all_countries, colNames = T, rowNames = F)
+# 
+# openxlsx::addWorksheet(wb,"country_emissions_2018")
+# openxlsx::writeData(wb,"country_emissions_2018",all_countries, colNames = T, rowNames = F)
 
 openxlsx::addWorksheet(wb,"region_summary_2018")
 openxlsx::writeData(wb,"region_summary_2018",per_capita, colNames = T, rowNames = F)
@@ -407,11 +421,11 @@ openxlsx::writeData(wb,"cumulative_GHG_emissions_income",cumulative_emissions_in
 openxlsx::addWorksheet(wb,"cumulative_GHG_emissions_geo")
 openxlsx::writeData(wb,"cumulative_GHG_emissions_geo",cumulative_emissions_geo, colNames = T, rowNames = F)
 
-openxlsx::addWorksheet(wb,"region_comparison")
-openxlsx::writeData(wb,"region_comparison",regions, colNames = T, rowNames = F)
+# openxlsx::addWorksheet(wb,"region_comparison")
+# openxlsx::writeData(wb,"region_comparison",regions, colNames = T, rowNames = F)
 
 
-openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_data_countries",".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_data_regions_countries",".xlsx"),overwrite=T)
 
 ```
 

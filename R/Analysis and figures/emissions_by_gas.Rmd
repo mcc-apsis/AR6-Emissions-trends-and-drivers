@@ -349,7 +349,6 @@ openxlsx::writeData(wb, sheet = "gas_trend_normalised", plot_data_nogwp, colName
 
 ```
 
-
 ```{r gas_trends_spm, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
 

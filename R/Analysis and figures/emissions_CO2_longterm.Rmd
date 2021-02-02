@@ -96,8 +96,6 @@ cumulative_CO2 <- gcb %>%
   select(Year,value=Total_CO2) %>% 
   filter(Year>=1850) %>% 
   mutate(key=NA) %>%
-  #mutate(key=ifelse(Year>1850 & Year < 2010,'1850- 2009',key)) %>% 
-  #mutate(key=ifelse(Year>=2010,'2010- 2018',key)) %>% 
   mutate(key=ifelse(Year>1850 & Year < 1990,'1850- 1990',key)) %>% 
   mutate(key=ifelse(Year>=1990,'1990- 2018',key)) %>% 
   filter(!is.na(key))
@@ -118,7 +116,30 @@ cumulative_CO2$start <- c(0, head(cumulative_CO2$end, -1))
 cumulative_CO2$start[cumulative_CO2$key=="2.0 budget"] <- cumulative_CO2$start[cumulative_CO2$key=="1.5 budget"]
 cumulative_CO2 <- cbind(cumulative_CO2,id=c(1,2,3,4))
 
+# reset 2C budget to same starting level as 1.5
+cumulative_CO2 <- cumulative_CO2 %>% 
+  mutate(start = ifelse(key=="2.0 budget (2020-)",start-390,start)) %>% 
+  mutate(end = ifelse(key=="2.0 budget (2020-)",end-390,end))
+
 color_scale <- c("#ffffcc","#a1dab4","#41b6c4","#225ea8")
+
+# add lower and higher budget levels
+# Remaining carbon budget from 1 January 2020 (33rd/50th/67th percentile of TCRE): 
+# 1.5°C: 500 390 310 GtCO2
+# 2.0°C: 1390 1140 960 GtCO2
+
+cumulative_CO2 <- cumulative_CO2 %>% 
+  mutate(lower_budget=ifelse(key=="1.5 budget (2020-)",end-(value-310),NA)) %>% 
+  mutate(higher_budget=ifelse(key=="1.5 budget (2020-)",end+(500-value),NA)) %>% 
+  mutate(lower_budget=ifelse(key=="2.0 budget (2020-)",end-(value-960),lower_budget)) %>% 
+  mutate(higher_budget=ifelse(key=="2.0 budget (2020-)",end+(1390-value),higher_budget))
+
+# add additional uncertainty of +-250 GtCO2
+
+cumulative_CO2 <- cumulative_CO2 %>% 
+  mutate(lower_uncertainty=lower_budget-250) %>% 
+  mutate(higher_uncertainty=higher_budget+250)
+
 
 p2 <- cumulative_CO2 %>% 
   ggplot(.,aes(fill=key)) +
@@ -129,10 +150,52 @@ p2 <- cumulative_CO2 %>%
     ymax = end),
     colour = "#737373") +
   
-  geom_text(aes(x=id,y=end+150,label=paste(round(value,0)))) +
+  geom_rect(aes(x=key,
+    xmin = id,
+    xmax = id,
+    ymin = lower_budget,
+    ymax = higher_budget),
+    colour = "#232323") +
+  
+  geom_rect(aes(
+    xmin = id - 0.1,
+    xmax = id + 0.1,
+    ymin = lower_budget,
+    ymax = lower_budget
+  ),colour = "#232323") +
+  
+  geom_rect(aes(
+    xmin = id - 0.1,
+    xmax = id + 0.1,
+    ymin = higher_budget,
+    ymax = higher_budget
+  ),colour = "#232323") +
+  
+  geom_rect(aes(x=key,
+    xmin = id,
+    xmax = id,
+    ymin = lower_uncertainty,
+    ymax = higher_uncertainty),
+    colour = "#232323") +
+  
+  geom_rect(aes(
+    xmin = id - 0.2,
+    xmax = id + 0.2,
+    ymin = lower_uncertainty,
+    ymax = lower_uncertainty
+  ),colour = "#232323") +
+  
+  geom_rect(aes(
+    xmin = id - 0.2,
+    xmax = id + 0.2,
+    ymin = higher_uncertainty,
+    ymax = higher_uncertainty
+  ),colour = "#232323") +
+  
+  geom_text(aes(x=id,y=ifelse(!is.na(higher_uncertainty),higher_uncertainty+200,end+200),label=paste(round(value,0))),size=3.5,color="#737373") +
   
   ylab('Carbon emissions,\n cumulative (GtCO2)') +
-  ylim(0,4200) +
+  ylim(0,4400) +
   big_trend_theme +
   scale_fill_manual(values=color_scale) +
   scale_x_discrete(labels = function(key) str_wrap(key, width = 9)) +
