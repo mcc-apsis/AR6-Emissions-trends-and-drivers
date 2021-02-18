@@ -15,7 +15,7 @@ rm(list = ls())
 library(tidyverse)
 library(ggpubr)
 library(patchwork)
-library(xlsx)
+#library(xlsx)
 library(ggplot2); theme_set(theme_bw())
 
 source("small_figures.R")
@@ -87,6 +87,35 @@ p1 <- budget_data %>%
 
 p1
 ```
+
+```{r budget_trend_cumulative, echo=FALSE,warning=FALSE,fig.width=10,fig.height=3,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+
+total <- budget_data %>% group_by(year) %>% summarise(value=sum(value))
+total <- total %>% 
+  mutate(cumsum=cumsum(value))
+
+line_data <- data.frame(x=c(1939,1939,1974,1974,1994,1994,2010,2010,2018,2018),y=c(0,45))
+
+
+
+budget_data %>% 
+  ggplot(.,aes(x=year,y=value,fill=key,color=key)) + 
+  geom_area(colour="#737373") +
+  
+  geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+  
+  geom_text(data=shares,aes(x=year+3.5,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
+  
+  ylab("Carbon emissions (GtCO2/yr)") +
+  ylim(0,47) +
+  big_trend_theme +
+  theme(legend.position = c(0.15,0.7),
+        legend.title = element_blank(),
+        legend.background = element_blank())
+
+
+```
+
 ```{r cumulative_CO2, echo=FALSE,warning=FALSE,fig.width=4,fig.height=3}
 
 
@@ -260,6 +289,45 @@ p3 <- time_data %>% ggplot(.,aes(x=Year.of.exceedance,y=Budget)) +
 
 
 
+
+
+```
+
+```{r budget_dates_old_budgets, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3}
+
+# time_data <- openxlsx::read.xlsx("../../Data/co2_budget_analysis.xlsx",sheet=5,startRow=43)
+# 
+# time_data <- time_data %>% 
+#   mutate(Rate=as.factor(Rate)) %>% 
+#   mutate(Budget=as.factor(Budget))
+# #time_data$Rate <- factor(time_data$Rate,levels(time_data$Rate)[c(3,2,1)])
+# time_data$Budget <- factor(time_data$Budget,levels(time_data$Budget)[c(2,1)])
+# 
+# 
+# p3 <- time_data %>% ggplot(.,aes(x=Year.of.exceedance,y=Budget)) +
+#   geom_point(color="red") +
+#   geom_text(aes(x=Year.of.exceedance+1,y=Budget,label=Year.of.exceedance),hjust=0,size=4) +
+#   geom_point(inherit.aes = FALSE,data=time_data,aes(x=Net.zero,y=Budget),colour="blue") +
+#   geom_text(aes(x=Net.zero+1,y=Budget,label=Net.zero),hjust=0,size=4) +
+#   facet_grid(Rate~.) +
+#   scale_x_continuous(limits = c(2020,2100)) +
+#   theme(legend.position='none',
+#          axis.title.y=element_blank()) +
+#    xlab('Year of budget exceedance') 
+# 
+# 
+# p4 <- time_data %>% ggplot(.,aes(x=Year.of.exceedance,y=Rate)) +
+#   geom_point(color="red") +
+#   geom_text(aes(x=Year.of.exceedance+1,y=Rate,label=Year.of.exceedance),hjust=0,size=4) +
+#   geom_point(inherit.aes = FALSE,data=time_data,aes(x=Net.zero,y=Rate),colour="blue") +
+#   geom_text(aes(x=Net.zero+1,y=Rate,label=Net.zero),hjust=0,size=4) +
+#   facet_grid(Budget~.) +
+#   scale_x_continuous(limits = c(2020,2100)) +
+#   theme(legend.position='none',
+#          axis.title.y=element_blank()) +
+#    xlab('Year of budget exceedance') 
+# 
+# p4
 
 
 ```
