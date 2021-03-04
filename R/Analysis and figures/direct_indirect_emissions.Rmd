@@ -187,7 +187,7 @@ p3 <- scope2_subsectors %>% ggplot(.,aes(x=1,y=GHG,fill=chapter_title)) +
     direction    = "y",
     hjust        = 0,
     segment.size = 0.2,
-    ylim = c(0,60)
+    ylim = c(-1,62)
   ) +
   xlim(0,8) +
   ylim(0,60) +
@@ -207,7 +207,7 @@ p3
 
 ```{r direct_indirect_emissions,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
-ggarrange(p1,p2,p3,nrow=1,ncol=3,widths=c(0.25,0.25,0.5))
+ggarrange(p1,p2,p3,nrow=1,ncol=3,widths=c(0.2,0.2,0.6))
 
 
 # save data for soapbox

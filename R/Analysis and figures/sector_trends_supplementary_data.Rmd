@@ -13,7 +13,6 @@ knit: (function(inputFile, encoding) {
 rm(list = ls())
 library(tidyverse)
 library(ggpubr)
-library(gganimate)
 library(openxlsx)
 library(ggplot2); theme_set(theme_bw())
 library(data.table)

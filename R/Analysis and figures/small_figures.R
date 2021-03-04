@@ -80,7 +80,7 @@ g_legend<-function(a.gplot){
 locate_shares <- function(data,grouping,years){
 
   shares <- data %>%
-    arrange_at(vars(`year`,grouping)) %>%
+    arrange_at(vars(`year`,all_of(grouping))) %>%
     mutate(location=value/2)
   
   z = nrow(unique(shares[,grouping]))

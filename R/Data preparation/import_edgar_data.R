@@ -49,14 +49,6 @@ edgar_GHG <- full_join(jos_CO2,jos_CH4)
 edgar_GHG <- full_join(edgar_GHG,jos_N2O)
 edgar_GHG <- full_join(edgar_GHG,jos_Fgas)
 
-########### convert from Kton to t ########### 
-
-load('Data/gwps.RData')
-for (row in 1:nrow(gwps)) {
-  col <- gwps[row, "gas"]
-  edgar_GHG[col] <- edgar_GHG[col]*1000
-}
-
 ########### import corrected landfill (6A1) data ###########
 
 landfill <- openxlsx::read.xlsx("Data/EDGAR/updated EDGAR landfills emissions.xlsx","CH4 emi landfills",startRow=2) %>% 
@@ -69,9 +61,9 @@ landfill <- landfill %>%
   mutate(CH4=as.numeric(CH4)) %>% 
   mutate(IPCC.detailed="6A1") %>% 
   mutate(IPCC_detailed_description="Managed waste disposal on land")
-
-#landfill <- landfill %>% 
-#  mutate(CH4=CH4*1000)
+# 
+# landfill <- landfill %>% 
+#   mutate(CH4=CH4*1000)
 
 names <- edgar_GHG %>% 
   select(ISO,EDGAR_country,CO2:SF6,-CH4) %>% 
@@ -167,10 +159,29 @@ edgar_GHG$region_ar6_5_short <- as.factor(edgar_GHG$region_ar6_5_short)
 edgar_GHG$region_ar6_5_short <- factor(edgar_GHG$region_ar6_5_short,levels(edgar_GHG$region_ar6_5_short)[c(1,7,2,3,4,5,6)])
 
 
+##############convert from Kton to t
+
+column_rows <- names(edgar_GHG %>% select(-ISO,-country,-region_ar6_5,-region_ar6_5_short,-region_ar6_10,-region_ar6_22,-region_ar6_dev,-year,-chapter,-chapter_title,-sector_code,-description,-subsector,-subsector_title))
+
+edgar_GHG <- edgar_GHG %>% 
+  mutate_at(vars(all_of(column_rows)),funs(.*1000))
+# 
+# for (row in 1:nrow(gwps)) {
+#   col <- gwps[row, "gas"]
+#   edgar_GHG[col] <- edgar_GHG[col]*1000
+# }
+# 
+
+
 ############## calculate gwps based on ar6 values
 
+load('Data/gwps.RData')
+gwps <- gwps %>% 
+  filter(gas!="CH4 (fossil/biogenic)") %>% 
+  filter(gas!="CH4 (fugitive)") %>% 
+  filter(gas!="CH4")
+
 ## apply all gwps except CH4
-gwps <- gwps %>% filter(gas!="CH4")
 edgar_GHG_ar6 <- edgar_GHG
 for (row in 1:nrow(gwps)) {
   col <- gwps[row, "gas"]
@@ -178,7 +189,7 @@ for (row in 1:nrow(gwps)) {
   edgar_GHG_ar6[col] <- edgar_GHG_ar6[col]*gwp
 }
 
-## apply CH4 gwps based on more detailed breakdown
+## apply CH4 gwps based on a more detailed breakdown of sources
 
 edgar_GHG_ar6 <- left_join(edgar_GHG_ar6,gwps_ch4 %>% select(sector_code,gwp_ch4=value),
                            by = "sector_code")
@@ -190,6 +201,7 @@ edgar_GHG_ar6 <- edgar_GHG_ar6 %>%
 missing_ch4 <- edgar_GHG_ar6 %>% 
   filter(!is.na(CH4) & is.na(gwp_ch4))
 
+## merge all Fgases into a single variable
 
 fgas_list <- gwps %>% 
   filter(gas!="CO2") %>% 

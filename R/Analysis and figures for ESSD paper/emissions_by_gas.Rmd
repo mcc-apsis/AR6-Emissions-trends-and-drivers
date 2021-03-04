@@ -149,8 +149,8 @@ waterfall_data <- left_join(waterfall_data,uncertainties,by=c("gas"="gas"))
 waterfall_data <- waterfall_data %>% 
   group_by(gwp) %>% 
   mutate(abs_uncertainty=value*uncertainty) %>% 
-  mutate(uncertainty_start=end-abs_uncertainty) %>% 
-  mutate(uncertainty_end=end+abs_uncertainty) %>% 
+  mutate(uncertainty_start=end-(0.5*abs_uncertainty)) %>% 
+  mutate(uncertainty_end=end+(0.5*abs_uncertainty)) %>% 
   group_by(gwp) %>% 
   mutate(total=sum(value))
 

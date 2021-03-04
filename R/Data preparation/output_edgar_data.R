@@ -254,29 +254,34 @@ saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_iiasa.xlsx",overwrite = T)
 # 
 # #################### country file
 # 
-# countries <- edgar_GHG_ar6 %>%
-#   group_by(ISO,country,region_ar6_5,region_ar6_10,region_ar6_22,region_ar6_dev,year) %>%
-#   summarise_at(vars(CO2:GHG),sum,na.rm=TRUE)
-# 
-# basic <- basic %>% select(ISO,year,GDP,POP)
-# 
-# countries <- left_join(countries,basic,by=c("ISO"="ISO","year"="year"))
-# 
-# regions <- countries %>%
-#   group_by(region_ar6_10,year) %>%
-#   summarise_at(vars(CO2:POP),sum,na.rm=TRUE)
-# regions <- regions %>% 
-#   mutate(CO2pc=CO2/POP)
-# 
-# wb <- createWorkbook(title = "ipcc_ar6_edgar_data_countries")
-# addWorksheet(wb,"info")
-# addWorksheet(wb,"data_countries")
-# addWorksheet(wb,"data_regions")
-# addWorksheet(wb,"metadata")
-# 
-# writeData(wb, sheet = "info", info, colNames = F)
-# writeData(wb, sheet = "data_countries", countries, colNames = T)
-# writeData(wb, sheet = "data_regions", regions, colNames = T)
-# writeData(wb, sheet = "metadata", meta, colNames = T)
-# 
-# saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_countries.xlsx",overwrite = T)
+countries <- edgar_GHG_ar6 %>%
+  group_by(ISO,country,region_ar6_5,region_ar6_10,region_ar6_22,region_ar6_dev,year) %>%
+  summarise_at(vars(CO2:GHG),sum,na.rm=TRUE)
+
+basic <- basic %>% select(ISO,year,GDP,POP)
+
+countries <- left_join(countries,basic,by=c("ISO"="ISO","year"="year"))
+
+regions <- countries %>%
+  group_by(region_ar6_10,year) %>%
+  summarise_at(vars(CO2:POP),sum,na.rm=TRUE)
+regions <- regions %>%
+  mutate(CO2pc=CO2/POP)
+
+wb <- createWorkbook(title = "ipcc_ar6_edgar_data_countries")
+addWorksheet(wb,"info")
+addWorksheet(wb,"data_countries")
+addWorksheet(wb,"data_regions")
+addWorksheet(wb,"metadata")
+
+writeData(wb, sheet = "info", info, colNames = F)
+writeData(wb, sheet = "data_countries", countries, colNames = T)
+writeData(wb, sheet = "data_regions", regions, colNames = T)
+writeData(wb, sheet = "metadata", meta, colNames = T)
+
+saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_countries.xlsx",overwrite = T)
+
+
+
+blarg <- countries %>% 
+  filter(year==2018)
