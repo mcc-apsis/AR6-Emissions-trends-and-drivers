@@ -313,8 +313,8 @@ plot_data_nogwp <- plot_data_nogwp %>%
 plot_data_nogwp <- left_join(plot_data_nogwp,uncertainties,by = "gas")
 
 plot_data_nogwp <- plot_data_nogwp %>% 
-  mutate(high = value+((uncertainty*value)/2)) %>% 
-  mutate(low = value-((uncertainty*value)/2)) %>% 
+  mutate(high = value+(uncertainty*value)) %>% 
+  mutate(low = value-(uncertainty*value)) %>% 
   select(-uncertainty)
 
 #manually map colours

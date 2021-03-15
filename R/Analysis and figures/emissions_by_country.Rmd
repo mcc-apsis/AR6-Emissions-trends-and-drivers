@@ -27,8 +27,8 @@ options(dplyr.summarise.inform = FALSE)
 load('../../Data/edgar_data_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
-load('../../Data/basic.RData')
-
+#load('../../Data/basic.RData')
+load('../../Data/WDI_gdp_pop.RData')
 
 # set palette
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
@@ -159,21 +159,21 @@ countries <- edgar_GHG_ar6 %>%
   group_by(country,ISO,year,region_ar6_5_short) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE))
 
-### join pop and gdp
-basic <- basic %>%  
-  filter(Year>=time_start & Year<2019) %>% 
-  select(ISO,Year,pop_UN,gdp_ppp_WB)
+# ### join pop and gdp
+# basic <- basic %>%  
+#   filter(Year>=time_start & Year<2019) %>% 
+#   select(ISO,Year,pop_UN,gdp_ppp_WB)
+# 
+# ############## BRING FORWARD MISSING GDP DATA
+# basic <- basic %>% 
+#   group_by(ISO) %>% 
+#   fill(gdp_ppp_WB)
 
-############## BRING FORWARD MISSING GDP DATA
-basic <- basic %>% 
-  group_by(ISO) %>% 
-  fill(gdp_ppp_WB)
-
-countries <- left_join(countries,basic,by=c("ISO"="ISO","year"="Year"))
+countries <- left_join(countries,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
 
 countries <- countries %>% 
-  mutate(emissions_pc = GHG/pop_UN) %>% 
-  mutate(emissions_pgdp = GHG/gdp_ppp_WB)
+  mutate(emissions_pc = GHG/population) %>% 
+  mutate(emissions_pgdp = GHG/gdp_ppp)
 
 # what is 75% of the emissions?
 threshold <- countries %>%
@@ -288,12 +288,13 @@ per_capita <- edgar_GHG_ar6 %>%
   summarise(CO2=sum(CO2,na.rm=TRUE),GHG=sum(GHG,na.rm=TRUE)) %>% 
   ungroup()
 
-per_capita <- left_join(per_capita,basic %>% select(Year,ISO,pop_UN),by=c("year"="Year","ISO"="ISO"))
+per_capita <- left_join(per_capita,wdi_data_gdp_pop,by=c("year"="year","ISO"="iso3c")) %>%
+  select(-gdp_ppp,-gdp_real)
 
 per_capita <- per_capita %>% 
   filter(year==2018) %>% 
-  mutate(CO2_pc = CO2/pop_UN) %>% 
-  mutate(GHG_pc = GHG/pop_UN)
+  mutate(CO2_pc = CO2/population) %>% 
+  mutate(GHG_pc = GHG/population)
 
 all_countries <- per_capita
 
@@ -302,7 +303,7 @@ per_capita <- per_capita %>%
   filter(region_ar6_5!="Intl. Aviation") %>% 
   filter(region_ar6_5!="Intl. Shipping") %>% 
   filter(CO2_pc>0) %>% 
-  filter(pop_UN>1e6)
+  filter(population>1e6)
 
 per_capita <- per_capita %>%
   group_by(region_ar6_5) %>% 
@@ -312,13 +313,13 @@ region_averages <- all_countries %>%
   filter(region_ar6_5!="Intl. Aviation") %>% 
   filter(region_ar6_5!="Intl. Shipping") %>% 
   group_by(region_ar6_5) %>% 
-  summarise_at(vars(CO2,GHG,pop_UN),sum,na.rm=TRUE)
+  summarise_at(vars(CO2,GHG,population),sum,na.rm=TRUE)
 
 per_capita <- left_join(per_capita,region_averages,by = "region_ar6_5")
 
 per_capita <- per_capita %>% 
-  mutate(GHG_mean = GHG/pop_UN) %>% 
-  mutate(CO2_mean = CO2/pop_UN)
+  mutate(GHG_mean = GHG/population) %>% 
+  mutate(CO2_mean = CO2/population)
 
 ```
 
@@ -405,6 +406,55 @@ cumulative_emissions_geo <- cumulative_emissions_geo %>%
 
 ```
 
+```{r ridgeline_plot,echo=FALSE,warning=FALSE,fig.width=9,fig.height=5}
+
+#load('../../Data/basic.RData')
+
+## get country level data
+
+countries <- edgar_GHG_ar6 %>% 
+  filter(region_ar6_5_short!="AIR") %>% 
+  filter(region_ar6_5_short!="SEA") %>% 
+  group_by(country,ISO,year,region_ar6_5_short,region_ar6_10) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+### join pop and gdp
+#basic <- basic %>%  
+#  select(ISO,Year,pop_UN)
+
+countries <- left_join(countries,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
+
+### select two time frames
+
+
+countries_tf1 <- countries %>% 
+  filter(year>=1990 & year<2000) %>%
+  group_by(country,ISO,region_ar6_5_short,region_ar6_10) %>% 
+  summarise(GHG=sum(GHG)/10,pop_UN=sum(population)/10) %>% 
+  mutate(year='1990_1999')
+
+countries_tf2 <- countries %>% 
+  filter(year>=2010 & year<2019) %>%
+  group_by(country,ISO,region_ar6_5_short,region_ar6_10) %>% 
+  summarise(GHG=sum(GHG)/10,population=sum(population)/10) %>% 
+  mutate(year='2000_2018')
+
+countries <- rbind(countries_tf1,countries_tf2)
+
+countries <- countries %>% 
+  mutate(emissions_pc=GHG/population)
+
+library(ggridges)
+
+countries %>% ggplot(.,aes(x=emissions_pc,y=region_ar6_10,fill=year)) +
+  geom_density_ridges() +
+  xlim(-10,100)
+
+countries %>% ggplot(.,aes(x=emissions_pc,y=region_ar6_10,fill=year)) +
+  geom_boxplot() +
+  xlim(-10,100)
+
+```
 
 ```{r save,echo=FALSE,warning=FALSE}
 
