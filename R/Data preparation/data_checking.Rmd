@@ -16,182 +16,238 @@ rm(list = ls())
 library(tidyverse)
 library(ggpubr)
 library(openxlsx)
+library(patchwork)
 theme_set(theme_bw())
 
 load('../../Data/edgar_data_all.RData')
-load('../../Data/edgar_data_gwp_ar6.RData')
-load('../../Data/basic.RData')
+#load('../../Data/edgar_data_gwp_ar6.RData')
+#load('../../Data/basic.RData')
+
+load('../../Data/dump/edgar_data_all_late_2020.RData')
+#load('../../Data/dump/edgar_data_gwp_ar6_late_2020.RData')
 
 
-```
 
-## compare EDGAR data online to ours
-
-
-```{r ch4_compare}
-
-# compare my processed edgar data, the raw edgar data and published edgar data
-
-edgar_public_ch4 <- read.xlsx('../../Data/EDGAR/public version/v50_CH4_1970_2015.xlsx',sheet=1,startRow = 9)
-edgar_public_ch4 <- gather(edgar_public_ch4,year,value,`1970`:`2015`)
-edgar_public_ch4 <- edgar_public_ch4 %>% 
-  mutate(value=as.numeric(value)) %>% 
-  mutate(year=as.numeric(year)) %>% 
-  group_by(year) %>% 
-  summarise(ch4_public=sum(value,na.rm=T)*1000)
-
-edgar_raw_ch4 <- read.xlsx('../../Data/EDGAR/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',sheet= 3,startRow = 10)
-edgar_raw_ch4 <- edgar_raw_ch4[1:58]
-edgar_raw_ch4 <- gather(edgar_raw_ch4,year,value,`1970`:`2018`)
-
-edgar_raw_landfill <- openxlsx::read.xlsx("../../Data/EDGAR/updated EDGAR landfills emissions.xlsx","CH4 emi landfills",startRow=2) %>% 
-  select(ISO=Country_code_A3,everything(),-emi_id,-Substance)
-
-edgar_raw_landfill <- gather(edgar_raw_landfill,year,CH4,-ISO)
-edgar_raw_landfill$year <- gsub("Y_","",edgar_raw_landfill$year)
-edgar_raw_landfill <- edgar_raw_landfill %>% 
-  mutate(IPCC="6A1") %>% 
-  mutate(CH4=as.numeric(CH4))
-
-edgar_raw_ch4 <- left_join(edgar_raw_ch4,edgar_raw_landfill,by = c("year","ISO","IPCC"))
-edgar_raw_ch4 <- edgar_raw_ch4 %>% 
-  mutate(value=ifelse(IPCC=="6A1",CH4,value)) %>% 
-  mutate(year=as.numeric(year))
-
-edgar_raw_ch4 <- edgar_raw_ch4 %>% 
-  group_by(year) %>% 
-  summarise(ch4_raw=sum(value,na.rm=T)*1000)
-
-compare_ch4 <- edgar_GHG %>% 
-  group_by(year) %>% 
-  summarise(ch4_ipcc=sum(CH4,na.rm=T))
-
-compare_ch4 <- left_join(compare_ch4,edgar_public_ch4,by = "year")
-compare_ch4 <- left_join(compare_ch4,edgar_raw_ch4,by = "year")
-
-compare_ch4 <- gather(compare_ch4,var,value,-year) 
-compare_ch4 %>% 
-  ggplot(.,aes(x=year,y=value,colour=var)) + 
-  geom_line()
-
-compare_ch4 %>% 
-  filter(year %in% c(1970,1990,2010,2018)) %>% 
-  ggplot(.,aes(x=var,y=value,fill=var)) +
-  geom_bar(stat='identity') +
-  facet_grid(year~.) +
-  coord_flip()
-
-```
-
-```{r n2o_compare}
-
-edgar_public_n2o <- read.xlsx('../../Data/EDGAR/public version/v50_N2O_1970_2015.xlsx',sheet=1,startRow = 9)
-edgar_public_n2o <- gather(edgar_public_n2o,year,value,`1970`:`2015`)
-edgar_public_n2o <- edgar_public_n2o %>% 
-  mutate(value=as.numeric(value)) %>% 
-  mutate(year=as.numeric(year)) %>% 
-  group_by(year) %>% 
-  summarise(n2o_public=sum(value,na.rm=T)*1000)
-
-edgar_raw_n2o <- read.xlsx('../../Data/EDGAR/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',sheet= 4,startRow = 10)
-edgar_raw_n2o <- edgar_raw_n2o[1:58]
-edgar_raw_n2o <- gather(edgar_raw_n2o,year,value,`1970`:`2018`)
-edgar_raw_n2o <- edgar_raw_n2o %>% 
-  mutate(value=as.numeric(value)) %>% 
-  mutate(year=as.numeric(year)) %>% 
-  group_by(year) %>% 
-  summarise(n2o_raw=sum(value,na.rm=T)*1000)
-
-compare_n2o <- edgar_GHG %>% 
-  group_by(year) %>% 
-  summarise(n2o_ipcc=sum(N2O,na.rm=T))
-  
-compare_n2o <- left_join(compare_n2o,edgar_public_n2o,by = "year")
-compare_n2o <- left_join(compare_n2o,edgar_raw_n2o,by = "year")
-
-compare_n2o <- gather(compare_n2o,var,value,-year) 
-compare_n2o %>% 
-  ggplot(.,aes(x=year,y=value,colour=var)) + 
-  geom_line()
-
-compare_n2o %>% 
-  filter(year %in% c(1970,1990,2010,2018)) %>% 
-  ggplot(.,aes(x=var,y=value,fill=var)) +
-  geom_bar(stat='identity') +
-  facet_grid(year~.) +
-  coord_flip()
 
 
 ```
 
-```{r co2_compare}
+
+```{r edgar_public,fig.width=10,fig.height=4}
 
 edgar_public_co2 <- read.xlsx('../../Data/EDGAR/public version/v50_CO2_excl_short-cycle_org_C_1970_2018.xlsx',sheet=1,startRow = 9)
-edgar_public_co2 <- gather(edgar_public_co2,year,value,`1970`:`2018`)
+edgar_public_co2 <- gather(edgar_public_co2,year,CO2,`1970`:`2018`)
 edgar_public_co2 <- edgar_public_co2 %>% 
-  mutate(value=as.numeric(value)) %>% 
-  mutate(year=as.numeric(year)) %>% 
-  group_by(year) %>% 
-  summarise(co2_public=sum(value,na.rm=T)*1000)
+  mutate(CO2=as.numeric(CO2)*1000) %>% 
+  mutate(year=as.numeric(year))
 
-edgar_raw_co2 <- read.xlsx('../../Data/EDGAR/EDGAR v5.0 Part A--CO2 CH4 N2O FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',sheet= 2,startRow = 10)
-edgar_raw_co2 <- edgar_raw_co2[1:58]
-edgar_raw_co2 <- gather(edgar_raw_co2,year,value,`1970`:`2018`)
-edgar_raw_co2 <- edgar_raw_co2 %>% 
-  mutate(value=as.numeric(value)) %>% 
-  mutate(year=as.numeric(year)) %>% 
-  group_by(year) %>% 
-  summarise(co2_raw=sum(value,na.rm=T)*1000)
+edgar_public_ch4 <- read.xlsx('../../Data/EDGAR/public version/v50_CH4_1970_2015.xlsx',sheet=1,startRow = 9)
+edgar_public_ch4 <- gather(edgar_public_ch4,year,CH4,`1970`:`2015`)
+edgar_public_ch4 <- edgar_public_ch4 %>% 
+  mutate(CH4=as.numeric(CH4)*1000) %>% 
+  mutate(year=as.numeric(year))
 
-compare_co2 <- edgar_GHG %>%
-  group_by(year) %>%
-  summarise(co2_ipcc=sum(CO2,na.rm=T))
+edgar_public_n2o <- read.xlsx('../../Data/EDGAR/public version/v50_N2O_1970_2015.xlsx',sheet=1,startRow = 9)
+edgar_public_n2o <- gather(edgar_public_n2o,year,N2O,`1970`:`2015`)
+edgar_public_n2o <- edgar_public_n2o %>% 
+  mutate(N2O=as.numeric(N2O)*1000) %>% 
+  mutate(year=as.numeric(year))
 
-compare_co2 <- left_join(compare_co2,edgar_public_co2,by = "year")
-compare_co2 <- left_join(compare_co2,edgar_raw_co2,by = "year")
+edgar_public <- left_join(edgar_public_co2,edgar_public_ch4,by = c("IPCC-Annex", "World.Region", "ISO_A3", "Name", "IPCC", "IPCC_description", "year"))
+edgar_public <- left_join(edgar_public,edgar_public_n2o,by = c("IPCC-Annex", "World.Region", "ISO_A3", "Name", "IPCC", "IPCC_description", "year"))
 
-compare_co2 <- gather(compare_co2,var,value,-year) 
-compare_co2 %>% 
-  ggplot(.,aes(x=year,y=value,colour=var)) + 
-  geom_line()
+edgar_public <- edgar_public %>% 
+  select(ISO=ISO_A3,sector_code=IPCC,everything())
 
-compare_co2 %>% 
-  filter(year %in% c(1970,1990,2010,2018)) %>% 
-  ggplot(.,aes(x=var,y=value,fill=var)) +
-  geom_bar(stat='identity') +
-  facet_grid(year~.) +
-  coord_flip()
-
-```
-
-```{r fgas_compare}
-
-edgar_raw_fgas <- read.xlsx('../../Data/EDGAR/EDGAR v5.0 Part B--F-gases FT2018 (1970-2018) by JRC and PBL 26Nov2019 for IPCC_WGIII.xlsx',sheet= 2,startRow = 10)
-edgar_raw_fgas <- edgar_raw_fgas[1:58]
-edgar_raw_fgas <- gather(edgar_raw_fgas,year,value,`1970`:`2018`)
-edgar_raw_fgas <- edgar_raw_fgas %>% 
-  mutate(value=as.numeric(value)) %>% 
-  mutate(year=as.numeric(year)) %>% 
-  group_by(year,Fgas) %>% 
-  summarise(fgas_raw=sum(value,na.rm=T)*1000)
-
-compare_fgas <- edgar_GHG %>%
-  group_by(year) %>%
-  summarise_at(vars(`c-C4F8`:SF6),sum,na.rm=T)
-
-compare_fgas <- gather(compare_fgas,Fgas,fgas_ipcc,-year)
-
-compare_fgas <- left_join(compare_fgas,edgar_raw_fgas,by = c("year","Fgas"))
-
-compare_fgas <- gather(compare_fgas,var,value,-year,-Fgas) 
-compare_fgas %>% 
-  ggplot(.,aes(x=year,y=value,colour=var)) + 
-  geom_line() +
-  facet_wrap(.~Fgas,scales="free")
+rm(edgar_public_co2,edgar_public_ch4,edgar_public_n2o)
 
 ```
 
 
+```{r ghg_compare,fig.width=10,fig.height=4}
+
+
+# compare my processed edgar data, published edgar data and previous database
+
+gas <- names(edgar_GHG %>% select(-ISO,-country,-region_ar6_5,-region_ar6_5_short,-region_ar6_10,-region_ar6_22,-region_ar6_dev,-year,-chapter,-chapter_title,-sector_code,-description,-subsector,-subsector_title))
+
+
+edgar_ipcc_old <- edgar_GHG_late_2020 %>% 
+  group_by(year) %>% 
+  summarise_at(vars(all_of(gas)),sum,na.rm=TRUE)
+edgar_ipcc_old <- gather(edgar_ipcc_old,gas,edgar_ipcc_old,-year)
+
+edgar_ipcc_new <- edgar_GHG %>% 
+  group_by(year) %>% 
+  summarise_at(vars(all_of(gas)),sum,na.rm=TRUE)
+edgar_ipcc_new <- gather(edgar_ipcc_new,gas,edgar_ipcc_new,-year)
+
+edgar_public_ghgs <- edgar_public %>% 
+  group_by(year) %>% 
+  summarise_at(vars(all_of(c("CO2","CH4","N2O"))),sum,na.rm=TRUE)
+edgar_public_ghgs <- gather(edgar_public_ghgs,gas,edgar_public,-year)
+
+comparison <- left_join(edgar_ipcc_new,edgar_ipcc_old,by=c("year","gas"))
+comparison <- left_join(comparison,edgar_public_ghgs,by=c("year","gas"))
+
+comparison <- comparison %>% 
+  mutate(difference=((edgar_ipcc_old/edgar_ipcc_new)))
+
+
+comparison <- gather(comparison,var,value,-year,-gas,-difference)
+
+comparison %>% 
+  filter(gas %in% c("CO2","CH4","N2O")) %>% 
+  ggplot(.,aes(x=year,y=value,color=var)) +
+  geom_path() +
+  geom_text(data=comparison %>% 
+              filter(gas %in% c("CO2","CH4","N2O")) %>% 
+              filter(year==2018),
+            aes.inherit=FALSE,aes(x=1970,y=Inf,vjust=1.1,hjust=0,label=paste0("2018 difference (old/new): ",round(difference,3)))) +
+  facet_wrap(.~gas,scales="free") +
+  theme(legend.position="bottom",
+        axis.title = element_blank(),
+        legend.title=element_blank())
+
+
+
+```
+
+```{r fgas_compare,fig.width=10,fig.height=10}
+
+
+fgas <- names(edgar_GHG %>% select(-ISO,-country,-region_ar6_5,-region_ar6_5_short,-region_ar6_10,-region_ar6_22,-region_ar6_dev,-year,-chapter,-chapter_title,-sector_code,-description,-subsector,-subsector_title,-CO2,-CH4,-N2O))
+
+comparison %>% 
+  filter(gas %in% fgas) %>% 
+  ggplot(.,aes(x=year,y=value,color=var)) +
+  geom_path() +
+  facet_wrap(.~gas,scales="free") +
+  theme(legend.position="bottom",
+        axis.title = element_blank(),
+        legend.title=element_blank())
+
+```
+
+## countries
+
+
+```{r country_compare,fig.width=10,fig.height=8}
+
+
+
+edgar_ipcc_old <- edgar_GHG_late_2020 %>% 
+  group_by(year,ISO) %>% 
+  summarise_at(vars(all_of(gas)),sum,na.rm=TRUE)
+edgar_ipcc_old <- gather(edgar_ipcc_old,gas,edgar_ipcc_old,-year,-ISO)
+
+edgar_ipcc_new <- edgar_GHG %>% 
+  group_by(year,ISO) %>% 
+  summarise_at(vars(all_of(gas)),sum,na.rm=TRUE)
+edgar_ipcc_new <- gather(edgar_ipcc_new,gas,edgar_ipcc_new,-year,-ISO)
+
+edgar_public_ghgs <- edgar_public %>% 
+  group_by(year,ISO) %>% 
+  summarise_at(vars(all_of(c("CO2","CH4","N2O"))),sum,na.rm=TRUE)
+edgar_public_ghgs <- gather(edgar_public_ghgs,gas,edgar_public,-year,-ISO)
+
+comparison <- left_join(edgar_ipcc_new,edgar_ipcc_old,by=c("year","gas","ISO"))
+comparison <- left_join(comparison,edgar_public_ghgs,by=c("year","gas","ISO"))
+
+
+load('../../Data/gwps.RData')
+
+comparison <- left_join(comparison,gwps %>% select(gas,gwp_ar6),by="gas")
+comparison <- comparison %>% 
+  mutate(gwp_ar6=ifelse(gas=="CH4",28,gwp_ar6)) ###### just use a single GWP from AR5 for CH4
+
+comparison <- comparison %>% 
+  mutate(edgar_ipcc_new_gwp = edgar_ipcc_new*gwp_ar6) %>% 
+  mutate(edgar_ipcc_old_gwp = edgar_ipcc_old*gwp_ar6) %>% 
+  mutate(edgar_public_gwp = edgar_public*gwp_ar6)
+
+comparison_ghgs <- comparison %>% 
+  select(year,ISO,gas,edgar_ipcc_new_gwp,edgar_ipcc_old_gwp,edgar_public_gwp)
+comparison_ghgs <- gather(comparison_ghgs,var,value,-year,-ISO,-gas)
+comparison_ghgs <- comparison_ghgs %>% 
+  group_by(year,ISO,var) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
+
+top_countries <- comparison_ghgs %>% 
+  ungroup() %>% 
+  filter(year==2018) %>% 
+  filter(var=="edgar_ipcc_new_gwp") %>% 
+  mutate(rank=dense_rank(desc(value))) %>% 
+  select(ISO,rank) %>% 
+  distinct()
+
+comparison_ghgs <- left_join(comparison_ghgs,top_countries,by = "ISO")
+
+comparison_ghgs %>% filter(rank<13) %>% 
+  ggplot(.,aes(x=year,y=value,colour=var)) +
+  geom_path() +
+  facet_wrap(.~ISO,scales="free") +
+  theme(legend.position="bottom")
+
+```
+
+```{r code_comparison,fig.width=10,fig.height=10}
+
+
+
+edgar_ipcc_old <- edgar_GHG_late_2020 %>% 
+  group_by(year,sector_code,description) %>% 
+  summarise_at(vars(all_of(gas)),sum,na.rm=TRUE)
+edgar_ipcc_old <- gather(edgar_ipcc_old,gas,edgar_ipcc_old,-year,-sector_code,-description)
+
+edgar_ipcc_new <- edgar_GHG %>% 
+  group_by(year,sector_code,description) %>% 
+  summarise_at(vars(all_of(gas)),sum,na.rm=TRUE)
+edgar_ipcc_new <- gather(edgar_ipcc_new,gas,edgar_ipcc_new,-year,-sector_code,-description)
+
+comparison <- left_join(edgar_ipcc_new,edgar_ipcc_old,by=c("year","gas","sector_code","description"))
+
+load('../../Data/gwps.RData')
+
+comparison <- left_join(comparison,gwps %>% select(gas,gwp_ar6),by="gas")
+comparison <- comparison %>% 
+  mutate(gwp_ar6=ifelse(gas=="CH4",28,gwp_ar6)) ###### just use a single GWP from AR5 for CH4
+
+comparison <- comparison %>% 
+  mutate(edgar_ipcc_new_gwp = edgar_ipcc_new*gwp_ar6) %>% 
+  mutate(edgar_ipcc_old_gwp = edgar_ipcc_old*gwp_ar6)
+
+comparison_ghgs <- comparison %>% 
+  select(year,sector_code,description,gas,edgar_ipcc_new_gwp,edgar_ipcc_old_gwp)
+comparison_ghgs <- gather(comparison_ghgs,var,value,-year,-sector_code,-description,-gas)
+comparison_ghgs <- comparison_ghgs %>% 
+  group_by(year,sector_code,description,var) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
+
+different_codes <- spread(comparison_ghgs,var,value) %>% 
+  ungroup() %>% 
+  filter(year!=2019) %>% 
+  mutate(difference=edgar_ipcc_new_gwp-edgar_ipcc_old_gwp) %>%
+  group_by(sector_code) %>% 
+  mutate(max_difference=max(abs(difference)),ratio=edgar_ipcc_new_gwp/edgar_ipcc_old_gwp)
+different_codes <- different_codes %>% 
+  ungroup() %>% 
+  select(sector_code,max_difference) %>% 
+  distinct() %>% 
+  mutate(rank=dense_rank(desc(max_difference)))
+
+comparison_ghgs <- left_join(comparison_ghgs,different_codes,by = "sector_code")
+
+
+comparison_ghgs %>% filter(rank<17) %>% 
+  filter(year!=2019) %>% 
+  ggplot(.,aes(x=year,y=value,colour=var)) +
+  geom_path() +
+  facet_wrap(.~description,scales="free") +
+  theme(legend.position="bottom")
+
+
+```
 
 ```{r check_gwps}
 
@@ -273,7 +329,7 @@ data %>% ggplot(.,aes(x=reorder(description,desc(value)),y=value,fill=gas)) +
         legend.title=element_blank(),
         axis.title.x = element_blank(),
         axis.title.y = element_blank())
-  
+
 
 
 
@@ -304,11 +360,11 @@ data <- edgar_GHG_ar6 %>%
   filter(year>1989) %>% 
   group_by(year,sector_code,description) %>% 
   summarise(value=sum(GHG,na.rm=T))
-  
+
 
 data %>%
   filter(str_detect(sector_code, "^2F") | str_detect(sector_code, "^2E")) %>% 
-#  filter(sector_code=="2F1-4" | sector_code=="2F9" | sector_code=="2E1") %>% 
+  #  filter(sector_code=="2F1-4" | sector_code=="2F9" | sector_code=="2E1") %>% 
   ggplot(.,aes(x=year,y=value,colour=sector_code)) +
   geom_path() +
   facet_wrap(~sector_code,ncol=4,scales='free',labeller = label_wrap_gen(width=15)) +
@@ -330,7 +386,7 @@ writeData(wb, sheet = "all_data", data, colNames = T)
 sector_aggregation <- data %>% 
   group_by(year,sector_code,description) %>% 
   summarise_at(vars(CO2:GHG),sum,na.rm=T)
-  
+
 addWorksheet(wb,'sector_aggregation')
 writeData(wb, sheet = "sector_aggregation", sector_aggregation, colNames = T)
 
@@ -395,7 +451,7 @@ data <- edgar_GHG_ar5 %>%
   #filter(str_detect(sector_code, "^1A")) %>% 
   group_by(year,sector_code,description) %>% 
   summarise(value=sum(GHG,na.rm=T))
-  
+
 
 data %>%
   filter(str_detect(sector_code, "^2F") | str_detect(sector_code, "^2E")) %>% 
@@ -513,9 +569,9 @@ totals <- totals %>%
   filter(year>1989)
 
 #totals <- totals %>% 
- # group_by(chapter,key) %>% 
-  #filter(any(difference!=0))
-  
+# group_by(chapter,key) %>% 
+#filter(any(difference!=0))
+
 
 totals %>% ggplot(.,aes(x=year,y=difference,fill=key)) +
   geom_bar(stat='identity') +

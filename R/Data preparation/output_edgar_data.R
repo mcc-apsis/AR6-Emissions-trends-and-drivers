@@ -11,7 +11,7 @@ edgar_GHG_ar6 <- edgar_GHG_ar6 %>%
   filter(sector_code!="Total") %>% 
   arrange(ISO)
 
-load('Data/basic.RData')
+#load('Data/basic.RData')
 load('Data/ipcc_regions.RData')
 load('Data/ipcc_sectors.RData')
 load('Data/gwps.RData')
@@ -23,12 +23,12 @@ gwps <- gwps %>%
 gwps_ch4 <- gwps_ch4 %>% 
   select(sector_code,gas,gwp_ar6=value)
 
-basic <- basic %>% 
-  select(ISO,year=Year,GDP=gdp_ppp_WB,POP=pop_UN) %>% 
-  filter(year>1969)
-
-basic <- left_join(ipcc_regions,basic,by=("ISO"="ISO")) %>% 
-  filter(!is.na(year))
+# basic <- basic %>% 
+#   select(ISO,year=Year,GDP=gdp_ppp_WB,POP=pop_UN) %>% 
+#   filter(year>1969)
+# 
+# basic <- left_join(ipcc_regions,basic,by=("ISO"="ISO")) %>% 
+#   filter(!is.na(year))
 
 
 #################### meta data
