@@ -4,7 +4,7 @@ author: "William F. Lamb"
 output: 
   word_document:
 knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../Results") })
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
   
 ---
 
@@ -17,17 +17,14 @@ library(tidyverse)
 library(ggpubr)
 library(openxlsx)
 library(patchwork)
+library(zoo)
 theme_set(theme_bw())
 
 load('../../Data/edgar_data_all.RData')
-#load('../../Data/edgar_data_gwp_ar6.RData')
-#load('../../Data/basic.RData')
+load('../../Data/edgar_data_gwp_ar6.RData')
 
 load('../../Data/dump/edgar_data_all_late_2020.RData')
-#load('../../Data/dump/edgar_data_gwp_ar6_late_2020.RData')
-
-
-
+load('../../Data/dump/edgar_data_gwp_ar6_late_2020.RData')
 
 
 ```
@@ -63,6 +60,7 @@ rm(edgar_public_co2,edgar_public_ch4,edgar_public_n2o)
 
 ```
 
+# CO2, CH4, N2O: comparing the current and previous data (and public)
 
 ```{r ghg_compare,fig.width=10,fig.height=4}
 
@@ -113,6 +111,8 @@ comparison %>%
 
 ```
 
+# Fgases: comparing the current and previous data
+
 ```{r fgas_compare,fig.width=10,fig.height=10}
 
 
@@ -129,8 +129,8 @@ comparison %>%
 
 ```
 
-## countries
-
+## Major countries: comparing the current, previous and public data
+#### (Note that there is no data on non-CO2 GHGs after 2015 in the public data, hence the drops)
 
 ```{r country_compare,fig.width=10,fig.height=8}
 
@@ -171,7 +171,7 @@ comparison_ghgs <- comparison %>%
 comparison_ghgs <- gather(comparison_ghgs,var,value,-year,-ISO,-gas)
 comparison_ghgs <- comparison_ghgs %>% 
   group_by(year,ISO,var) %>% 
-  summarise(value=sum(value,na.rm=TRUE))
+  summarise(value=sum(value,na.rm=TRUE),.groups="keep")
 
 top_countries <- comparison_ghgs %>% 
   ungroup() %>% 
@@ -184,6 +184,7 @@ top_countries <- comparison_ghgs %>%
 comparison_ghgs <- left_join(comparison_ghgs,top_countries,by = "ISO")
 
 comparison_ghgs %>% filter(rank<13) %>% 
+  filter(year!=2019) %>% 
   ggplot(.,aes(x=year,y=value,colour=var)) +
   geom_path() +
   facet_wrap(.~ISO,scales="free") +
@@ -191,9 +192,9 @@ comparison_ghgs %>% filter(rank<13) %>%
 
 ```
 
+# IPCC sectors: comparing the current and previous data, ranking by the largest single year total GHG difference 
+
 ```{r code_comparison,fig.width=10,fig.height=10}
-
-
 
 edgar_ipcc_old <- edgar_GHG_late_2020 %>% 
   group_by(year,sector_code,description) %>% 
@@ -222,7 +223,7 @@ comparison_ghgs <- comparison %>%
 comparison_ghgs <- gather(comparison_ghgs,var,value,-year,-sector_code,-description,-gas)
 comparison_ghgs <- comparison_ghgs %>% 
   group_by(year,sector_code,description,var) %>% 
-  summarise(value=sum(value,na.rm=TRUE))
+  summarise(value=sum(value,na.rm=TRUE),.groups="keep")
 
 different_codes <- spread(comparison_ghgs,var,value) %>% 
   ungroup() %>% 
@@ -249,30 +250,103 @@ comparison_ghgs %>% filter(rank<17) %>%
 
 ```
 
-```{r check_gwps}
 
-totals <- rbind(compare_ch4 %>% mutate(gas="CH4"),compare_n2o %>% mutate(gas="N2O"),compare_co2 %>% mutate(gas="CO2")) %>% 
-  filter(year==2015)
+# Countries by GHG emissions - absolute trends and per capita outliers
 
-edgar_ipcc_gwps <- edgar_GHG_ar6 %>% 
-  group_by(year) %>% 
-  summarise_at(vars(CO2,CH4,N2O),sum,na.rm=T)
+```{r country_percap,fig.width=8,fig.height=8}
 
-edgar_ipcc_gwps <- gather(edgar_ipcc_gwps,gas,ipcc_gwp,CO2:N2O)
+countries <- edgar_GHG_ar6 %>% 
+  group_by(year,ISO,country) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),.groups = "keep")
 
-totals <- left_join(totals,edgar_ipcc_gwps,by = c("year", "gas"))
+load('../../Data/WDI_gdp_pop.RData')
 
-load('../../Data/gwps.RData')
+countries <- left_join(countries,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
+countries <- countries %>% 
+  mutate(GHGpc=GHG/population)
 
-totals <- totals %>% 
-  mutate(ipcc_gwp = ifelse(gas=="N2O",ipcc_gwp/261,ipcc_gwp))
+source("../../R/Analysis and figures/growth_rate.R")
+
+
+## filter to countries above 1m population
+
+# data <- data %>% 
+#   group_by(country) %>% 
+#   mutate(include=ifelse(max(pop_UN)>1e6,1,0)) %>% 
+#   ungroup() %>% 
+#   filter(include==1) %>% 
+#   select(-include)
+
+## filter out NAs or zeros
+
+countries <- countries %>% 
+  group_by(country) %>% 
+  mutate(include=ifelse(min(GHG)==0,0,1)) %>% 
+  mutate(include=ifelse(is.na(GHG),0,include)) %>% 
+  ungroup() %>% 
+  filter(include==1) %>%
+  select(-include)
+
+## filter to 2005-2018
+
+data <- countries %>% 
+  filter(year>=2010)
+
+
+rates_GHG <- data %>% filter(country=="nothing") # create empty dataframe
+
+for (i in 1:length(unique(data$country))) {
+  
+  temp_data <- data %>% 
+    filter(country==unique(data$country)[i])
+  
+  rates <- growth_rate(temp_data$year,temp_data$GHG)
+  
+  temp_data$rate_GHG_peak <- rates$rate*100
+  temp_data$fit <- rates$data$predicted_x
+  temp_data$st_error <- rates$data$st_error
+  
+  rates_GHG <- rbind(rates_GHG,temp_data)
+}
+
+countries <- left_join(countries,rates_GHG %>% select(country,year,rate_GHG_peak,fit,st_error),by = c("country", "year"))
+
+countries <- countries %>% 
+  group_by(country) %>% 
+  mutate(rate_GHG_peak=na.locf(rate_GHG_peak,fromLast=TRUE),
+         st_error=na.locf(st_error,fromLast=TRUE))
+
+countries %>%  
+  ungroup() %>% 
+  filter(population>1e6) %>%
+  arrange(desc(st_error)) %>%
+  slice_head(n=50*12) %>% 
+  ggplot(.,aes(x=year,y=GHG)) + 
+  geom_path() +
+  facet_wrap(.~country,scales="free")
+
+high_per_capita <- countries %>% 
+  ungroup() %>% 
+  filter(year==2019) %>% 
+  arrange(desc(GHGpc)) %>% 
+  slice_head(n=50) %>% 
+  mutate(include=1) %>% 
+  select(ISO,include)
+
+countries <- left_join(countries,high_per_capita,by = "ISO")
+
+countries %>% 
+  filter(year==2019) %>% 
+  filter(include==1) %>% 
+  ggplot(.,aes(x=reorder(country,GHGpc),y=GHGpc)) +
+  geom_bar(stat='identity') + 
+  coord_flip()
 
 ```
 
+## Countries with high emissions contributions from individual sectors
 
-## Single out countries with high emissions contributions from individual sectors
-
-```{r crazy_countries,fig.width=8,fig.height=20,fig.path="../Results/Plots/Checks/",dev=c('png','pdf')}
+```{r crazy_countries,fig.width=8,fig.height=20}
 
 ##
 
@@ -280,17 +354,6 @@ data <- edgar_GHG_ar6 %>%
   group_by(country,year) %>% 
   mutate(country_GHG=sum(GHG,na.rm=TRUE)) %>% 
   ungroup()
-
-blarg <- edgar_GHG_ar6 %>% 
-  group_by(country,ISO,year) %>% 
-  summarise(GHG=sum(GHG,na.rm=T))
-
-blarg <- left_join(blarg,basic %>% select(ISO,year=Year,pop_UN))
-
-blarg <- blarg %>% 
-  mutate(ghgpc = GHG/pop_UN) %>% 
-  filter(year==2018) %>% 
-  arrange(desc(ghgpc))
 
 data <- data %>% 
   mutate(sector_fraction=(GHG/country_GHG)*100)
@@ -314,11 +377,7 @@ data <- data %>%
   top_n(10,wt = GHG) %>% 
   ungroup()
 
-
-
-
 data <- gather(data,gas,value,CO2:Fgas)
-
 
 data %>% ggplot(.,aes(x=reorder(description,desc(value)),y=value,fill=gas)) +
   geom_bar(stat='identity') +
@@ -335,23 +394,7 @@ data %>% ggplot(.,aes(x=reorder(description,desc(value)),y=value,fill=gas)) +
 
 ```
 
-```{r cement,fig.width=8,fig.height=10,fig.path="../Results/Plots/Checks/",dev=c('png','pdf')}
-
-data <- edgar_GHG_ar6 %>% 
-  filter(chapter_title=="Industry") %>%
-  filter(year>1989) %>% 
-  group_by(year,sector_code,description) %>% 
-  summarise(value=sum(GHG,na.rm=T))
-
-data %>%
-  filter(value>1e8) %>% 
-  ggplot(.,aes(x=year,y=value,colour=description)) +
-  geom_path() +
-  facet_wrap(~description,ncol=4,scales='free',labeller = label_wrap_gen(width=15)) +
-  theme(legend.position = "none")
-
-
-```
+# 2E codes
 
 ```{r industry_check,fig.width=8,fig.height=6,fig.path="../Results/Plots/Checks/",dev=c('png','pdf')}
 
@@ -359,7 +402,7 @@ data <- edgar_GHG_ar6 %>%
   filter(chapter_title=="Industry") %>%
   filter(year>1989) %>% 
   group_by(year,sector_code,description) %>% 
-  summarise(value=sum(GHG,na.rm=T))
+  summarise(value=sum(GHG,na.rm=T),.groups="keep")
 
 
 data %>%
@@ -373,57 +416,90 @@ data %>%
 
 ```
 
+```{r botswana,fig.width=8,fig.height=6}
+
+botswana_new <- edgar_GHG_ar6 %>% 
+  filter(country=="Botswana")
+
+botswana_old <- edgar_GHG_ar6_late_2020 %>% 
+  filter(country=="Botswana")
+
+botswana_new <- gather(botswana_new,gas,value_new,CO2:GHG)
+botswana_old <- gather(botswana_old,gas,value_old,CO2:GHG)
+botswana <- left_join(botswana_new,botswana_old,by = c("ISO", "country", "region_ar6_5", "region_ar6_5_short", "region_ar6_10", "region_ar6_22", "region_ar6_dev", "year", "chapter", "chapter_title", "sector_code", "description", "subsector", "subsector_title", "gas"))
+
+botswana <- botswana %>% 
+  select(ISO,country,year,sector_code,description,gas,value_new,value_old) %>% 
+  mutate(difference=value_new-value_old) %>% 
+  filter(year==2018) %>% 
+  filter(gas=="GHG") %>% 
+  filter(!is.na(difference)) %>% 
+  mutate(value_old=1-value_old)
+
+botswana <- gather(botswana,version,value,value_new,value_old)
+
+botswana %>% 
+  filter(abs(value)>20000) %>% 
+  ggplot(.,aes(x=sector_code,y=value,fill=version)) +
+  geom_bar(stat='identity') +
+  coord_flip() +
+  labs(title="Botswana GHG emissions in 2018")
+
+
+```
+
+
 ```{r building_check,fig.width=8,fig.height=6,fig.path="../Results/Plots/Checks/",dev=c('png','pdf')}
 
-data <- edgar_GHG_ar6 %>% 
-  filter(chapter_title=="Buildings")
-
-library(openxlsx)
-wb <- openxlsx::createWorkbook(title = "ipcc_ar6_edgar_buildings")
-addWorksheet(wb,'all_data')
-writeData(wb, sheet = "all_data", data, colNames = T)
-
-sector_aggregation <- data %>% 
-  group_by(year,sector_code,description) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T)
-
-addWorksheet(wb,'sector_aggregation')
-writeData(wb, sheet = "sector_aggregation", sector_aggregation, colNames = T)
-
-unique_codes <- data %>% 
-  select(sector_code,description) %>% 
-  unique()
-
-addWorksheet(wb,'codes_in_data')
-writeData(wb, sheet = "codes_in_data", unique_codes, colNames = T)
-
-
-global_totals <- edgar_GHG_ar6 %>% 
-  filter(year==2018) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T) %>% 
-  mutate(chapter_title='Total')
-
-totals_data <- edgar_GHG_ar6 %>% 
-  filter(year==2018) %>% 
-  group_by(chapter_title) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T)
-
-totals_data <- rbind(totals_data,global_totals)
-
-addWorksheet(wb,'totals_by_chapter_2018')
-writeData(wb, sheet = "totals_by_chapter_2018",totals_data, colNames = T)
-
-fgas_totals <- edgar_GHG_ar6 %>% 
-  filter(year==2018) %>% 
-  group_by(sector_code,description,chapter,chapter_title) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T)
-
-addWorksheet(wb,'totals_by_code_2018')
-writeData(wb, sheet = "totals_by_code_2018",fgas_totals, colNames = T)
-
-
-
-saveWorkbook(wb,"../Results/Data/ipcc_ar6_edgar_buildings.xlsx",overwrite = T)
+# data <- edgar_GHG_ar6 %>% 
+#   filter(chapter_title=="Buildings")
+# 
+# library(openxlsx)
+# wb <- openxlsx::createWorkbook(title = "ipcc_ar6_edgar_buildings")
+# addWorksheet(wb,'all_data')
+# writeData(wb, sheet = "all_data", data, colNames = T)
+# 
+# sector_aggregation <- data %>% 
+#   group_by(year,sector_code,description) %>% 
+#   summarise_at(vars(CO2:GHG),sum,na.rm=T)
+# 
+# addWorksheet(wb,'sector_aggregation')
+# writeData(wb, sheet = "sector_aggregation", sector_aggregation, colNames = T)
+# 
+# unique_codes <- data %>% 
+#   select(sector_code,description) %>% 
+#   unique()
+# 
+# addWorksheet(wb,'codes_in_data')
+# writeData(wb, sheet = "codes_in_data", unique_codes, colNames = T)
+# 
+# 
+# global_totals <- edgar_GHG_ar6 %>% 
+#   filter(year==2018) %>% 
+#   summarise_at(vars(CO2:GHG),sum,na.rm=T) %>% 
+#   mutate(chapter_title='Total')
+# 
+# totals_data <- edgar_GHG_ar6 %>% 
+#   filter(year==2018) %>% 
+#   group_by(chapter_title) %>% 
+#   summarise_at(vars(CO2:GHG),sum,na.rm=T)
+# 
+# totals_data <- rbind(totals_data,global_totals)
+# 
+# addWorksheet(wb,'totals_by_chapter_2018')
+# writeData(wb, sheet = "totals_by_chapter_2018",totals_data, colNames = T)
+# 
+# fgas_totals <- edgar_GHG_ar6 %>% 
+#   filter(year==2018) %>% 
+#   group_by(sector_code,description,chapter,chapter_title) %>% 
+#   summarise_at(vars(CO2:GHG),sum,na.rm=T)
+# 
+# addWorksheet(wb,'totals_by_code_2018')
+# writeData(wb, sheet = "totals_by_code_2018",fgas_totals, colNames = T)
+# 
+# 
+# 
+# saveWorkbook(wb,"../Results/Data/ipcc_ar6_edgar_buildings.xlsx",overwrite = T)
 
 
 
@@ -431,322 +507,15 @@ saveWorkbook(wb,"../Results/Data/ipcc_ar6_edgar_buildings.xlsx",overwrite = T)
 
 ```{r worksheet_check,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
 
-
-
-worksheet <- read.xlsx('../Results/Data/ipcc_ar6_edgar_data_gwp100_v3.xlsx','emissions_data')
-
-plot_data <- worksheet %>% 
-  filter(year>1989) %>% 
-  filter(year<2019) %>% 
-  group_by(year) %>% 
-  summarise(CO2=sum(CO2,na.rm=T)/1e9,CH4=sum(CH4,na.rm=T)/1e9,N2O=sum(N2O,na.rm=T)/1e9,Fgas=sum(Fgas,na.rm=T)/1e9)
-
-
-```
-
-```{r double_counting,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
-
-data <- edgar_GHG_ar5 %>% 
-  filter(year==2018) %>% 
-  #filter(str_detect(sector_code, "^1A")) %>% 
-  group_by(year,sector_code,description) %>% 
-  summarise(value=sum(GHG,na.rm=T))
-
-
-data %>%
-  filter(str_detect(sector_code, "^2F") | str_detect(sector_code, "^2E")) %>% 
-  ggplot(.,aes(x=year,y=value,colour=sector_code)) +
-  geom_path() +
-  facet_wrap(~sector_code,ncol=4,scales='free',labeller = label_wrap_gen(width=15)) +
-  theme(legend.position = "none")
-
-
-```
-
-
-```{r waste,fig.width=8,fig.height=6,fig.path="../Results/Plots/testing/",dev=c('png','pdf')}
-
-data <- edgar_GHG_ar5 %>% 
-  filter(year>1989) %>% 
-  filter(str_detect(description, "Managed waste")) %>% 
-  group_by(year,sector_code,description) %>% 
-  summarise(value_new=sum(GHG,na.rm=T))
-
-
-data2 <- edgar_GHG %>% 
-  filter(year>1989) %>% 
-  filter(str_detect(description, "Managed waste")) %>% 
-  group_by(year,sector_code,description) %>% 
-  summarise(value_old=sum(GHG,na.rm=T))  
-
-data <- left_join(data,data2)
-
-data <- data %>% 
-  mutate(difference=value_new-value_old)
-
-data <- gather(data,key,value,value_new:value_old)
-
-data %>% ggplot(.,aes(x=year,y=value,colour=key)) +
-  geom_line() +
-  ggtitle(data$description[1])
-
-
-```
-
-
-## differences by gas
-
-
-```{r total_gas_checks,fig.width=8,fig.height=6}
-
-divide.by <- function(x, na.rm=FALSE) (x/1e9)
-
-totals_new <- edgar_GHG_ar5 %>% 
-  group_by(year) %>% 
-  mutate_at(vars(CO2:GHG),divide.by) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T)
-
-totals_old <- edgar_GHG %>% 
-  group_by(year) %>% 
-  mutate_at(vars(CO2:GHG),divide.by) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T) %>% 
-  ungroup()
-
-totals_new <- gather(totals_new,key,value_new,CO2:GHG)
-totals_old <- gather(totals_old,key,value_old,CO2:GHG)
-
-totals <- left_join(totals_new,totals_old)
-
-totals$key=as.factor(totals$key)
-totals$key <- factor(totals$key,levels(totals$key)[c(2,1,5,3,4)])
-
-
-totals <- totals %>% 
-  mutate(difference=(value_new-value_old)/value_new) %>% 
-  filter(year!=2018)
-
-totals %>% ggplot(.,aes(x=year,y=difference,fill=key)) +
-  geom_bar(stat='identity') +
-  facet_wrap(~key,scales='free',nrow = 2) +
-  ylab("Difference in emissions (as % of the new data in that year)") +
-  theme(legend.position="bottom",
-        axis.title.x=element_blank(),
-        legend.title=element_blank())
-
-
-```
-
-## differences by chapter
-
-
-```{r total_chapter_checks,fig.width=8,fig.height=12}
-
-divide.by <- function(x, na.rm=FALSE) (x/1e9)
-
-totals_new <- edgar_GHG_ar5 %>% 
-  group_by(year,chapter) %>% 
-  mutate_at(vars(CO2:GHG),divide.by) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T)
-
-totals_old <- edgar_GHG %>% 
-  group_by(year,chapter) %>% 
-  mutate_at(vars(CO2:GHG),divide.by) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T) %>% 
-  ungroup()
-
-totals_new <- gather(totals_new,key,value_new,CO2:GHG)
-totals_old <- gather(totals_old,key,value_old,CO2:GHG)
-
-totals <- left_join(totals_new,totals_old)
-
-totals$key=as.factor(totals$key)
-totals$key <- factor(totals$key,levels(totals$key)[c(2,1,5,3,4)])
-
-
-totals <- totals %>% 
-  mutate(difference=value_new-value_old) %>% 
-  filter(year!=2018) %>% 
-  filter(year>1989)
-
-#totals <- totals %>% 
-# group_by(chapter,key) %>% 
-#filter(any(difference!=0))
-
-
-totals %>% ggplot(.,aes(x=year,y=difference,fill=key)) +
-  geom_bar(stat='identity') +
-  facet_grid(chapter~key,scales='free') +
-  ylab("Difference in emissions (GtCO2eq)") +
-  theme(legend.position="bottom",
-        axis.title.x=element_blank(),
-        legend.title=element_blank())
-
-```
-
-
-## differences by individual sector
-
-
-```{r total_sector_checks,fig.width=8,fig.height=12}
-
-divide.by <- function(x, na.rm=FALSE) (x/1e9)
-
-totals_new <- edgar_GHG_ar5 %>% 
-  group_by(year,sector_code,description) %>% 
-  mutate_at(vars(CO2:GHG),divide.by) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T)
-
-totals_old <- edgar_GHG %>% 
-  group_by(year,sector_code,description) %>% 
-  mutate_at(vars(CO2:GHG),divide.by) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T) %>% 
-  ungroup()
-
-totals_new <- gather(totals_new,key,value_new,CO2:GHG)
-totals_old <- gather(totals_old,key,value_old,CO2:GHG)
-
-totals <- left_join(totals_new,totals_old)
-
-totals$key=as.factor(totals$key)
-totals$key <- factor(totals$key,levels(totals$key)[c(2,1,5,3,4)])
-
-totals <- totals %>% 
-  filter(year>1989) %>% 
-  filter(key!="GHG") %>% 
-  group_by(sector_code,description,key) %>% 
-  summarise_at(vars(value_new:value_old),sum,na.rm=T) %>% 
-  mutate(difference=(value_new-value_old)/value_new)
-
-totals <- totals %>% 
-  filter(!is.na(difference)) %>% 
-  filter(difference!=0) %>% 
-  filter(difference>0.09 | difference< -0.09) %>% 
-  arrange(desc(difference))
-
-totals %>% 
-  ggplot(.,aes(x=reorder(description,difference),y=difference,fill=key)) +
-  geom_bar(stat='identity') +
-  coord_flip() +
-  facet_wrap(~key,scales='free',ncol=1) +
-  ylab("Relative increase (%) in emissions of new data, averaged 1990-2017") +
-  theme(legend.position="bottom",
-        axis.title.x=element_blank(),
-        legend.title=element_blank())
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-## new data - sector trends
-
-
-```{r sector_checks,fig.width=8,fig.height=6}
-
-totals <- edgar_GHG_ar5 %>% 
-  group_by(year,chapter_title) %>% 
-  summarise_at(vars(CO2:Fgas),sum,na.rm=T)
-
-totals <- gather(totals,key,value,CO2:Fgas)
-
-totals <- totals %>% 
-  group_by(chapter_title) %>% 
-  mutate(nor=value/max(value)) %>% 
-  arrange(year) %>% 
-  group_by(chapter_title,key) %>% 
-  mutate(nor_x=nor+(1-nth(nor,n=1)))
-
-
-totals %>% ggplot(.,aes(x=year,y=nor_x,color=key)) +
-  geom_line() +
-  facet_wrap(~chapter_title,scales='free',nrow = 2) +
-  theme(legend.position="bottom",
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        legend.title=element_blank())
-
-
-
-```
-
-## new data - region trends  
-
-```{r region_checks,fig.width=8,fig.height=6}
-
-totals <- edgar_GHG_ar5 %>% 
-  group_by(year,region_ar6_5) %>% 
-  summarise_at(vars(CO2:Fgas),sum,na.rm=T)
-
-totals <- gather(totals,key,value,CO2:Fgas)
-
-totals <- totals %>% 
-  group_by(region_ar6_5) %>% 
-  mutate(nor=value/max(value)) %>% 
-  arrange(year) %>% 
-  group_by(region_ar6_5,key) %>% 
-  mutate(nor_x=nor+(1-nth(nor,n=1)))
-
-
-totals %>% ggplot(.,aes(x=year,y=nor_x,color=key)) +
-  geom_line() +
-  facet_wrap(~region_ar6_5,scales='free',ncol=4,labeller = label_wrap_gen(width=18)) +
-  theme(legend.position="bottom",
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        legend.title=element_blank())
-
-
-```
-
-
-## new data - high emitting country trends
-
-```{r country_checks,fig.width=8,fig.height=6}
-
-totals <- edgar_GHG_ar5 %>% 
-  group_by(year,country) %>% 
-  summarise_at(vars(CO2:GHG),sum,na.rm=T)
-
-countries <- totals %>%
-  ungroup() %>% 
-  filter(year==2018) %>% 
-  arrange(desc(GHG)) %>% 
-  mutate(include=0)
-countries$include[1:10] <- 1
-countries <- countries %>% 
-  select(country,include)
-
-totals <- left_join(totals,countries,by=c("country"="country"))
-
-totals <- gather(totals,key,value,CO2:Fgas)
-totals <- totals %>% 
-  filter(include==1) %>% 
-  group_by(country,year) %>% 
-  arrange(desc(value))
-
-totals <- totals %>% 
-  group_by(country) %>% 
-  mutate(nor=value/max(value)) %>% 
-  arrange(year) %>% 
-  group_by(country,key) %>% 
-  mutate(nor_x=nor+(1-nth(nor,n=1)))
-
-
-totals %>% ggplot(.,aes(x=year,y=nor_x,color=key)) +
-  geom_line() +
-  facet_wrap(~country,scales='free',ncol=4,labeller = label_wrap_gen(width=18)) +
-  theme(legend.position="bottom",
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        legend.title=element_blank())
-
+# 
+# 
+# worksheet <- read.xlsx('../Results/Data/ipcc_ar6_edgar_data_gwp100_v3.xlsx','emissions_data')
+# 
+# plot_data <- worksheet %>% 
+#   filter(year>1989) %>% 
+#   filter(year<2019) %>% 
+#   group_by(year) %>% 
+#   summarise(CO2=sum(CO2,na.rm=T)/1e9,CH4=sum(CH4,na.rm=T)/1e9,N2O=sum(N2O,na.rm=T)/1e9,Fgas=sum(Fgas,na.rm=T)/1e9)
+# 
 
 ```

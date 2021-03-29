@@ -196,6 +196,9 @@ edgar_GHG_ar6 <- edgar_GHG_ar6 %>%
 missing_ch4 <- edgar_GHG_ar6 %>% 
   filter(!is.na(CH4) & is.na(gwp_ch4))
 
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
+  select(-gwp_ch4)
+
 ## merge all Fgases into a single variable
 
 fgas_list <- gwps %>% 
@@ -215,6 +218,36 @@ edgar_GHG_ar6 <- edgar_GHG_ar6 %>%
   mutate(GHG = sum(CO2,CH4,N2O,Fgas,na.rm=T)) %>% 
   ungroup() %>% 
   mutate(GHG = ifelse(is.na(CO2) & is.na(CH4) & is.na(N2O) & is.na(Fgas),NA,GHG))
+
+############## build a summary sheet of sectors vs gases
+
+summary <- edgar_GHG %>% 
+  filter(year==2019) %>% 
+  group_by(chapter,chapter_title,subsector_title,sector_code,description) %>% 
+  summarise_at(vars(all_of(column_rows)),sum,na.rm=TRUE) %>% 
+  arrange(chapter,sector_code)
+
+summary_gwps <- edgar_GHG_ar6 %>% 
+  filter(year==2019) %>% 
+  group_by(chapter,chapter_title,subsector_title,sector_code,description) %>% 
+  summarise_at(vars(all_of(c("CO2","CH4","N2O","Fgas","GHG"))),sum,na.rm=TRUE) %>% 
+  arrange(chapter,sector_code)
+  
+
+info = data.frame("x" = c("Last update","source"),
+                  "y" = c(as.character(Sys.time()),
+                          "Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610"                  ))
+
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_data_summary")
+addWorksheet(wb,"info")
+addWorksheet(wb,"sectors_gases_2019")
+addWorksheet(wb,"sectors_gases_gwps_2019")
+writeData(wb, sheet = "info",info,colNames=F)
+writeData(wb, sheet = "sectors_gases_2019",summary,colNames=T)
+writeData(wb, sheet = "sectors_gases_gwps_2019",summary_gwps,colNames=T)
+saveWorkbook(wb,"Results/Data/ipcc_ar6_data_summary.xlsx",overwrite = T)
+
+
 
 
 ############## save two datasets

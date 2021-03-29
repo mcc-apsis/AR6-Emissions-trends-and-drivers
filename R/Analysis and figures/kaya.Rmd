@@ -13,7 +13,6 @@ knit: (function(inputFile, encoding) {
 rm(list = ls())
 library(tidyverse)
 library(ggpubr)
-library(gganimate)
 library(openxlsx)
 library(ggplot2); theme_set(theme_bw())
 library(data.table)
@@ -68,7 +67,7 @@ kaya_data <- kaya_data %>%
 kaya_data <- spread(kaya_data,variable,value)
 kaya_data <- kaya_data %>% 
   filter(year<2019) %>% 
-  filter(year>1989)
+  filter(year>1969)
 
 # join IPCC regions
 kaya_data <- left_join(kaya_data,ipcc_regions %>% select(ISO,name,region_ar6_5,region_ar6_5_short,region_ar6_10),by=c("ISO"="ISO"))

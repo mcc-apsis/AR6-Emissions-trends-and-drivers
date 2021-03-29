@@ -13,7 +13,6 @@ uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','G
 wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_10_year_averages",Sys.Date()))
 
 
-
 GHG_data<-edgar_GHG 
 
 GHG_data<-GHG_data %>%
@@ -87,6 +86,29 @@ GHG_data <- rbind(GHG_data,land_totals) %>%
 #### calculate decade averages
 
 ## by gas
+# GHG_by_gas <- GHG_data %>%
+#   group_by(gas,year) %>%
+#   summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
+#   mutate(decade=ifelse((year>1969 & year<1980),"1970-1979",NA)) %>%
+#   mutate(decade=ifelse((year>1979 & year<1990),"1980-1989",decade)) %>%
+#   mutate(decade=ifelse((year>1989 & year<2000),"1990-1999",decade)) %>%
+#   mutate(decade=ifelse((year>1999 & year<2010),"2000-2009",decade)) %>%
+#   mutate(decade=ifelse((year>2009 & year<2020),"2010-2019",decade)) %>%
+#   group_by(gas,decade) %>%
+#   summarise(gwp_ar6=mean(gwp_ar6,na.rm=TRUE))
+# 
+# GHG_by_gas_2019 <- GHG_data %>%
+#   filter(year==2019) %>%
+#   group_by(gas) %>%
+#   summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
+#   mutate(decade="2019")
+# 
+# GHG_by_gas_1970 <- GHG_data %>%
+#   filter(year==1970) %>%
+#   group_by(gas) %>%
+#   summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
+#   mutate(decade="1970")
+
 GHG_by_gas <- GHG_data %>%
   group_by(gas,year) %>%
   summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
@@ -94,40 +116,48 @@ GHG_by_gas <- GHG_data %>%
   mutate(decade=ifelse((year>1979 & year<1990),"1980-1989",decade)) %>%
   mutate(decade=ifelse((year>1989 & year<2000),"1990-1999",decade)) %>%
   mutate(decade=ifelse((year>1999 & year<2010),"2000-2009",decade)) %>%
-  mutate(decade=ifelse((year>2009 & year<2020),"2010-2019",decade)) %>%
-  group_by(gas,decade) %>%
-  summarise(gwp_ar6=mean(gwp_ar6,na.rm=TRUE))
+  mutate(decade=ifelse((year>2009 & year<2020),"2010-2019",decade))
 
-GHG_by_gas_2019 <- GHG_data %>%
+GHG_by_gas_2019 <- GHG_by_gas %>%
   filter(year==2019) %>%
-  group_by(gas) %>%
-  summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
   mutate(decade="2019")
 
-GHG_by_gas_1970 <- GHG_data %>%
+GHG_by_gas_1970 <- GHG_by_gas %>%
   filter(year==1970) %>%
-  group_by(gas) %>%
-  summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
   mutate(decade="1970")
 
 GHG_by_gas<-rbind(GHG_by_gas,GHG_by_gas_1970,GHG_by_gas_2019)
 
-GHG_by_gas_total <- GHG_by_gas %>%
-  group_by(decade) %>%
+GHG <- GHG_by_gas %>%
+  group_by(decade,year) %>%
   summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
   mutate(gas="GHG")
 
-GHG_by_gas<-rbind(GHG_by_gas,GHG_by_gas_total)
+GHG_by_gas <- rbind(GHG_by_gas,GHG)
+
+GHG_by_gas <- GHG_by_gas %>%  
+  group_by(gas,decade) %>%
+  mutate(avg_annual_growth=((last(gwp_ar6,order_by = year)/first(gwp_ar6,order_by = year))^(1/10)-1)*100) %>%
+  summarise(gwp_ar6=mean(gwp_ar6,na.rm=TRUE),avg_annual_growth=first(avg_annual_growth))
 
 GHG_by_gas <- left_join(GHG_by_gas,uncertainties,by="gas")
 GHG_by_gas <- GHG_by_gas %>%
   mutate(uncertainty=uncertainty*gwp_ar6)
 
+GHG_growth<-GHG_by_gas %>%
+  select(-gwp_ar6,-uncertainty) %>%
+  mutate(avg_annual_growth=paste(as.character(round(avg_annual_growth,1)),"%",sep = "")) %>%
+  spread(gas,avg_annual_growth) %>%
+  select(decade,"CO2 FFI", "CO2 Land use", CH4, N2O, Fgas, GHG)
+
 GHG_by_gas<-GHG_by_gas %>%
   mutate(value_uncertainty=paste(signif(gwp_ar6,digits=2),signif(uncertainty,digits=2),sep="±")) %>%
-  select(-gwp_ar6,-uncertainty) %>%
+  select(-gwp_ar6,-uncertainty,-avg_annual_growth) %>%
   spread(gas,value_uncertainty) %>%
   select(decade,"CO2 FFI", "CO2 Land use", CH4, N2O, Fgas, GHG)
+
+GHG_by_gas<-cbind(GHG_by_gas,GHG_growth)
+GHG_by_gas<-GHG_by_gas[,c(1,2,9,3,10,4,11,5,12,6,13,7,14)]
 
 GHG_by_gas<-GHG_by_gas[7:1,]
 
@@ -139,7 +169,8 @@ region_ar6_5<-edgar_GHG%>%
   mutate(region_ar6_10=ifelse(region_ar6_10=="Intl. Aviation","Intl. Aviation and Shipping",region_ar6_10)) %>% 
   mutate(region_ar6_10=ifelse(region_ar6_10=="Intl. Shipping","Intl. Aviation and Shipping",region_ar6_10)) %>%
   mutate(region_ar6_5=ifelse(region_ar6_5=="Intl. Aviation","Intl. Aviation and Shipping",region_ar6_5)) %>% 
-  mutate(region_ar6_5=ifelse(region_ar6_5=="Intl. Shipping","Intl. Aviation and Shipping",region_ar6_5))
+  mutate(region_ar6_5=ifelse(region_ar6_5=="Intl. Shipping","Intl. Aviation and Shipping",region_ar6_5)) %>%
+  unique()
 
 GHG_by_region_ext <- left_join(GHG_data,region_ar6_5,by="region_ar6_10")
 
@@ -150,37 +181,48 @@ GHG_by_region <- GHG_by_region_ext %>%
   mutate(decade=ifelse((year>1979 & year<1990),"1980-1989",decade)) %>%
   mutate(decade=ifelse((year>1989 & year<2000),"1990-1999",decade)) %>%
   mutate(decade=ifelse((year>1999 & year<2010),"2000-2009",decade)) %>%
-  mutate(decade=ifelse((year>2009 & year<2020),"2010-2019",decade)) %>%
-  group_by(region_ar6_5,decade) %>%
-  summarise(gwp_ar6=mean(gwp_ar6,na.rm=TRUE))
+  mutate(decade=ifelse((year>2009 & year<2020),"2010-2019",decade))
 
-GHG_by_region_2019 <- GHG_by_region_ext %>%
+GHG_by_region_2019 <- GHG_by_region %>%
   filter(year==2019) %>%
-  group_by(region_ar6_5) %>%
-  summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
   mutate(decade="2019")
 
-GHG_by_region_1970 <- GHG_by_region_ext %>%
+GHG_by_region_1970 <- GHG_by_region %>%
   filter(year==1970) %>%
-  group_by(region_ar6_5) %>%
-  summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
   mutate(decade="1970")
 
 GHG_by_region<-rbind(GHG_by_region,GHG_by_region_1970,GHG_by_region_2019)
 
 GHG_by_region_total <- GHG_by_region %>%
-  group_by(decade) %>%
+  group_by(decade, year) %>%
   summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
   mutate(region_ar6_5="world")
-
+  
 GHG_by_region<-rbind(GHG_by_region,GHG_by_region_total)
 
+GHG_by_region <- GHG_by_region %>%  
+  group_by(region_ar6_5,decade) %>%
+  mutate(avg_annual_growth=((last(gwp_ar6,order_by = year)/first(gwp_ar6,order_by = year))^(1/10)-1)*100) %>%
+  summarise(gwp_ar6=mean(gwp_ar6,na.rm=TRUE),avg_annual_growth=first(avg_annual_growth))
+
+GHG_growth<-GHG_by_region %>%
+ select(-gwp_ar6) %>%
+ mutate(avg_annual_growth=paste(as.character(round(avg_annual_growth,1)),"%",sep = "")) %>%
+ spread(region_ar6_5,avg_annual_growth) %>%
+ select("decade", "Africa and Middle East","Asia and Developing Pacific",
+        "Developed Countries", "Eastern Europe and West-Central Asia",
+        "Latin America and Caribbean", "Intl. Aviation and Shipping", "world")
+
 GHG_by_region<-GHG_by_region %>%
-  mutate(gwp_ar6=signif(gwp_ar6,2)) %>%
+  select(-avg_annual_growth) %>%
+  mutate(gwp_ar6=as.character(signif(gwp_ar6,2))) %>%
   spread(region_ar6_5,gwp_ar6) %>%
   select("decade", "Africa and Middle East","Asia and Developing Pacific",
          "Developed Countries", "Eastern Europe and West-Central Asia",
          "Latin America and Caribbean", "Intl. Aviation and Shipping", "world")
+  
+GHG_by_region<-cbind(GHG_by_region,GHG_growth)
+GHG_by_region<-GHG_by_region[,c(1,2,10,3,11,4,12,5,13,6,14,7,15,8,16)]
 
 GHG_by_region<-GHG_by_region[7:1,]
 
@@ -197,35 +239,39 @@ GHG_by_sector <- GHG_data_AIRSEA %>%
   mutate(decade=ifelse((year>1979 & year<1990),"1980-1989",decade)) %>%
   mutate(decade=ifelse((year>1989 & year<2000),"1990-1999",decade)) %>%
   mutate(decade=ifelse((year>1999 & year<2010),"2000-2009",decade)) %>%
-  mutate(decade=ifelse((year>2009 & year<2020),"2010-2019",decade)) %>%
-  group_by(chapter_title,decade) %>%
-  summarise(gwp_ar6=mean(gwp_ar6,na.rm=TRUE))
+  mutate(decade=ifelse((year>2009 & year<2020),"2010-2019",decade))
+  #group_by(chapter_title,decade) %>%
+  #summarise(gwp_ar6=mean(gwp_ar6,na.rm=TRUE))
 
-GHG_by_sector_2019 <- GHG_data_AIRSEA %>%
+GHG_by_sector_2019 <- GHG_by_sector %>%
   filter(year==2019) %>%
-  group_by(chapter_title) %>%
-  summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
   mutate(decade="2019")
 
-GHG_by_sector_1970 <- GHG_data_AIRSEA %>%
+GHG_by_sector_1970 <- GHG_by_sector %>%
   filter(year==1970) %>%
-  group_by(chapter_title) %>%
-  summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
   mutate(decade="1970")
 
 GHG_by_sector<-rbind(GHG_by_sector,GHG_by_sector_1970,GHG_by_sector_2019)
 
-#GHG_by_sector_total <- GHG_by_sector %>%
-#  group_by(decade) %>%
-#  summarise(gwp_ar6=sum(gwp_ar6,na.rm=TRUE)) %>%
-#  mutate(chapter_title="world")
+GHG_by_sector <- GHG_by_sector %>%  
+  group_by(chapter_title,decade) %>%
+  mutate(avg_annual_growth=((last(gwp_ar6,order_by = year)/first(gwp_ar6,order_by = year))^(1/10)-1)*100) %>%
+  summarise(gwp_ar6=mean(gwp_ar6,na.rm=TRUE),avg_annual_growth=first(avg_annual_growth))
 
-#GHG_by_sector<-rbind(GHG_by_sector,GHG_by_sector_total)
+GHG_growth<-GHG_by_sector %>%
+  select(-gwp_ar6) %>%
+  mutate(avg_annual_growth=paste(as.character(round(avg_annual_growth,1)),"%",sep = "")) %>%
+  spread(chapter_title,avg_annual_growth) %>%
+  select(decade, `Energy systems`,AFOLU, Industry, Transport, Buildings, 'Intl. Aviation and Shipping')
 
 GHG_by_sector<-GHG_by_sector %>%
-  mutate(gwp_ar6=signif(gwp_ar6,2)) %>%
+  select(-avg_annual_growth) %>%
+  mutate(gwp_ar6=as.character(signif(gwp_ar6,2))) %>%
   spread(chapter_title,gwp_ar6) %>%
   select(decade, `Energy systems`,AFOLU, Industry, Transport, Buildings, 'Intl. Aviation and Shipping')
+
+GHG_by_sector<-cbind(GHG_by_sector,GHG_growth)
+GHG_by_sector<-GHG_by_sector[,c(1,2,9,3,10,4,11,5,12,6,13,7,14)]
 
 GHG_by_sector<-GHG_by_sector[7:1,]
 

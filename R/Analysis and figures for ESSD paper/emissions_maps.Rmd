@@ -1,0 +1,140 @@
+---
+title: "emissions_maps"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(patchwork)
+library(ggmap)
+library(maps)
+library(ggplot2); theme_set(theme_bw())
+
+source("../Analysis and figures/small_figures.R")
+
+
+load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/gwps.RData')
+load("../../Data/land.RData")
+load('../../Data/WDI_gdp_pop.RData')
+
+
+isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
+
+# set palette
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+
+```
+
+
+
+
+```{r data, include=FALSE,echo=FALSE}
+
+
+mapdata <- edgar_GHG_ar6 %>% 
+  filter(year>1969) %>% 
+  group_by(country,ISO,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+mapdata <- left_join(mapdata,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
+
+
+mapdata <- mapdata %>% 
+  mutate(GHGpc=GHG/population) %>% 
+  filter(population>1e6)
+
+
+
+## calculate average annual and absolute growth
+
+time_start=1990
+mapdata_1990 <- mapdata %>% 
+  filter(year %in% c(time_start,2019)) %>% 
+  group_by(country,ISO) %>% 
+  mutate(avg_growth_1990=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
+  filter(year==2019) %>% 
+  mutate(avg_growth_1990=avg_growth_1990*100) %>% 
+  select(country,ISO,avg_growth_1990)
+
+time_start=2010
+mapdata_2010 <- mapdata %>% 
+  filter(year %in% c(time_start,2019)) %>% 
+  group_by(country,ISO) %>% 
+  mutate(avg_growth_2010=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
+  filter(year==2019) %>% 
+  mutate(avg_growth_2010=avg_growth_2010*100) %>% 
+  select(country,ISO,avg_growth_2010)
+
+mapdata <- mapdata %>% filter(year==2019)
+mapdata <- left_join(mapdata,mapdata_1990,by = c("country", "ISO"))
+mapdata <- left_join(mapdata,mapdata_2010,by = c("country", "ISO"))
+
+world <- map_data("world") %>% 
+  filter(region!="Antarctica")
+world <- left_join(world %>% mutate(region=tolower(region)),isos,by=c("region"="alternative.name"))
+world <- left_join(world,mapdata,by=c("alpha.3"="ISO"))
+
+```
+
+```{r map_subplots,include=FALSE,echo=FALSE,fig.width=6,fig.height=3}
+
+
+
+## per capita
+p1 <- ggplot() + 
+  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=GHGpc),color="white",size=0.25,na.rm=T) + 
+  scale_fill_viridis_c(limits = c(0,35)) +
+  theme(panel.border = element_rect(colour = "black",fill=NA),
+        legend.position = c(0.05,0.3),
+        legend.background = element_blank(),
+        legend.title = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        plot.margin = unit(c(0,0,0,0),units="cm"),
+        plot.title = element_text(size=12)) +
+  ggtitle("a. GHG emissions per capita in 2019 (note: axis limited to max 35tCO2eq/cap)")
+p1
+
+## growth 1990-2019
+p2 <- ggplot() + 
+  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_1990),color="white",size=0.25,na.rm=T) + 
+  scale_fill_viridis_c() +
+  theme(panel.border = element_rect(colour = "black",fill=NA),
+        legend.position = c(0.05,0.3),
+        legend.background = element_blank(),
+        legend.title = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        plot.margin = unit(c(0,0,0,0),units="cm"),
+        plot.title = element_text(size=12)) +
+  ggtitle("b. Average annual GHG emissions growth (1990-2019)")
+p2
+
+p3 <- ggplot() + 
+  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_2010),color="white",size=0.25,na.rm=T) + 
+  scale_fill_viridis_c() +
+  theme(panel.border = element_rect(colour = "black",fill=NA),
+        legend.position = c(0.05,0.3),
+        legend.title = element_blank(),
+        legend.background = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        plot.margin = unit(c(0,0,0,0),units="cm"),
+        plot.title = element_text(size=12)) +
+  ggtitle("c. Average annual GHG emissions growth (2010-2019)")
+p3
+
+```
+
+```{r maps,echo=FALSE,fig.width=6,fig.height=8,results='asis',fig.path="Results/Plots/",dev=c('png','pdf')}
+
+p1/p2/p3
+
+```

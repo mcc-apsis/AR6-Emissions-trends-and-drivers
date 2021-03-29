@@ -1,0 +1,93 @@
+---
+title: "emissions_data_description"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(patchwork)
+library(ggplot2); theme_set(theme_bw())
+
+load('../../Data/edgar_data_gwp_ar6.RData')
+load("../../Data/edgar_data_all.RData")
+load('../../Data/gwps.RData')
+load("../../Data/land.RData")
+
+
+# set palette
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+
+uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
+                            uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
+
+
+
+```
+
+
+
+```{r blarg}
+
+data <- edgar_GHG %>% 
+  filter(year==2018) %>% 
+  group_by(chapter_title,subsector_title,sector_code) %>% 
+  summarise_at(vars(all_of(names(edgar_GHG)[15:37])),sum,na.rm=TRUE) %>% 
+  ungroup()
+
+data <- gather(data,gas,value,names(edgar_GHG)[15:37])
+data <- data %>% 
+  filter(value>0)
+
+land_data <- data.frame(chapter_title="AFOLU",subsector_title="Land-use (CO2)",sector_codes="NA",gases="CO2")
+
+
+data <- data %>% 
+  group_by(chapter_title,subsector_title) %>% 
+  summarise(sector_codes=paste0(unique(sector_code),collapse=", "),gases=paste0(unique(gas),collapse=", "))
+
+
+data <- rbind(data,land_data)
+data <- data %>% 
+  arrange(chapter_title)
+
+openxlsx::write.xlsx(data,file="../../Results/Data/sector_tree.xlsx")
+
+```
+
+```{r sankey, echo=FALSE}
+
+library(alluvial)
+
+data <- edgar_GHG_ar6 %>% 
+  filter(year==2019) %>% 
+  group_by(chapter_title,subsector_title,sector_code) %>% 
+  summarise_at(vars(all_of(c("CO2","CH4","N2O","Fgas"))),sum,na.rm=TRUE)
+
+data <- gather(data,gas,value,CO2:Fgas)
+
+
+data %>% ggplot(.,aes(y=value,axis1=chapter_title,axis2=gas)) +
+  geom_alluvium(aes(fill = gas), width = 1/12) +
+  geom_stratum(width = 1/12, fill = "black", color = "grey") +
+  geom_label(stat = "stratum", aes(label = after_stat(stratum)))
+  #scale_x_discrete(limits = c("Gender", "Dept"), expand = c(.05, .05)) +
+  #scale_fill_brewer(type = "qual", palette = "Set1") +
+  #ggtitle("UC Berkeley admissions and rejections, by sex and department")
+
+
+
+  #scale_x_discrete(expand = c(.1, .1)) +
+  geom_flow() +
+  geom_stratum(alpha = .5) +
+  geom_text(stat = "stratum", size = 3) +
+  theme(legend.position = "none") +
+  ggtitle("vaccination survey responses at three points in time")
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
