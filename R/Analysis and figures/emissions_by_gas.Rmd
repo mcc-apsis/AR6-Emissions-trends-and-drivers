@@ -100,7 +100,7 @@ fgas <- waterfall_data %>%
 
 land_totals <- land %>% 
   filter(year>1989) %>% 
-  filter(year<2019) %>% 
+  filter(year<2020) %>% 
   group_by(year) %>% 
   summarise(CO2_landuse=sum(mean)/1e9)
 
@@ -119,7 +119,7 @@ waterfall_data <- rbind(waterfall_data,waterfall_land) %>%
   mutate(gas=ifelse(gas=="CO2","CO2 FFI",gas))
 
 waterfall_data <- waterfall_data %>% 
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   select(-year)
 
 ######### save data ######### 
@@ -223,7 +223,7 @@ p_waterfall
 
 plot_data <- edgar_GHG_ar6 %>% 
   filter(year>1989) %>% 
-  filter(year<2019) %>% 
+  filter(year<2020) %>% 
   group_by(year) %>% 
   summarise(CO2=sum(CO2,na.rm=T)/1e9,CH4=sum(CH4,na.rm=T)/1e9,N2O=sum(N2O,na.rm=T)/1e9,Fgas=sum(Fgas,na.rm=T)/1e9)
 
@@ -239,7 +239,7 @@ plot_data$gas <- as.factor(plot_data$gas)
 plot_data$gas <-  factor(plot_data$gas,levels(plot_data$gas)[c(4,5,1,3,2)])
 
 shares <- plot_data %>% 
-  filter(year %in% c(1990,2000,2010,2018)) %>% 
+  filter(year %in% c(1990,2000,2010,2019)) %>% 
   group_by(year) %>% 
   mutate(totals=sum(value)) %>% 
   ungroup() %>% 
@@ -248,7 +248,7 @@ shares <- plot_data %>%
 
 shares <- locate_shares(shares,"gas",4)
 
-line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2018,2018),y=c(0,60))
+line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2019,2019),y=c(0,60))
 
 
 p_gas_totals <- plot_data %>% 
@@ -268,7 +268,7 @@ p_gas_totals <- plot_data %>%
   ylab('GHG Emissions \n(GtCO2eq/yr)') +
   labs(fill="Gas") +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
-  scale_x_continuous(breaks=c(1990,2000,2010,2018)) +
+  scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
   big_trend_theme +
   theme(
     #legend.position = c(0.225,0.85),

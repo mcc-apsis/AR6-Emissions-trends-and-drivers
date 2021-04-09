@@ -12,6 +12,7 @@ library(patchwork)
 library(ggmap)
 library(maps)
 library(ggplot2); theme_set(theme_bw())
+library(scales)
 
 source("../Analysis and figures/small_figures.R")
 
@@ -22,7 +23,8 @@ load("../../Data/land.RData")
 load('../../Data/WDI_gdp_pop.RData')
 
 
-isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
+#isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
+isos <- openxlsx::read.xlsx("../../Data/Codes and classifications/ISOcodes.xlsx","alternative_names")
 
 # set palette
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
@@ -86,50 +88,75 @@ world <- left_join(world,mapdata,by=c("alpha.3"="ISO"))
 
 ## per capita
 p1 <- ggplot() + 
-  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=GHGpc),color="white",size=0.25,na.rm=T) + 
-  scale_fill_viridis_c(limits = c(0,35)) +
+  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=GHGpc),color="grey",size=0.25,na.rm=T) + 
+  #scale_fill_viridis_c(limits = c(0,35)) +
+  scale_fill_steps(low = 'lightyellow',high = "darkred", na.value="lightgrey", limits = c(0,35), breaks=c(5,10,15,20,25,30), oob=squish) +
   theme(panel.border = element_rect(colour = "black",fill=NA),
-        legend.position = c(0.05,0.3),
+        legend.position = c(0.5,0),
+        legend.direction = "horizontal",
+        legend.key.width = unit(2,"cm"),
+        legend.key.height = unit(.2,"cm"),
         legend.background = element_blank(),
         legend.title = element_blank(),
         axis.title = element_blank(),
         axis.ticks = element_blank(),
         axis.text = element_blank(),
-        plot.margin = unit(c(0,0,0,0),units="cm"),
-        plot.title = element_text(size=12)) +
-  ggtitle("a. GHG emissions per capita in 2019 (note: axis limited to max 35tCO2eq/cap)")
+        plot.margin = unit(c(0,0,0.5,0),units="cm"),
+        plot.title = element_text(size=12),
+        panel.grid=element_blank()) +
+  ggtitle("a. GHG emissions per capita in 2019 in tCO2eq (note: axis limited to max 35tCO2eq/cap)")
 p1
 
-## growth 1990-2019
 p2 <- ggplot() + 
-  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_1990),color="white",size=0.25,na.rm=T) + 
-  scale_fill_viridis_c() +
+  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_2010),color="grey",size=0.25,na.rm=T) + 
+  #scale_fill_viridis_c() +
+  scale_fill_steps2(low = "midnightblue",mid = "lightyellow",high = "darkred", na.value="lightgrey", midpoint=0, breaks=c(-8,-6,-4,-2,0,2,4,6,8), limits=c(-10,10), oob=squish) +
   theme(panel.border = element_rect(colour = "black",fill=NA),
-        legend.position = c(0.05,0.3),
+        legend.position = c(0.5,0),
+        legend.direction = "horizontal",
+        legend.key.width = unit(2,"cm"),
+        legend.key.height = unit(.2,"cm"),
         legend.background = element_blank(),
         legend.title = element_blank(),
         axis.title = element_blank(),
         axis.ticks = element_blank(),
         axis.text = element_blank(),
-        plot.margin = unit(c(0,0,0,0),units="cm"),
-        plot.title = element_text(size=12)) +
-  ggtitle("b. Average annual GHG emissions growth (1990-2019)")
+        plot.margin = unit(c(0,0,0.5,0),units="cm"),
+        plot.title = element_text(size=12),
+        panel.grid=element_blank()) +
+  # theme(panel.border = element_rect(colour = "black",fill=NA),
+  #       legend.position = c(0.05,0.3),
+  #       legend.title = element_blank(),
+  #       legend.background = element_blank(),
+  #       axis.title = element_blank(),
+  #       axis.ticks = element_blank(),
+  #       axis.text = element_blank(),
+  #       plot.margin = unit(c(0,0,0,0),units="cm"),
+  #       plot.title = element_text(size=12)) +
+  ggtitle("b. Average annual GHG emissions growth in percent (2010-2019)")
 p2
 
+## growth 1990-2019
 p3 <- ggplot() + 
-  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_2010),color="white",size=0.25,na.rm=T) + 
-  scale_fill_viridis_c() +
+  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_1990),color="grey",size=0.25,na.rm=T) + 
+  #scale_fill_viridis_c() +
+  scale_fill_steps2(low = "midnightblue",mid = "lightyellow",high = "darkred", na.value="lightgrey", midpoint=0, breaks=c(-8,-6,-4,-2,0,2,4,6,8), limits=c(-10,10),oob=squish) +
   theme(panel.border = element_rect(colour = "black",fill=NA),
-        legend.position = c(0.05,0.3),
-        legend.title = element_blank(),
+        legend.position = c(0.5,0),
+        legend.direction = "horizontal",
+        legend.key.width = unit(2,"cm"),
+        legend.key.height = unit(.2,"cm"),
         legend.background = element_blank(),
+        legend.title = element_blank(),
         axis.title = element_blank(),
         axis.ticks = element_blank(),
         axis.text = element_blank(),
-        plot.margin = unit(c(0,0,0,0),units="cm"),
-        plot.title = element_text(size=12)) +
-  ggtitle("c. Average annual GHG emissions growth (2010-2019)")
+        plot.margin = unit(c(0,0,0.5,0),units="cm"),
+        plot.title = element_text(size=12),
+        panel.grid=element_blank()) +
+  ggtitle("c. Average annual GHG emissions growth in percent (1990-2019)")
 p3
+
 
 ```
 

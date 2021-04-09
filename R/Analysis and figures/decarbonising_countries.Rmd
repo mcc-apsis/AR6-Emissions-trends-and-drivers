@@ -13,7 +13,7 @@ knit: (function(inputFile, encoding) {
 ```{r setup,include=FALSE}
 
 rm(list = ls())
-library(tidyverse)
+library(tidyverse); options(dplyr.summarise.inform = FALSE)
 library(ggpubr)
 library(ggplot2); theme_set(theme_bw())
 library(zoo)
@@ -22,18 +22,23 @@ library(ggmap)
 library(maps)
 library(patchwork)
 
-load('../../Data/edgar_data_gwp_ar6.RData')
+#load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/dump/edgar_data_gwp_ar6_late_2020.RData')
+edgar_GHG_ar6 <- edgar_GHG_ar6_late_2020 
+rm(edgar_GHG_ar6_late_2020)
 load('../../Data/WDI_gdp_pop.RData')
 
 source("growth_rate.R")
+source("small_figures.R")
+
 
 isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
 
 colours_sectors <- c(`AFOLU` = "#66c2a5",
-                       `Buildings` = "#fc8d62",
-                       `Energy systems` = "#8da0cb",
-                       `Industry` = "#e78ac3",
-                       `Transport` = "#a6d854")
+                     `Buildings` = "#fc8d62",
+                     `Energy systems` = "#8da0cb",
+                     `Industry` = "#e78ac3",
+                     `Transport` = "#a6d854")
 
 wb <- openxlsx::createWorkbook(title = paste("decarbonising_countries"))
 openxlsx::addWorksheet(wb,"info")
@@ -41,9 +46,6 @@ openxlsx::addWorksheet(wb,"info")
 info = data.frame(x=c("Title","Author","Date","Code"),y=c("Analysis of countries with sustained GHG emissions reductions","William F. Lamb (lamb@mcc-berlin.net)",paste(Sys.Date()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/decarbonising_countries.Rmd"))
 
 openxlsx::writeData(wb, sheet = "info", info, colNames = F, rowNames = F)
-
-# set palette
-ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
 
 
 ```
@@ -53,7 +55,7 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2"
 # 
 # data <- edgar_GHG_ar6 %>%
 #   filter(region_ar6_dev=="developed") %>% 
-#   filter(year %in% c(2010,2019)) %>% 
+#   filter(year %in% c(2010,2018)) %>% 
 #   group_by(ISO,country,year) %>% 
 #   summarise_at(vars(CO2,GHG),sum,na.rm=TRUE)
 # 
@@ -76,50 +78,50 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2"
 
 ## gather data
 
-data <- edgar_GHG_ar6 %>% 
-  group_by(ISO,country,year,region_ar6_10) %>% 
-  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE)
-
-## join population and GDP data
-
-
-data <- left_join(data,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
-
-## filter to countries above 1m population
-
-data <- data %>% 
-  group_by(country) %>% 
-  mutate(include=ifelse(max(population)>1e6,1,0)) %>% 
-  ungroup() %>% 
-  filter(include==1) %>% 
-  select(-include)
-
-## filter to 2005-2019
-
-data <- data %>% 
-  filter(year>=2005)
-
-
-## calculate GHG growth
-
-rates_GHG <- data %>% filter(country=="nothing") # create empty dataframe
-
-for (i in 1:length(unique(data$country))) {
-  
-  temp_data <- data %>% 
-    filter(country==unique(data$country)[i])
-  
-  rates <- growth_rate(temp_data$year,temp_data$GHG)
-  
-  temp_data$rate_GHG_peak <- rates$rate*100
-  temp_data$fit <- rates$data$predicted_x
-  temp_data$st_error <- rates$data$st_error
-  
-  rates_GHG <- rbind(rates_GHG,temp_data)
-}
-
-rates_GHG <- rates_GHG %>% 
-  filter(year==2019)
+# data <- edgar_GHG_ar6 %>% 
+#   group_by(ISO,country,year,region_ar6_10) %>% 
+#   summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE)
+# 
+# ## join population and GDP data
+# 
+# 
+# data <- left_join(data,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
+# 
+# ## filter to countries above 1m population
+# 
+# data <- data %>% 
+#   group_by(country) %>% 
+#   mutate(include=ifelse(max(population)>1e6,1,0)) %>% 
+#   ungroup() %>% 
+#   filter(include==1) %>% 
+#   select(-include)
+# 
+# ## filter to 2005-2018
+# 
+# data <- data %>% 
+#   filter(year>=2005)
+# 
+# 
+# ## calculate GHG growth
+# 
+# rates_GHG <- data %>% filter(country=="nothing") # create empty dataframe
+# 
+# for (i in 1:length(unique(data$country))) {
+#   
+#   temp_data <- data %>% 
+#     filter(country==unique(data$country)[i])
+#   
+#   rates <- growth_rate(temp_data$year,temp_data$GHG)
+#   
+#   temp_data$rate_GHG_peak <- rates$rate*100
+#   temp_data$fit <- rates$data$predicted_x
+#   temp_data$st_error <- rates$data$st_error
+#   
+#   rates_GHG <- rbind(rates_GHG,temp_data)
+# }
+# 
+# rates_GHG <- rates_GHG %>% 
+#   filter(year==2018)
 
 ```
 
@@ -189,7 +191,7 @@ data <- data %>%
 rates_GHG <- data %>% 
   filter(country=="nothing") %>%  # create empty dataframe 
   select(-fit,-rate_CO2_peak,-st_error)
-  
+
 for (i in 1:length(unique(data$country))) {
   
   temp_data <- data %>% 
@@ -216,6 +218,34 @@ data <- data %>%
   group_by(country) %>% 
   mutate(rate_GHG_peak=na.locf(rate_GHG_peak,fromLast=TRUE))
 
+
+
+```
+
+```{r calculate_rates_2008,echo=FALSE,warning=FALSE,include=FALSE}
+
+rates_GHG_2008 <- data %>% filter(country=="nothing") # create empty dataframe
+
+for (i in 1:length(unique(data$country))) {
+  
+  temp_data <- data %>%
+    filter(country==unique(data$country)[i]) %>% 
+    filter(year>2007)
+  
+  rates <- growth_rate(temp_data$year,temp_data$GHG)
+  
+  temp_data$rate_GHG_2008 <- rates$rate*100
+  
+  rates_GHG_2008 <- rbind(rates_GHG_2008,temp_data)
+}
+
+rates_GHG_2008 <- rates_GHG_2008 %>%
+  filter(year==2018) %>% 
+  select(country,rate_GHG_2008)
+
+#rejoin with full data
+
+data <- left_join(data,rates_GHG_2008,by = c("country"))
 
 
 ```
@@ -250,12 +280,10 @@ rates_GHG <- rates_GHG %>%
 data <- left_join(data,rates_CO2,by = "country")
 data <- left_join(data,rates_GHG,by = "country")
 
-# exclude countries where the overall CO2 reduction since peak is <10%
+# exclude countries with recent major civil conflict or economic decline (Failed State Index Rank lower than 50)
 
 data <- data %>% 
-  filter(percent_reduction_CO2_peak>10)
-
-# exclude countries with recent major civil conflict or economic decline (Failed State Index Rank lower than 50)
+  mutate(country=ifelse(country=="Swaziland","Eswatini",country))
 
 fsi <- openxlsx::read.xlsx('../../Data/supplemetary data/fsi-2019.xlsx')
 isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
@@ -268,18 +296,9 @@ fsi$Rank <- as.numeric(fsi$Rank)
 
 data <- left_join(data,fsi %>% select(alpha.3,fsi=Total,fsi_rank=Rank),by=c("ISO"="alpha.3"))
 
-blarg <- data %>% select(country,fsi,fsi_rank) %>% distinct()
-
 data <- data %>% 
   filter(fsi_rank>50) %>% 
   select(-fsi,-fsi_rank)
-
-# exclude countries with extreme year to year emissions increase (i.e. due to territory or political changes)
-
-data <- data %>%
-  filter(country!="Estonia") %>% 
-  filter(country!="Moldova") %>% 
-  filter(country!="Swaziland")
 
 # exclude countries with growing GHG emissions since the same CO2 peak year
 
@@ -299,11 +318,9 @@ data <- data %>%
 data <- data %>% 
   filter(country!="Austria")
 
-# openxlsx::addWorksheet(wb,"data_included_countries")
-# openxlsx::writeData(wb, sheet = "data_included_countries", data, colNames = T, rowNames = F)
-# 
-# openxlsx::addWorksheet(wb,"data_excluded_countries")
-# openxlsx::writeData(wb, sheet = "data_excluded_countries", filtered_countries, colNames = T, rowNames = F)
+# exclude countries with emissions growing since 2008
+
+data <- data %>% filter(rate_GHG_2008<0)
 
 
 ```
@@ -331,7 +348,7 @@ data <- left_join(data,cons %>% select(ISO=alpha.3,year,CO2_cons=value),by = c("
 rates_cons <- data %>% 
   filter(country=="nothing") %>%  # create empty dataframe 
   select(-fit,-rate_CO2_peak,-st_error)
-  
+
 for (i in 1:length(unique(data$country))) {
   
   temp_data <- data %>% 
@@ -363,13 +380,13 @@ for (i in 1:length(unique(data$country))) {
   } else {
     
     rates <- growth_rate(temp_data$year,temp_data$CO2_cons)
-  
+    
     temp_data$rate_CO2_cons_peak <- rates$rate
     temp_data$fit <- rates$data$predicted_x
     temp_data$st_error <- rates$data$st_error
-  
+    
     rates_cons <- rbind(rates_cons,temp_data)
-  
+    
   }
 }
 
@@ -405,47 +422,11 @@ data <- data %>%
 
 cluster_data <- openxlsx::read.xlsx('../../Data/Codes and classifications/decarbonising_country_clusters.xlsx','clusters')
 
-
-## cluster by peak year
-
-# data <- data %>% 
-#   group_by(country) %>% 
-#   mutate(min_year=year[which.min(CO2)]) %>% 
-#   ungroup()
-# 
-# 
-# cluster_data <- data %>% select(ISO,peak_year,min_year) %>% distinct()
-# 
-# clusters <- kmeans(cluster_data %>% select(-ISO),3)
-# cluster_data <- cbind(cluster_data,cluster=clusters$cluster) ### bind clusters to dataset
-# cluster_data$cluster <- as.factor(clusters$cluster) ### convert to factor
-
-## cluster by normalised emissions in sliced years
-
-# cluster_data <- data %>% 
-#   #filter(year %in% c(1971,1976,1981,1986,1991,1996,2001,2006,2011,2016)) %>% 
-#   #filter(year %in% c(1971,1981,1991,2001,2011,2017)) %>% 
-#   filter(year %in% c(1970,1975,1980,1985,1990,1995,2000,2005,2010,2015)) %>% 
-#   #filter(year %in% c(1972,1977,1982,1987,1992,1997,2002,2007,2012,2017)) %>% 
-#   ungroup()
-
-#cluster_data <- spread(cluster_data %>% select(country,ISO,year,CO2_rm),year,CO2_rm)
-
-# clusters <- pam(cluster_data %>% select(-country,-ISO),4)
-# cluster_data <- cbind(cluster_data,cluster=clusters$clustering) ### bind clusters to dataset
-# cluster_data$cluster <- as.factor(clusters$clustering) ### convert to factor
-
-# clusters <- kmeans(cluster_data %>% select(-country,-ISO),4)
-# cluster_data <- cbind(cluster_data,cluster=clusters$cluster) ### bind clusters to dataset
-# cluster_data$cluster <- as.factor(clusters$cluster) ### convert to factor
-
 if ("cluster" %in% colnames(data)) {
   data <- data %>% select(-cluster)
 }
 
 data <- left_join(data,cluster_data %>% select(country,cluster),by="country")
-blarg <- data %>% 
-  filter(is.na(cluster))
 
 ```
 
@@ -453,51 +434,42 @@ blarg <- data %>%
 
 ## set facet labels and order by cluster and growth rate
 
-data <- data %>% 
- mutate(labels=paste0(country," (",round(rate_CO2_peak,1),"%/yr)"))
+data <- data %>%
+  mutate(labels=paste0(country," (",round(rate_CO2_peak,1),"%/yr)"))
 
-data <- data %>% 
-  mutate(labels=as.factor(labels)) %>% 
+data <- data %>%
+  mutate(labels=as.character(labels)) %>% 
+  mutate(labels=as.factor(labels)) %>%
   mutate(cluster=as.factor(cluster))
 
-data$labels=fct_reorder(data$labels,as.numeric(data$cluster))
+data <- data %>%
+  mutate(cluster_name = ifelse(cluster==1,"Recent Peak",NA)) %>%
+  mutate(cluster_name = ifelse(cluster==2,"Long-term decline",cluster_name)) %>%
+  mutate(cluster_name = ifelse(cluster==3,"Former Eastern Bloc",cluster_name))
 
-data %>% 
-  ggplot(.,aes(x=year,y=CO2)) +
-  geom_path() +
-  geom_line(data=data,aes(x=year,y=fit),colour="red") +
-  geom_text(data=data %>% filter(year==2015),aes(x=1970,y=0,label=paste0("Group ",cluster),color=cluster),hjust="inward",vjust="inward",size=3.5) + #color="#636363") + 
-  scale_x_continuous(limits=c(1970,2019),breaks=c(1970,1990,2010)) +
+
+data$labels=fct_reorder(data$labels,data$rate_CO2_peak)
+data$labels=fct_reorder2(data$labels,data$rate_CO2_peak,desc(as.numeric(data$cluster)))
+
+
+plot_data <- gather(data,paths,value,CO2,GHG,CO2_cons,fit)
+
+plot_data %>%
+  ggplot(.,aes(x=year,y=value,color=paths)) +
+  geom_path(size=0.5) +
+  geom_text(data=data %>% filter(year==2015),aes(x=1970,y=0,label=cluster_name),hjust="inward",vjust="inward",size=3.5,color="#636363") +
+  scale_x_continuous(limits=c(1970,2018),breaks=c(1970,1990,2010)) +
   scale_y_continuous(expand = c(0.1, .1), limits = c(0, NA)) +
+  scale_color_manual(values=c("#66c2a5","#fc8d62","#252525","#8da0cb"),labels=c("CO2 emissions (territorial)","CO2 emissions (consumption)","Fit since peak year (CO2 territorial)","GHG emissions (territorial)")) +
   facet_wrap(.~labels,scales="free",labeller = label_wrap_gen(width=19,multi_line = TRUE)) +
   theme(axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
-        legend.position = "none",
+        legend.position = "bottom",
         legend.title = element_blank(),
-        axis.title = element_blank()) +
-  ggtitle("CO2 emissions trends of decarbonising countries")
-
-
-```
-
-```{r all_countries_trend_with_consumption,echo=FALSE,warning=FALSE,fig.width=10,fig.height=11,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
-
-data %>% 
-  ggplot(.,aes(x=year,y=CO2)) +
-  geom_path() +
-  geom_line(data=data,aes(x=year,y=fit),colour="red") +
-  geom_path(data=data,aes(x=year,y=CO2_cons,color="#2c7fb8")) +
-  geom_text(data=data %>% filter(year==2015),aes(x=1970,y=0,label=paste0("Group ",cluster),color=cluster),hjust="inward",vjust="inward",size=3.5) + #color="#636363") + 
-  scale_x_continuous(limits=c(1970,2019),breaks=c(1970,1990,2010)) +
-  scale_y_continuous(expand = c(0.1, .1), limits = c(0, NA)) +
-  facet_wrap(.~labels,scales="free",labeller = label_wrap_gen(width=19,multi_line = TRUE)) +
-  theme(axis.text.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        legend.position = "none",
-        legend.title = element_blank(),
-        axis.title = element_blank()) +
-  ggtitle("CO2 emissions trends of decarbonising countries")
-
+        axis.title = element_blank(),
+        plot.title = element_text(size = 12)) +
+  guides(color = guide_legend(override.aes = list(size = 2))) +
+  ggtitle("Countries with declining CO2 and GHG emissions")
 
 
 ```
@@ -514,7 +486,7 @@ clusters <- data %>%
   mutate(CO2_rm = rollmean(CO2_rm,3,na.pad=TRUE,align="right"))
 
 peak_years <- data %>% 
-  filter(year==2019) %>% 
+  filter(year==2018) %>% 
   group_by(cluster) %>% 
   summarise(mean_peak_year=round(mean(peak_year),0),n=n())
 
@@ -526,7 +498,8 @@ p1 <- data %>% ggplot(.,aes(x=year,y=CO2_rm,group=country,colour=cluster)) +
   
   geom_text(data=peak_years,inherit.aes=FALSE,aes(x=1970,y=3.4,label=paste0("No. countries: ",n)),hjust=0,size=3.5,lineheight=0.85,color="#636363") +
   facet_grid(.~cluster) +
-  scale_x_continuous(limits=c(1970,2019),breaks=c(1970,1990,2010)) +
+  scale_x_continuous(limits=c(1970,2018),breaks=c(1970,1990,2010)) +
+  scale_color_brewer(palette="Set2") +
   theme(legend.position = "none",
         legend.title = element_blank(),
         axis.title = element_blank(),
@@ -551,12 +524,13 @@ world <- left_join(world,data %>% select(ISO,cluster) %>% distinct(),by=c("alpha
 
 
 p2 <- ggplot() + 
-  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=cluster),color="white",size=0.25,na.rm=T) + 
-  #coord_fixed(1,xlim=c(-155,175),ylim=c(0,75)) +
-  scale_fill_brewer(palette = "Set2",na.value='#969696') +
+  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=cluster),color="#969696",size=0.25,na.rm=T) + 
+  coord_fixed(1,xlim=c(-120,70),ylim=c(0,70)) +
+  scale_fill_brewer(palette = "Set2",na.value='#f0f0f0') +
   theme(panel.border = element_rect(colour = "black",fill=NA),
         legend.position = "none",
         legend.background = element_blank(),
+        panel.grid = element_blank(),
         axis.title = element_blank(),
         axis.ticks = element_blank(),
         axis.text = element_blank(),
@@ -579,11 +553,11 @@ p2
 # - what regions
 
 table <- data %>% 
-  filter(year==2019) %>% 
-  select(ISO,country,region_ar6_10,cluster,
-         CO2_2019=CO2,
-         GHG_2019=GHG,
-         pop_2019=population,
+  filter(year==2018) %>% 
+  select(ISO,country,region_ar6_10,cluster,cluster_name,
+         CO2_2018=CO2,
+         GHG_2018=GHG,
+         pop_2018=population,
          peak_year,
          CO2_peak,
          GHG_peak,
@@ -597,31 +571,31 @@ table <- data %>%
 table <- table %>% 
   mutate(abs_reduction_CO2=abs_reduction_CO2/1e6) %>% 
   mutate(abs_reduction_GHG=abs_reduction_GHG/1e6) %>% 
-  mutate(CO2_2019=CO2_2019/1e6) %>% 
-  mutate(GHG_2019=GHG_2019/1e6) %>% 
-  mutate(pop_2019=pop_2019/1e6) %>% 
+  mutate(CO2_2018=CO2_2018/1e6) %>% 
+  mutate(GHG_2018=GHG_2018/1e6) %>% 
+  mutate(pop_2018=pop_2018/1e6) %>% 
   mutate(CO2_peak=CO2_peak/1e6) %>% 
   mutate(GHG_peak=GHG_peak/1e6) %>% 
-  mutate(CO2_2019_pc = CO2_2019/pop_2019) %>% 
-  mutate(GHG_2019_pc = GHG_2019/pop_2019)
+  mutate(CO2_2018_pc = CO2_2018/pop_2018) %>% 
+  mutate(GHG_2018_pc = GHG_2018/pop_2018)
 
 ## get global GHG
 
 world_GHG <- edgar_GHG_ar6 %>%
-  filter(year==2019) %>%
+  filter(year==2018) %>%
   summarise(GHG=sum(GHG,na.rm = TRUE)/1e6,CO2=sum(CO2,na.rm=TRUE)/1e6)
 
 ## get global pop
 
 world_pop <- wdi_data_gdp_pop %>%
-  filter(year==2019) %>%
+  filter(year==2018) %>%
   filter(iso3c=="WLD") %>%
   select(population)
 
 ## calculate totals
 
 totals <- table %>% 
-  summarise(CO2_2019=sum(CO2_2019),GHG_2019=sum(GHG_2019),pop_2019=sum(pop_2019),
+  summarise(CO2_2018=sum(CO2_2018),GHG_2018=sum(GHG_2018),pop_2018=sum(pop_2018),
             CO2_peak=sum(CO2_peak),GHG_peak=sum(GHG_peak),
             abs_reduction_CO2=sum(abs_reduction_CO2),abs_reduction_GHG=sum(abs_reduction_GHG)) %>% 
   mutate(country="Total")
@@ -631,22 +605,22 @@ table <- bind_rows(table,totals)
 ## calculate fractions
 
 table <- table %>%
-  mutate(GHG_fraction=(GHG_2019/world_GHG$GHG)*100) %>%
-  mutate(CO2_fraction=(CO2_2019/world_GHG$CO2)*100) %>% 
-  mutate(pop_fraction=(pop_2019/(world_pop$population/1e6))*100)
+  mutate(GHG_fraction=(GHG_2018/world_GHG$GHG)*100) %>%
+  mutate(CO2_fraction=(CO2_2018/world_GHG$CO2)*100) %>% 
+  mutate(pop_fraction=(pop_2018/(world_pop$population/1e6))*100)
 
 
 ### cluster table
 
 cluster_table <- table %>% 
   filter(!is.na(cluster)) %>% 
-  group_by(cluster) %>% 
-  summarise(mean_peak_year=round(mean(peak_year),0),CO2_2019=sum(CO2_2019),GHG_2019=sum(GHG_2019),pop_2019=sum(pop_2019),CO2_peak=sum(CO2_peak),GHG_peak=sum(GHG_peak),abs_reduction_CO2=sum(abs_reduction_CO2),abs_reduction_GHG=sum(abs_reduction_GHG),countries=paste0(country,collapse="; "))
+  group_by(cluster,cluster_name) %>% 
+  summarise(mean_peak_year=round(mean(peak_year),0),CO2_2018=sum(CO2_2018),GHG_2018=sum(GHG_2018),pop_2018=sum(pop_2018),CO2_peak=sum(CO2_peak),GHG_peak=sum(GHG_peak),abs_reduction_CO2=sum(abs_reduction_CO2),abs_reduction_GHG=sum(abs_reduction_GHG),countries=paste0(country,collapse="; "))
 
 ## calculate totals
 
 totals <- totals %>% 
-  summarise(CO2_2019=sum(CO2_2019),GHG_2019=sum(GHG_2019),pop_2019=sum(pop_2019),
+  summarise(CO2_2018=sum(CO2_2018),GHG_2018=sum(GHG_2018),pop_2018=sum(pop_2018),
             CO2_peak=sum(CO2_peak),GHG_peak=sum(GHG_peak),
             abs_reduction_CO2=sum(abs_reduction_CO2),abs_reduction_GHG=sum(abs_reduction_GHG)) %>% 
   mutate(countries="Total")
@@ -654,9 +628,9 @@ totals <- totals %>%
 cluster_table <- bind_rows(cluster_table,totals)
 
 cluster_table <- cluster_table %>%
-  mutate(GHG_fraction=(GHG_2019/world_GHG$GHG)*100) %>%
-  mutate(CO2_fraction=(CO2_2019/world_GHG$CO2)*100) %>% 
-  mutate(pop_fraction=(pop_2019/(world_pop$population/1e6))*100)
+  mutate(GHG_fraction=(GHG_2018/world_GHG$GHG)*100) %>%
+  mutate(CO2_fraction=(CO2_2018/world_GHG$CO2)*100) %>% 
+  mutate(pop_fraction=(pop_2018/(world_pop$population/1e6))*100)
 
 cluster_table <- cluster_table %>% 
   mutate(rel_reduction_CO2=(abs_reduction_CO2/CO2_peak)*100) %>% 
@@ -680,6 +654,7 @@ p3 <- plot_data %>%
   geom_text(data=plot_data,inherit.aes=FALSE,aes(x=var,y=value+3,label=round(value,1)),size =3.5,color="#636363") +
   facet_grid(.~cluster) +
   scale_y_continuous(expand = c(0, 3)) +
+  scale_fill_brewer(palette="Set2") +
   theme(legend.position = "none",
         legend.title = element_blank(),
         axis.title = element_blank(),
@@ -689,35 +664,13 @@ p3 <- plot_data %>%
         strip.text = element_blank()) +
   ggtitle("c. Fraction (%) of global CO2 emissions, GHG emissions and population by cluster")
 p3
-  
+
 
 ```
 
 ```{r cluster_abs_rel_reductions,echo=FALSE,warning=FALSE,include=FALSE,fig.width=6,fig.height=2}
 
 # for each country, for each year, find the emissions difference to the previous year
-
-plot_data <- gather(cluster_table,var,value,abs_reduction_CO2,abs_reduction_GHG) %>% 
-  mutate(var=ifelse(var=="abs_reduction_CO2","CO2",var)) %>% 
-  mutate(var=ifelse(var=="abs_reduction_GHG","GHG",var)) %>% 
-  filter(!is.na(cluster)) %>% 
-  mutate(value=value/1000)
-
-p4 <- plot_data %>% ggplot(.,aes(x=var,y=value,fill=cluster)) +
-  geom_bar(stat='identity',color="#636363") +
-  geom_text(data=plot_data,inherit.aes=FALSE,aes(x=var,y=value+0.2,label=round(value,1)),size =3.5,color="#636363") +
-  facet_grid(.~cluster) +
-  scale_y_continuous(expand = c(0, 0.2)) +
-  theme(legend.position = "none",
-        legend.title = element_blank(),
-        axis.title = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(size=12),
-        strip.background = element_blank(),
-        strip.text = element_blank()) +
-  ggtitle("d. Absolute reduction in emissions since peak years (Gt CO2eq)")
-p4 
-
 
 plot_data <- gather(cluster_table,var,value,rel_reduction_CO2,rel_reduction_GHG) %>% 
   mutate(var=ifelse(var=="rel_reduction_CO2","CO2",var)) %>% 
@@ -726,9 +679,10 @@ plot_data <- gather(cluster_table,var,value,rel_reduction_CO2,rel_reduction_GHG)
 
 p4 <- plot_data %>% ggplot(.,aes(x=var,y=value,fill=cluster)) +
   geom_bar(stat='identity',color="#636363") +
-  geom_text(data=plot_data,inherit.aes=FALSE,aes(x=var,y=value+5,label=round(value,1)),size =3.5,color="#636363") +
+  geom_text(data=plot_data,inherit.aes=FALSE,aes(x=var,y=value+8,label=round(value,1)),size =3.5,color="#636363") +
   facet_grid(.~cluster) +
-  scale_y_continuous(expand = c(0, 5)) +
+  scale_y_continuous(expand = c(0, 8)) +
+  scale_fill_brewer(palette="Set2") +
   theme(legend.position = "none",
         legend.title = element_blank(),
         axis.title = element_blank(),
@@ -743,12 +697,28 @@ p4
 
 ```{r cluster_plot,echo=FALSE,warning=FALSE,fig.width=6.5,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
+p5 <- plot_data %>% select(cluster_name,cluster) %>% distinct() %>% 
+  ggplot(.,aes(x=1,y=1,label=cluster_name,color=cluster)) +
+  scale_color_brewer(palette="Set2") +
+  geom_text(size=4.5) +
+  facet_grid(.~cluster) +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.background = element_blank(),
+        panel.border = element_blank(),
+        panel.grid = element_blank(),
+        legend.position="none",
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        plot.background = element_blank())
 
-p2 / p1 / p3 / p4 + plot_layout(heights = c(2,1,1,1))
+
+p2 / p5 / p1 / p3 / p4 + plot_layout(heights = c(2,0.2,1,1,1))
 
 ```
 
-```{r country_rates,echo=FALSE,warning=FALSE,fig.width=8,fig.height=9,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r country_rates,echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 rate_data <- data %>% 
   mutate(absolute_reduction_CO2_peak=round((absolute_reduction_CO2_peak/1e6),0)) %>% 
@@ -764,7 +734,7 @@ rate_data$country <- fct_reorder(rate_data$country,desc(rate_data$rate_CO2_peak)
 
 
 r1 <- rate_data %>% 
-  filter(year==2019) %>% 
+  filter(year==2018) %>% 
   ggplot(.,aes(y="a",x=country,label=peak_year))+
   geom_text(size =3.5,color="#636363") +
   coord_flip() +
@@ -783,7 +753,7 @@ r1 <- rate_data %>%
 
 
 r2 <- rate_data %>% 
-  filter(year==2019) %>% 
+  filter(year==2018) %>% 
   ggplot(.,aes(y="a",x=country,label=paste0(absolute_reduction_CO2_peak," (",percent_reduction_CO2_peak,"%)"))) +
   geom_text(size =3.5,color="#636363") +
   coord_flip() +
@@ -805,7 +775,7 @@ r2 <- rate_data %>%
   ggtitle("CO2 reduction\n(MtCO2 & %)")
 
 r3 <- rate_data %>% 
-  filter(year==2019) %>% 
+  filter(year==2018) %>% 
   ggplot(.,aes(y="a",x=country,label=paste0(absolute_reduction_GHG_peak," (",percent_reduction_GHG_peak,"%)"))) +
   geom_text(size =3.5,color="#636363") +
   coord_flip() +
@@ -832,19 +802,18 @@ rate_data <- gather(rate_data,growth_rate,value,rate_CO2_peak,rate_GHG_peak,rate
 rate_data <- rate_data %>% 
   mutate(growth_rate=as.factor(growth_rate))
 
-annotes = data.frame(cluster=c("1","2","3"),country=c("Netherlands","Belgium","Russian Federation"))
+annotes = data.frame(cluster=c("1","2","3"),cluster_name=c("Recent Peak","Long-term decline","Former Eastern Bloc"),country=c("Netherlands","Belgium","Uzbekistan"))
 
 r4 <- rate_data %>% 
   filter(growth_rate!="rate_CO2_cons_peak") %>% 
-  filter(year==2019) %>% 
+  filter(year==2018) %>% 
   ggplot(.,aes(x=country,y=value,fill=growth_rate)) +
   geom_point(shape=21,size=3,color="#636363",stroke=0.5) +
-  geom_text(data=annotes,inherit.aes=FALSE,aes(x=country,y=-5.3,label=paste0("Group ",cluster),color=cluster),hjust=0,vjust=0,size=3.5,show.legend=FALSE) +
+  geom_text(data=annotes,inherit.aes=FALSE,aes(x=country,y=-5.3,label=cluster_name),color="#636363",hjust=0,vjust=0,size=3.5,show.legend=FALSE) +
   coord_flip() +
   facet_grid(cluster~.,scales="free_y",space="free") +
   scale_y_continuous(breaks=c(-5,-4,-3,-2,-1,0)) +
-  scale_fill_manual(labels=c("CO2 emissions","GHG emissions"),values = c("#d7191c","#2c7bb6")) +
-  #scale_fill_manual(labels=c("CO2 cons emissions","CO2 emissions","GHG emissions"),values = c("#31a354","#d7191c","#2c7bb6")) +
+  scale_fill_brewer(labels=c("CO2 emissions","GHG emissions"),palette="Set2") +
   theme(axis.title.y = element_blank(),
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
@@ -862,46 +831,11 @@ r1 + r2 + r3 + r4 + plot_layout(widths = c(1,1.5,1.5,6))
 
 ```
 
-```{r country_rates_cons,echo=FALSE,warning=FALSE,fig.width=8,fig.height=9,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
-
-
-r5 <- rate_data %>% 
-  filter(year==2019) %>% 
-  ggplot(.,aes(x=country,y=value,fill=growth_rate)) +
-  geom_point(shape=21,size=3,color="#636363",stroke=0.5) +
-  geom_text(data=annotes,inherit.aes=FALSE,aes(x=country,y=-5.3,label=paste0("Group ",cluster),color=cluster),hjust=0,vjust=0,size=3.5,show.legend=FALSE) +
-  coord_flip() +
-  facet_grid(cluster~.,scales="free_y",space="free") +
-  #scale_y_continuous(breaks=c(-5,-4,-3,-2,-1,0)) +
-  #scale_fill_manual(labels=c("CO2 emissions","GHG emissions"),values = c("#d7191c","#2c7bb6")) +
-  scale_fill_manual(labels=c("CO2 cons emissions","CO2 emissions","GHG emissions"),values = c("#31a354","#d7191c","#2c7bb6")) +
-  theme(axis.title.y = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.title.x = element_blank(),
-        legend.position="bottom",
-        legend.title=element_blank(),
-        plot.title = element_text(size = 10),
-        plot.background = element_blank(),
-        strip.background = element_blank(),
-        strip.text = element_blank(),
-        plot.margin = unit(c(0,0,0,0),units="cm")) +
-  ggtitle("Average annual growth rate since peak (%/yr)")
-
-r1 + r2 + r3 + r5 + plot_layout(widths = c(1,1.5,1.5,6))
-
-
-
-
-
-```
-
-
 ```{r calc_country_sectors,echo=FALSE,warning=FALSE}
 
 # get sector data for countries
 
-sector_data <- right_join(edgar_GHG_ar6,data %>% filter(year==2019) %>% select(country,peak_year,cluster,absolute_reduction_CO2_peak,absolute_reduction_GHG_peak) %>% distinct(),by = "country")
+sector_data <- right_join(edgar_GHG_ar6,data %>% filter(year==2018) %>% select(country,peak_year,cluster,absolute_reduction_CO2_peak,absolute_reduction_GHG_peak) %>% distinct(),by = "country")
 
 sector_data <- sector_data %>% 
   group_by(country,cluster,peak_year,year,chapter_title,abs_CO2_tot=absolute_reduction_CO2_peak,
@@ -924,10 +858,10 @@ sector_data <- sector_data %>%
 sector_data <- sector_data %>% 
   group_by(country,cluster,chapter_title,abs_CO2_tot,abs_GHG_tot) %>% 
   summarise(CO2_peak = first(CO2),
-            CO2_2019 = last(CO2),
+            CO2_2018 = last(CO2),
             abs_CO2 = first(CO2)-last(CO2),
             GHG_peak = first(GHG),
-            GHG_2019 = last(GHG),
+            GHG_2018 = last(GHG),
             abs_GHG = first(GHG)-last(GHG))
 
 
@@ -939,60 +873,31 @@ sector_data <- sector_data %>%
 
 ```
 
-```{r country_sectors_CO2,echo=FALSE,warning=FALSE,fig.width=6,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
-
-# factorise countries, rank by absolute reduction
-
-sector_data$country <- as.factor(sector_data$country)
-sector_data$country <- fct_reorder(sector_data$country,sector_data$abs_CO2_tot)
-
-annotes <- data.frame(cluster=c("1","2","3"),country=c("United States","Germany","Ukraine"))
-
-# plot
-
-sector_data %>% 
-  ggplot(.,aes(x=country,y=abs_CO2_fraction,fill=chapter_title)) +
-  geom_bar(stat='identity',color="#636363",width = 0.75) +
-  geom_text(data=annotes,inherit.aes=FALSE,aes(x=country,y=20,label=paste0("Group ",cluster),color=cluster),hjust=0,vjust=1,size=3.5,show.legend=FALSE) +
-  geom_hline(yintercept=0)+
-  coord_flip() +
-  facet_grid(cluster~.,scales="free_y",space="free") +
-  theme(axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        legend.position="bottom",
-        legend.title=element_blank(),
-        plot.title = element_text(size = 12),
-        plot.background = element_blank(),
-        strip.background = element_blank(),
-        strip.text = element_blank()) +
-  ggtitle("CO2 reduction by sector (% of total reduction since peak)")
-
-
-```
-
-```{r country_sectors_GHG,echo=FALSE,warning=FALSE,fig.width=6,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r country_sectors_GHG,echo=FALSE,warning=FALSE,fig.width=6,fig.height=7,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 # factorise countries, rank by absolute reduction
 
 sector_data$country <- as.factor(sector_data$country)
 sector_data$country <- fct_reorder(sector_data$country,sector_data$abs_GHG_tot)
 
-annotes <- data.frame(cluster=c("1","2","3"),country=c("Cyprus","Macedonia, FYR","Albania"))
+annotes <- data.frame(cluster=c("1","2","3"),country=c("Cyprus","Macedonia, FYR","Slovak Republic"),cluster_name=c("Recent Peak","Long-term decline","Former Eastern Bloc"))
 
 # plot
 
 sector_data %>% filter(country!="Uzbekistan") %>%
   ggplot(.,aes(x=country,y=abs_GHG_fraction,fill=chapter_title)) +
   geom_bar(stat='identity',color="#636363",width = 0.75) +
-  geom_text(data=annotes,inherit.aes=FALSE,aes(x=country,y=50,label=paste0("Group ",cluster)),color="#636363",hjust=0,vjust=0,size=3.5,show.legend=FALSE) +
+  geom_text(data=annotes,inherit.aes=FALSE,aes(x=country,y=50,label=cluster_name),color="#636363",hjust=0,vjust=0,size=3.5,show.legend=FALSE) +
   geom_hline(yintercept=0)+
+  scale_fill_brewer(palette="Set2") +
   coord_flip() +
+  ylim(-175,125) +
   facet_grid(cluster~.,scales="free_y",space="free") +
   theme(axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         legend.position="bottom",
         legend.title=element_blank(),
-        plot.title = element_text(size = 12),
+        plot.title = element_text(size = 11),
         plot.background = element_blank(),
         strip.background = element_blank(),
         strip.text = element_blank()) +
@@ -1001,21 +906,21 @@ sector_data %>% filter(country!="Uzbekistan") %>%
 
 ```
 
-```{r calc_subsectors,echo=FALSE,warning=FALSE,fig.width=7,fig.height=6,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r calc_subsectors_clusters,echo=FALSE,warning=FALSE,fig.width=7,fig.height=6,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 
 # get sector data for countries
 
-sector_cluster_data <- right_join(edgar_GHG_ar6,data %>% filter(year==2019) %>% select(country,peak_year,cluster,absolute_reduction_CO2_peak,absolute_reduction_GHG_peak) %>% distinct(),by = "country")
+subsector_data_clusters <- right_join(edgar_GHG_ar6,data %>% filter(year==2018) %>% select(country,peak_year,cluster,cluster_name,absolute_reduction_CO2_peak,absolute_reduction_GHG_peak) %>% distinct(),by = "country")
 
 
-sector_cluster_data <- sector_cluster_data %>% 
+subsector_data_clusters <- subsector_data_clusters %>% 
   mutate(subsector_title=ifelse(subsector_title=="Fuel combustion (REMOVE FROM FIGURES)","Fuel combustion",subsector_title)) %>% 
   mutate(subsector_title=paste0(subsector_title," (",chapter_title,")")) %>% 
   mutate(subsector_title = as.factor(subsector_title))
 
-sector_cluster_data <- sector_cluster_data %>% 
-  group_by(country,cluster,peak_year,year,chapter_title,subsector_title,
+subsector_data_clusters <- subsector_data_clusters %>% 
+  group_by(country,cluster,cluster_name,peak_year,year,chapter_title,subsector_title,
            abs_CO2_tot=absolute_reduction_CO2_peak,
            abs_GHG_tot=absolute_reduction_GHG_peak) %>% 
   summarise_at(vars(CO2,GHG),sum,na.rm=TRUE) %>% 
@@ -1027,30 +932,30 @@ sector_cluster_data <- sector_cluster_data %>%
 
 # filter to years > peak year
 
-sector_cluster_data <- sector_cluster_data %>% 
+subsector_data_clusters <- subsector_data_clusters %>% 
   group_by(country,year) %>%
   filter(all(year>=peak_year))
 
 # calculate absolute / relative change in each sector
 
-sector_cluster_data <- sector_cluster_data %>% 
-  group_by(country,cluster,chapter_title,subsector_title,abs_CO2_tot,abs_GHG_tot) %>% 
+subsector_data_clusters <- subsector_data_clusters %>% 
+  group_by(country,cluster,cluster_name,chapter_title,subsector_title,abs_CO2_tot,abs_GHG_tot) %>% 
   summarise(CO2_peak = first(CO2),
-            CO2_2019 = last(CO2),
+            CO2_2018 = last(CO2),
             abs_CO2 = -(first(CO2)-last(CO2)),
             GHG_peak = first(GHG),
-            GHG_2019 = last(GHG),
+            GHG_2018 = last(GHG),
             abs_GHG = -(first(GHG)-last(GHG)))
 
 
-# reverse signs
+subsector_data_countries <- subsector_data_clusters
 
-sector_cluster_data <- sector_cluster_data %>% 
-  group_by(cluster,chapter_title,subsector_title) %>% 
-  summarise_at(vars(CO2_peak,CO2_2019,abs_CO2,GHG_peak,GHG_2019,abs_GHG),sum,na.rm=TRUE)
+subsector_data_clusters <- subsector_data_clusters %>% 
+  group_by(cluster,cluster_name,chapter_title,subsector_title) %>% 
+  summarise_at(vars(CO2_peak,CO2_2018,abs_CO2,GHG_peak,GHG_2018,abs_GHG),sum,na.rm=TRUE)
 
-sector_cluster_data <- sector_cluster_data %>% 
-  group_by(cluster,chapter_title,subsector_title) %>% 
+subsector_data_clusters <- subsector_data_clusters %>% 
+  group_by(cluster,cluster_name,chapter_title,subsector_title) %>% 
   mutate(rel_GHG = (abs_GHG/GHG_peak)*100)
 
 ```
@@ -1058,8 +963,8 @@ sector_cluster_data <- sector_cluster_data %>%
 ```{r cluster_subsectors_GHG,echo=FALSE,warning=FALSE,fig.width=9,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 
-plot_data <- sector_cluster_data %>% 
-  #filter(GHG_2019>15) %>% 
+plot_data <- subsector_data_clusters %>% 
+  #filter(GHG_2018>15) %>% 
   filter(subsector_title!="Biomass burning (CO2, CH4) (AFOLU)") %>% 
   filter(subsector_title!="Biomass energy systems (Energy systems)") %>% 
   filter(subsector_title!="Non-CO2 (all buildings) (Buildings)") %>% 
@@ -1073,15 +978,16 @@ plot_data <- sector_cluster_data %>%
 
 plot_data$order <- 1:length(plot_data$cluster)
 plot_data$subsector_title <- fct_reorder(plot_data$subsector_title,plot_data$order)
-
+plot_data$cluster_name <- fct_reorder(plot_data$cluster_name,as.numeric(plot_data$cluster))
 
 plot_data %>% ggplot(.,aes(x=subsector_title,y=GHG_peak,fill=chapter_title)) + 
   geom_bar(stat='identity',color="#636363",width = 0.75,alpha=0.3) +
-  geom_bar(aes(x=subsector_title,y=GHG_2019),stat='identity',color="#636363",width = 0.75) +
-  geom_text(aes(x=subsector_title,y=ifelse(GHG_peak>GHG_2019,GHG_peak,GHG_2019),label=paste0(ifelse(rel_GHG>0,"+",""),round(rel_GHG,1),"%")),hjust = -0.15,size=3,colour="#636363",size=3.5) +
+  geom_bar(aes(x=subsector_title,y=GHG_2018),stat='identity',color="#636363",width = 0.75) +
+  geom_text(aes(x=subsector_title,y=ifelse(GHG_peak>GHG_2018,GHG_peak,GHG_2018),label=paste0(ifelse(rel_GHG>0,"+",""),round(rel_GHG,1),"%")),hjust = -0.15,size=3,colour="#636363",size=3.5) +
   scale_y_continuous(expand=expand_scale(mult = c(0.1, 0.5))) +
+  scale_fill_brewer(palette="Set2") +
   coord_flip() +
-  facet_grid(.~cluster,scales="free") +
+  facet_grid(.~cluster_name,scales="free") +
   theme(axis.title.y = element_blank(),
         legend.position="bottom",
         legend.title=element_blank(),
@@ -1089,9 +995,9 @@ plot_data %>% ggplot(.,aes(x=subsector_title,y=GHG_peak,fill=chapter_title)) +
         plot.background = element_blank(),
         panel.grid.minor.y = element_blank()) +
   ylab("Annual GHG emissions (MtCO2eq)") +
-  ggtitle("Subsector GHG emissions at peak vs 2019 by cluster")
-  
-  
+  ggtitle("Subsector GHG emissions at peak vs 2018 by cluster")
+
+
 ```
 
 ```{r calc_rolling_Rates,echo=FALSE,warning=FALSE,include=FALSE}
@@ -1110,7 +1016,7 @@ for (i in 1:length(unique(data$country))) {
   temp_data <- data %>% 
     filter(country==unique(data$country)[i])
   
-  for (j in seq(1975,2019,by=1)) {
+  for (j in seq(1975,2018,by=1)) {
     
     sub_temp_data <- temp_data %>% 
       filter(year<=j) %>% 
@@ -1186,6 +1092,7 @@ p1 <- rolling_rates %>% ggplot(.,aes(x=country,y=rate_rolling_CO2,fill=as.factor
   coord_flip()  +
   ylim(-15,15) +
   scale_color_manual(values=c("#e78ac3","#a6d854","#ffd92f")) +
+  scale_fill_brewer(palette="Set2") +
   facet_grid(cluster~.,scales="free",space="free") +
   theme(axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
@@ -1220,7 +1127,7 @@ p3 <- scenario_data %>% ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregate
         panel.grid.minor = element_blank()) +
   ggtitle(str_wrap("b. Average CO2 growth rates in scenarios compatible with warming targets",width=35))
 
- p2 <- rolling_rates %>% ggplot(.,aes(x=country,y=year,fill=threshold_CO2)) +
+p2 <- rolling_rates %>% ggplot(.,aes(x=country,y=year,fill=threshold_CO2)) +
   geom_tile(color="white",size=0.2) +
   scale_fill_manual(values=c("#636363"))+
   coord_flip()  +
@@ -1237,17 +1144,61 @@ p3 <- scenario_data %>% ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregate
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         plot.margin = unit(c(0,0,0,0),units="cm")) +
-   ggtitle(str_wrap("c. Years where rolling average CO2 growth rates < -4%",width=35))
+  ggtitle(str_wrap("c. Years where rolling average CO2 growth rates < -4%",width=35))
 
 (p1 + p2) / (p3 + plot_spacer()) + plot_layout(heights=c(6,1))
 
 ```
 
-```{r kaya,echo=FALSE,warning=FALSE,fig.width=8,fig.height=9,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r gases,echo=FALSE,warning=FALSE,fig.width=7,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+
+gases <- gather(data,gas,value,CO2:Fgas)
+gases$gas <- as.factor(gases$gas)
+gases$gas <- factor(gases$gas,levels=levels(gases$gas)[c(2,1,4,3)])
+
+gases <- gases %>% group_by(cluster,cluster_name,year,gas) %>% 
+  summarise(value=sum(value,na.rm=TRUE)/1e9)
+gases$cluster_name <- as.factor(gases$cluster_name)
+gases$cluster_name <- factor(gases$cluster_name,levels=levels(gases$cluster_name)[c(3,2,1)])
+
+fractions <- gases %>% 
+  filter(year %in% c(1970,1980,1990,2000,2010,2018)) %>% 
+  group_by(year,cluster) %>% 
+  mutate(total=sum(value)) %>% 
+  mutate(fraction=round((value/total)*100,1))
+
+
+fractions_final <- fractions %>% filter(cluster==4)
+for (i in 1:3) {
+  
+  blarg <- locate_shares(fractions %>% filter(cluster==i),"gas",6)
+  
+  fractions_final <- rbind(fractions_final,blarg)
+}
+
+gases %>% 
+  ggplot(.,aes(x=year,y=value,fill=gas)) +
+  geom_area(colour="#737373") +
+  geom_vline(xintercept=c(1970,1980,1990,2000,2010,2018),alpha=0.3,linetype="dashed") +
+  geom_text(data=fractions_final,aes(x=year+1.25,y=location,label=paste(round(fraction,0),"%",sep="")),size=3.5,colour="#252525")+
+  facet_grid(cluster_name~.,scales="free") +
+  scale_fill_brewer(palette="Set2") +
+  ylab("GHG emissions (GtCO2eq)") +
+  theme(legend.title=element_blank(),
+        legend.position="bottom",
+        axis.title.x = element_blank(),
+        plot.title = element_text(size = 11)) +
+  ggtitle("Trends in GHG emissions by cluster and gas")
+
+
+```
+
+
+```{r kaya,echo=FALSE,warning=FALSE,fig.width=7,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 load('../../Data/kaya/kaya.RData')
 
-kaya_data <- left_join(kaya_data,data %>% select(ISO,cluster,peak_year) %>% distinct(),by = "ISO")
+kaya_data <- left_join(kaya_data,data %>% select(ISO,cluster,cluster_name,peak_year) %>% distinct(),by = "ISO")
 
 kaya_data <- kaya_data %>% 
   filter(!is.na(cluster)) %>% 
@@ -1265,8 +1216,7 @@ kaya_data <- kaya_data %>%
 #   facet_wrap(.~name,scales="free")
 
 kaya_data_clusters <- kaya_data %>% 
-  filter(name!="Lithuania") %>% # missing data after 1990
-  group_by(year,cluster) %>% 
+  group_by(year,cluster,cluster_name) %>% 
   summarise(GDP=sum(GDP,na.rm=T),POP=sum(POP,na.rm=T),CO2=sum(CO2,na.rm=T),energy=sum(energy,na.rm=T))
 
 
@@ -1286,28 +1236,8 @@ kaya_data_clusters <- kaya_data_clusters %>%
 kaya_data_clusters <- gather(kaya_data_clusters,factor,value,CO2,energy,CO2_energy,energy_GDP,GDP_POP,POP) 
 
 kaya_data_clusters <- kaya_data_clusters %>% 
-    group_by(cluster,factor) %>% 
-    mutate(value=value/nth(value,20))
-
-# 
-# kaya_data_clusters %>%
-#     ggplot(.,aes(x=year,y=value,group=factor,colour=factor)) +
-#     geom_hline(yintercept=1) +
-#     #geom_vline(xintercept=2010,alpha=0.3,linetype="dashed") +
-#     geom_path(size = 1.5) +
-#     geom_point(size = 0.75,colour="white") +
-#     #geom_text(data=kaya_plot_data %>% filter(year==2019),
-#      #         aes(x=year+1,y=value,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,show.legend = FALSE) +
-#     theme_bw() +
-#     scale_colour_brewer(type = "qual",palette="Set2") +
-#     #scale_colour_brewer(type = "qual",palette="Set2",labels=c("CO2 Emissions","CO2/Energy","Energy","Energy/GDP","GDP/Population","Population")) +     #scale_x_continuous(breaks=c(1990,2000,2010,2018),limits=c(1990,2023.5)) + 
-#     facet_wrap(.~cluster,ncol=3,scales="free") +
-#     theme(legend.position = "bottom",
-#           axis.title = element_blank(),
-#           legend.title = element_blank(),
-#           panel.grid.minor = element_blank())
-
-
+  group_by(cluster,cluster_name,factor) %>% 
+  mutate(value=value/nth(value,20))
 
 ### underlying factors
 
@@ -1329,37 +1259,40 @@ kaya_data_countries$factor <- gsub("_"," / ",kaya_data_countries$factor)
 kaya_data_clusters$factor <- gsub("_"," / ",kaya_data_clusters$factor)
 
 kaya_rates <- kaya_data_clusters %>% 
-    filter(year %in% c(1990,2018)) %>% 
-    group_by(cluster,factor) %>% 
-    mutate(rate=((last(value)/first(value))^(1/(last(year)-first(year)))-1)*100) %>% 
-    filter(year==2018) %>% 
+  filter(year %in% c(1990,2018)) %>% 
+  group_by(cluster,cluster_name,factor) %>% 
+  mutate(rate=((last(value)/first(value))^(1/(last(year)-first(year)))-1)*100) %>% 
+  filter(year==2018) %>% 
   mutate(name=NA)
 
 
 kaya_data_countries <- kaya_data_countries %>% 
-    group_by(name,factor) %>% 
-    mutate(value=value/nth(value,20))
-
+  group_by(name,factor) %>% 
+  mutate(value=value/nth(value,20))
 
 kaya_data_countries %>% 
-    ggplot(.,aes(x=year,y=value,group=name,colour=factor)) +
-    geom_hline(yintercept=1) +
-    geom_path(alpha=0.3) +
+  ggplot(.,aes(x=year,y=value,group=name,colour=factor)) +
+  geom_hline(yintercept=1) +
+  geom_path(alpha=0.3) +
   geom_path(data=kaya_data_clusters,aes(x=year,y=value,group=factor,colour=factor),size = 1) +
   geom_text(data=kaya_rates,aes(x=2000.5,y=2.5,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,show.legend = FALSE) +
-    theme_bw() +
-    scale_colour_brewer(type = "qual",palette="Set2") +
-    facet_grid(factor~cluster) +
-    theme(legend.position = "none",
-          axis.title = element_blank(),
-          legend.title = element_blank(),
-          panel.grid.minor = element_blank())
+  theme_bw() +
+  scale_colour_brewer(type = "qual",palette="Set2") +
+  scale_x_continuous(breaks=c(1970,1980,1990,2000,2010)) +
+  facet_grid(factor~cluster_name) +
+  theme(legend.position = "none",
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.minor = element_blank(),,
+        plot.title = element_text(size = 11)) +
+  ggtitle("Trends in Kaya factors by cluster")
 
 
 ```
 
-```{r write_data,echo=FALSE,warning=FALSE}
 
+
+```{r write_data,echo=FALSE,warning=FALSE}
 
 openxlsx::addWorksheet(wb,"countries")
 openxlsx::writeData(wb, sheet = "countries", table, colNames = T, rowNames = F)
@@ -1374,145 +1307,118 @@ openxlsx::saveWorkbook(wb,paste0("../../Results/Data/decarbonising_countries.xls
 
 ```
 
+```{r countries,echo=FALSE,warning=FALSE,fig.width=7,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/countries/",dev=c('png','pdf')}
+
+country_plot <- function(country_handle,edgar_GHG_ar6,data,subsector_data_countries,kaya_data_countries) {
+  
+  sectors <- edgar_GHG_ar6 %>% 
+    filter(country==country_handle) %>% 
+    group_by(year,chapter_title) %>% 
+    summarise(GHG=sum(GHG,na.rm=TRUE)/1e6,.groups = )
+  
+  info <- data %>% 
+    filter(country==country_handle) %>% 
+    select(peak_year,rate_GHG_peak) %>% 
+    distinct()
+  
+  p1 <- sectors %>% 
+    ggplot(.,aes(x=year,y=GHG,fill=chapter_title)) +
+    geom_area(colour="#737373") +
+    #geom_text(data = data %>% filter(year==2018),
+    #          aes(x=year+1,y=location,colour=chapter_title,label=paste0(chapter_title," [",ifelse(rate>0,"+",""),round(rate,1),"%]")),hjust=0,) +
+    geom_vline(xintercept=c(info$peak_year,2018),alpha=0.3,linetype="dashed") +
+    #scale_x_continuous(limits = c(1990,2026)) +
+    scale_fill_brewer(palette="Set2") +
+    ylab("GHG Emissions (MtCO2eq)") +
+    theme(axis.title.x = element_blank(),
+          legend.position = "right",
+          legend.title=element_blank(),
+          plot.title = element_text(size = 11)) +
+    ggtitle(paste0("a. ",country_handle,": ",round(info$rate_GHG_peak,2),"%/yr decline since ",info$peak_year))
+  
+  
+  subsectors <- subsector_data_countries %>% 
+    group_by(cluster,chapter_title,subsector_title) %>% 
+    mutate(rel_GHG = (abs_GHG/GHG_peak)*100)
+  
+  
+  subsectors <- subsectors %>% 
+    filter(country==country_handle) %>% 
+    filter(subsector_title!="Biomass burning (CO2, CH4) (AFOLU)") %>% 
+    filter(subsector_title!="Biomass energy systems (Energy systems)") %>% 
+    filter(subsector_title!="Non-CO2 (all buildings) (Buildings)") %>% 
+    filter(subsector_title!="Rice cultivation (CH4) (AFOLU)") %>% 
+    filter(subsector_title!="Rail  (Transport)") %>% 
+    filter(subsector_title!="Other incl. Indirect N2O (Transport)") %>% 
+    filter(subsector_title!="Other incl. Indirect N2O (Energy systems)") %>% 
+    filter(subsector_title!="Inland Shipping (Transport)") %>% 
+    arrange(chapter_title)
+  
+  subsectors <- subsectors %>% 
+    filter(GHG_2018>0) %>% 
+    arrange(GHG_peak)
+  
+  
+  subsectors$order <- 1:length(subsectors$cluster)
+  subsectors$subsector_title <- fct_reorder(subsectors$subsector_title,subsectors$order)
+  
+  
+  p2 <- subsectors %>% ggplot(.,aes(x=subsector_title,y=GHG_peak,fill=chapter_title)) + 
+    geom_bar(stat='identity',color="#636363",width = 0.75,alpha=0.3) +
+    geom_bar(aes(x=subsector_title,y=GHG_2018),stat='identity',color="#636363",width = 0.75) +
+    geom_text(aes(x=subsector_title,y=ifelse(GHG_peak>GHG_2018,GHG_peak,GHG_2018),label=paste0(ifelse(rel_GHG>0,"+",""),round(rel_GHG,1),"%")),hjust = -0.15,size=3,colour="#636363",size=3.5) +
+    scale_y_continuous(expand=expand_scale(mult = c(0.1, 0.5))) +
+    scale_fill_brewer(palette="Set2") +
+    #scale_x_continuous(limits = c(1990,2026)) +
+    coord_flip() +
+    theme(axis.title.y = element_blank(),
+          legend.position="none",
+          legend.title=element_blank(),
+          plot.title = element_text(size = 11),
+          plot.background = element_blank(),
+          panel.grid.minor.y = element_blank()) +
+    ylab("Annual GHG emissions (MtCO2eq)") +
+    ggtitle("b. GHG emissions by subsector: peak level vs 2018")
+  
+  
+  
+  kaya_data <- kaya_data_countries %>% 
+    filter(name==country_handle)
+  
+  p3 <- kaya_data %>% ggplot(.,aes(x=year,y=value,color=factor)) +
+    geom_hline(yintercept=1) +
+    geom_vline(xintercept=1990,alpha=0.3,linetype="dashed") +
+    geom_path(size = 1.5) +
+    geom_point(size = 0.75,colour="white") +
+    theme_bw() +
+    scale_colour_brewer(type = "qual",palette="Set2",labels=c("CO2 Emissions","CO2/Energy","Energy","Energy/GDP","GDP/Population","Population")) +
+    theme(axis.title = element_blank(),
+          legend.position="right",
+          legend.title=element_blank(),
+          plot.title = element_text(size = 11),
+          plot.background = element_blank(),
+          panel.grid.minor = element_blank()) +
+    ggtitle("c. Trends in kaya factors")
+  
+  
+  return(list("p1"=p1,"p2"=p2,"p3"=p3))
+}
 
 
-```{r countries,echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf'),results="asis"}
-
-# country_handle="United States"
-# time_start = 2005
-# 
-# country_plot <- function(country_handle,edgar_GHG_ar6,rate) {
-#   
-#   data <- edgar_GHG_ar6 %>%
-#     filter(year>1989) %>% 
-#     filter(country==country_handle) %>% 
-#     group_by(country,year,chapter,chapter_title) %>% 
-#     summarise_at(vars(GHG),sum,na.rm=TRUE) %>% 
-#     mutate(GHG=GHG/1e7) %>% 
-#     ungroup() %>% 
-#     mutate(chapter_title=as.factor(chapter_title))
-#   
-#   sector_rates <- data %>% 
-#     filter(year %in% c(time_start,2019)) %>% 
-#     group_by(country,chapter,chapter_title) %>% 
-#     mutate(rate=((last(GHG)/first(GHG))^(1/(last(year)-first(year)))-1)*100) %>% 
-#     filter(year==2019) 
-#   
-#   sector_rates <- sector_rates %>% 
-#     arrange(desc(chapter_title)) %>% 
-#     mutate(location=GHG/2) %>% 
-#     group_by(country) %>% 
-#     mutate(GHG=cumsum(GHG))
-#   
-#   z = 5
-#   for (i in 2:z) {
-#     sector_rates$location[i] = sector_rates$location[i] + sector_rates$GHG[i-1]
-#   }
-#     
-#   sector_rates <- sector_rates %>%  
-#     select(-year,-GHG)
-#   
-#   data <- left_join(data,sector_rates, by = c("country", "chapter", "chapter_title"))
-#   
-#   p1 <- data %>%
-#     filter(year>1989) %>% 
-#     ggplot(.,aes(x=year,y=GHG,fill=chapter_title)) +
-#     geom_area(colour="#737373") +
-#     geom_text(data = data %>% filter(year==2019),
-#               aes(x=year+1,y=location,colour=chapter_title,label=paste0(chapter_title," [",ifelse(rate>0,"+",""),round(rate,1),"%]")),hjust=0,) +
-#     geom_vline(xintercept=c(time_start,2019),alpha=0.3,linetype="dashed") +
-#     scale_fill_brewer(palette = "Set2") +
-#     scale_colour_brewer(palette = "Set2") +
-#     scale_x_continuous(limits = c(1990,2026)) +
-#     ylab("GHG Emissions (MtCO2eq)") + 
-#     theme(axis.title.x = element_blank(),
-#           legend.position = "none") +
-#     ggtitle(paste0(country_handle," - ",rate,"% decline since ",time_start))
-#   
-#   data <- edgar_GHG_ar6 %>% 
-#     filter(country==country_handle) %>% 
-#     group_by(country,year,chapter_title,subsector,subsector_title) %>% 
-#     summarise_at(vars(GHG),sum,na.rm=TRUE) %>% 
-#     mutate(GHG=GHG/1e7)
-#   
-#   subsector_rates <- data %>% 
-#     filter(year %in% c(2000,2019)) %>% 
-#     group_by(country,subsector,subsector_title) %>% 
-#     mutate(rate=((last(GHG)/first(GHG))^(1/(last(year)-first(year)))-1)*100) %>% 
-#     filter(year==2019)
-#   
-#   data <- data %>% 
-#     filter(year %in% c(2000,2019)) %>% 
-#     group_by(country,subsector_title) %>% 
-#     mutate(difference=last(GHG)-first(GHG)) %>% 
-#     mutate(rate_sector=((last(GHG)/first(GHG))^(1/(last(year)-first(year)))-1)*100)
-#   
-#   total_GHG <- data %>% filter(year==2019) %>% group_by(country) %>% summarise(GHG=sum(GHG))
-#   
-#   data <- data %>% 
-#     filter(year==2019) %>% 
-#     mutate(filter=(abs(difference)/total_GHG$GHG)*100)
-#   
-#   p2 <- data %>% 
-#     filter(filter>=0.25) %>% 
-#     ggplot(.,aes(x=reorder(subsector_title,desc(difference)),y=difference,fill=chapter_title)) +
-#     geom_text(aes(x=reorder(subsector_title,desc(difference)),y=difference,label=paste0(ifelse(rate_sector>0,"+",""),round(rate_sector,1),"%"),hjust = ifelse(difference >= 0, -0.1, 1.1)),size=3,colour="#737373") +
-#     geom_bar(stat='identity',colour="#737373") +
-#     scale_y_continuous(expand = expand_scale(mult = c(0.15, .15))) +
-#     scale_fill_manual(values= colours_sectors) +
-#     ylab(paste0("GHG Emissions change in major sectors, ",time_start,"-2019 (MtCO2eq)")) +
-#     xlab('') +
-#     coord_flip() +
-#     theme(legend.position="none")
-#   
-#   p <- ggarrange(p1,p2,nrow=2)
-#   
-#   return(list("plot"=p,"data"=data))
-# }
-# 
-# 
-# for (i in 1:length(rates$country[rates$decline==1])) {
-# #for (i in 1:2) {
-#  
-#   country_handle = rates$country[rates$decline==1][i]
-#   rate = round(abs(rates$rate_GHG[rates$decline==1][i]*100),1)
-#   
-#   p <- country_plot(country_handle,edgar_GHG_ar6,rate)
-#   cat("  \n### ",country_handle,"  \n")
-#   print(p$plot)
-#   cat("  \n")
-#   
-# }
+#country_handle = "Jamaica"
+#for (i in 1:1) {
+for (i in 1:length(unique(data$country))) {
+  
+  
+  country_handle <- unique(data$country)[i]
+  plots <- country_plot(country_handle,edgar_GHG_ar6,data,subsector_data_countries,kaya_data_countries) 
+  p <- wrap_elements(plots$p1) / wrap_elements(plots$p2) / wrap_elements(plots$p3) +  plot_layout(heights = c(1.5,2,1.5))
+  
+  print(p)
+  cat("  \n")
+  
+}
 
 
-
-
-```
-```{r save_data,echo=FALSE,warning=FALSE}
-
-# output <- data %>% 
-#   filter(year %in% c(time_start,2017)) %>% 
-#   group_by(country) %>% 
-#   summarise(rate_POP=(last(pop_UN)/first(pop_UN))^(1/(last(year)-time_start))-1,
-#     rate_GDP=(last(gdp_ppp_WB)/first(gdp_ppp_WB))^(1/(last(year)-time_start))-1) %>% 
-#   ungroup()
-# 
-# output <- left_join(data,output,by = "country")
-# output <- output %>% 
-#   group_by(country) %>% 
-#   fill(gdp_ppp_WB)
-# 
-# output <- output %>% 
-#   filter(year==2019) %>% 
-#   select(-year,-decline)
-# 
-# 
-# 
-# wb <- openxlsx::createWorkbook(title = paste("decarbonising_countries",Sys.Date()))
-# openxlsx::addWorksheet(wb,"data")
-# openxlsx::writeData(wb, sheet = "data", output, colNames = T, rowNames = F)
-# openxlsx::saveWorkbook(wb,paste0("../../Results/Data/decarbonising_countries_",Sys.Date(),".xlsx"),overwrite=T)
 
 ```
-
-

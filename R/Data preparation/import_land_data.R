@@ -74,6 +74,6 @@ openxlsx::writeData(wb, sheet = "info", info, colNames = F, rowNames = F)
 addWorksheet(wb,"data")
 openxlsx::writeData(wb, sheet = "data", land, colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,"Results/Data/ipcc_ar6_land_data.xlsx",overwrite=T)
+openxlsx::saveWorkbook(wb,"../../Results/Data/ipcc_ar6_land_data_2021-04-06.xlsx",overwrite=F)
 
-save(land,file='Data/land.RData')
+save(land,file='../../Data/land.RData')
