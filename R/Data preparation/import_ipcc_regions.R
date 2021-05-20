@@ -4,12 +4,13 @@ library(openxlsx)
 library(tidyverse)
 
 
-ipcc_regions <- read.xlsx('Data/Codes and classifications/Country categories plus alpha codes 27-11-2019.xlsx','Breakdown_list_dev_level')
+ipcc_regions <- read.xlsx('Data/Codes and classifications/Country categories plus alpha codes 27-04-2021.xlsx','Breakdown_list_dev_level')
 
 ipcc_regions <- ipcc_regions %>% 
   mutate(region_ar6_5_short=ifelse(region_ar6_5=="Developed Countries","DEV",NA)) %>% 
   mutate(region_ar6_5_short=ifelse(region_ar6_5=="Latin America and Caribbean","LAM",region_ar6_5_short)) %>% 
-  mutate(region_ar6_5_short=ifelse(region_ar6_5=="Africa and Middle East","AME",region_ar6_5_short)) %>% 
+  mutate(region_ar6_5_short=ifelse(region_ar6_5=="Africa","AFR",region_ar6_5_short)) %>% 
+  mutate(region_ar6_5_short=ifelse(region_ar6_5=="Middle East","MEA",region_ar6_5_short)) %>% 
   mutate(region_ar6_5_short=ifelse(region_ar6_5=="Eastern Europe and West-Central Asia","EEA",region_ar6_5_short)) %>% 
   mutate(region_ar6_5_short=ifelse(region_ar6_5=="Asia and Developing Pacific","APC",region_ar6_5_short)) %>% 
   mutate(region_ar6_5_short=ifelse(region_ar6_5=="Intl. Shipping","SEA",region_ar6_5_short)) %>% 

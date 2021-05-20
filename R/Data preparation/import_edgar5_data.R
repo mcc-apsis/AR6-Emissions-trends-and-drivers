@@ -152,7 +152,7 @@ edgar_GHG <- edgar_GHG %>%
 
 
 edgar_GHG$region_ar6_5_short <- as.factor(edgar_GHG$region_ar6_5_short)
-edgar_GHG$region_ar6_5_short <- factor(edgar_GHG$region_ar6_5_short,levels(edgar_GHG$region_ar6_5_short)[c(1,7,2,3,4,5,6)])
+edgar_GHG$region_ar6_5_short <- factor(edgar_GHG$region_ar6_5_short,levels(edgar_GHG$region_ar6_5_short)[c(2,8,1,3,4,5,6,7)])
 
 
 ##############convert from Kton to t
@@ -185,6 +185,9 @@ for (row in 1:nrow(gwps)) {
 }
 
 ## apply CH4 gwps based on a more detailed breakdown of sources
+
+gwps_ch4 <- left_join(gwps_ch4,gwps)
+
 
 edgar_GHG_ar6 <- left_join(edgar_GHG_ar6,gwps_ch4 %>% select(sector_code,gwp_ch4=value),
                            by = "sector_code")

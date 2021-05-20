@@ -91,6 +91,7 @@ p1 <- ggplot() +
   geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=GHGpc),color="grey",size=0.25,na.rm=T) + 
   #scale_fill_viridis_c(limits = c(0,35)) +
   scale_fill_steps(low = 'lightyellow',high = "darkred", na.value="lightgrey", limits = c(0,35), breaks=c(5,10,15,20,25,30), oob=squish) +
+  #check again with new data the limit to 35 tCO2eq per capita
   theme(panel.border = element_rect(colour = "black",fill=NA),
         legend.position = c(0.5,0),
         legend.direction = "horizontal",
@@ -104,7 +105,7 @@ p1 <- ggplot() +
         plot.margin = unit(c(0,0,0.5,0),units="cm"),
         plot.title = element_text(size=12),
         panel.grid=element_blank()) +
-  ggtitle("a. GHG emissions per capita in 2019 in tCO2eq (note: axis limited to max 35tCO2eq/cap)")
+  ggtitle("a. GHG emissions per capita in 2019 in tCO2eq")
 p1
 
 p2 <- ggplot() + 

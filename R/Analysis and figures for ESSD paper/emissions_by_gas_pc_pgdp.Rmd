@@ -1,0 +1,236 @@
+---
+title: "Per capita & per GDP emissions by gas"
+author: "Niklas Döbbeling"
+date: "6 5 2021"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "Results") })
+
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+library(patchwork)
+library(ggplot2); theme_set(theme_bw())
+
+source("../Analysis and figures/small_figures.R")
+#source("../decomp_figure_countries.R")
+#source("../decomp_figure_sectors.R")
+
+options(dplyr.summarise.inform = FALSE)
+
+load('../../Data/edgar_data_gwp_ar6.RData')
+load("../../Data/land.RData")
+load('../../Data/WDI_gdp_pop.RData')
+
+
+# set palette
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+
+uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
+                            uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
+
+
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_region_and_countries_plot")
+
+
+```
+
+```{r gas_data,echo=FALSE,warning=FALSE,include=FALSE}
+
+edgar_by_gas<-edgar_GHG_ar6 %>%
+  group_by(year) %>%
+  summarise_at(.vars = c("CO2","CH4","N2O", "Fgas","GHG"), .funs = sum,na.rm=TRUE)
+
+land_totals <- land %>% 
+  filter(year>1969) %>% 
+  filter(year<=2019) %>% 
+  group_by(year) %>% 
+  summarise(CO2_landuse=sum(mean))
+
+edgar_by_gas<-left_join(edgar_by_gas,land_totals,by="year")
+
+edgar_by_gas<-edgar_by_gas %>%
+  mutate(GHG=GHG+CO2_landuse)
+
+wdi_world<-wdi_data_gdp_pop%>%
+  filter(iso3c=="WLD")
+
+edgar_by_gas<-left_join(edgar_by_gas,wdi_world,by="year")
+
+edgar_by_gas<-gather(edgar_by_gas,key="gas",value = "value",CO2:CO2_landuse) %>%
+  mutate(gas=ifelse(gas=="CO2","CO2 FFI",gas)) %>%
+  mutate(gas=ifelse(gas=="CO2_landuse","CO2 Land use",gas))
+
+edgar_by_gas$gas<-as.factor(edgar_by_gas$gas)
+
+edgar_by_gas<-edgar_by_gas %>%
+  mutate(per_capita=value/population) %>%
+  mutate(per_gdp_real=value/gdp_real) %>%
+  mutate(per_gdp_ppp=value/gdp_ppp)
+
+edgar_by_gas <- left_join(edgar_by_gas,uncertainties,by = "gas")
+
+edgar_by_gas <- edgar_by_gas %>% 
+  mutate(per_capita_high = per_capita+((uncertainty*per_capita))) %>% 
+  mutate(per_capita_low = per_capita-((uncertainty*per_capita))) %>% 
+  mutate(per_gdp_high = per_gdp_real+((uncertainty*per_gdp_real))) %>% 
+  mutate(per_gdp_low = per_gdp_real-((uncertainty*per_gdp_real))) %>% 
+  rename("absolute"="value") %>%
+  mutate(absolute=absolute/1e9)%>%
+  mutate(absolute_high = absolute+((uncertainty*absolute))) %>% 
+  mutate(absolute_low = absolute-((uncertainty*absolute))) %>% 
+  select(-uncertainty)
+
+# edgar_by_gas<- edgar_by_gas %>%
+#   mutate(co2_pc= CO2/population) %>%
+#   mutate(ch4_pc= CH4/population) %>%
+#   mutate(n2o_pc= N2O/population) %>%
+#   mutate(fgas_pc= Fgas/population) %>%
+#   mutate(ghg_pc= GHG/population) %>%
+#   
+#   mutate(co2_pgdp_real= CO2/gdp_real) %>%
+#   mutate(ch4_pgdp_real= CH4/gdp_real) %>%
+#   mutate(n2o_pgdp_real= N2O/gdp_real) %>%
+#   mutate(fgas_pgdp_real= Fgas/gdp_real) %>%
+#   mutate(ghg_pgdp_real= GHG/gdp_real) %>%
+#   
+#   mutate(co2_pgdp_ppp= CO2/gdp_ppp) %>%
+#   mutate(ch4_pgdp_ppp= CH4/gdp_ppp) %>%
+#   mutate(n2o_pgdp_ppp= N2O/gdp_ppp) %>%
+#   mutate(fgas_pgdp_ppp= Fgas/gdp_ppp) %>%
+#   mutate(ghg_pgdp_ppp= GHG/gdp_ppp)
+
+```
+
+```{r plot,echo=FALSE,warning=FALSE,include=FALSE}
+
+#edgar_by_gas<-gather(edgar_by_gas,key = "unit",value = "value", "co2_pc":"ghg_pgdp_ppp")
+edgar_by_gas$gas <- as.factor(edgar_by_gas$gas)
+edgar_by_gas$gas<-factor(edgar_by_gas$gas,levels(edgar_by_gas$gas)[c(5,2,3,1,6,4)])
+# edgar_by_gas$gas <- factor(edgar_by_gas$gas,levels=levels(edgar_by_gas$gas)[c(2,3,1,4,5)])
+# colours = c("#a6d854","#e78ac3","#8da0cb","#fc8d62","black")
+
+plot_theme <- theme_bw() +
+  theme(axis.title.x = element_blank(),
+        plot.title = element_text(size = 11,color="#252525"),
+        axis.title = element_text(color="#525252"),
+        #panel.grid.minor.x = element_blank(),
+        legend.position="none",
+        text = element_text(size=11),
+        plot.background = element_blank())
+
+ p<-edgar_by_gas %>%
+    #filter(gas==gas1) %>%
+    ggplot(.,aes(x=year,y=absolute,color=gas))+
+    #geom_line(color=col)+
+    geom_ribbon(aes(ymin=absolute_low,ymax=absolute_high,fill=gas),alpha=0.3)+
+   facet_grid(gas~.) +
+    scale_x_continuous(breaks=c(1980,1995,2010)) +
+    scale_fill_manual(values=col) +
+    scale_color_manual(values=col) +
+    ylab('GtCO2eq') +
+    #ggtitle(title) +
+    plot_theme
+
+
+
+plot_abs<-function(gas1,title,col){
+  p<-edgar_by_gas %>%
+    filter(gas==gas1) %>%
+    ggplot(.,aes(x=year,y=absolute))+
+    geom_line(color=col)+
+    geom_ribbon(aes(ymin=absolute_low,ymax=absolute_high,fill=gas),alpha=0.3)+
+    scale_x_continuous(breaks=c(1980,1995,2010)) +
+    scale_fill_manual(values=col) +
+    scale_color_manual(values=col) +
+    ylab('GtCO2eq') +
+    ggtitle(title) +
+    plot_theme
+  
+  return(p)
+}
+
+plot_pc<-function(gas1,title,col){
+  p<-edgar_by_gas %>%
+    filter(gas==gas1) %>%
+    ggplot(.,aes(x=year,y=per_capita))+
+    geom_line(color=col)+
+    geom_ribbon(aes(ymin=per_capita_low,ymax=per_capita_high,fill=gas),alpha=0.3)+
+    scale_x_continuous(breaks=c(1980,1995,2010)) +
+    scale_fill_manual(values=col) +
+    scale_color_manual(values=col) +
+    ylab('tCO2eq per capita') +
+    ggtitle(title) +
+    plot_theme
+  
+  return(p)
+}
+
+plot_pgdp<-function(gas1,title,col){
+  p<-edgar_by_gas %>%
+    filter(gas==gas1) %>%
+    ggplot(.,aes(x=year,y=per_gdp_real))+
+    geom_line(color=col)+
+    geom_ribbon(aes(ymin=per_gdp_low,ymax=per_gdp_high,fill=gas),alpha=0.3)+
+    scale_x_continuous(breaks=c(1980,1995,2010)) +
+    scale_fill_manual(values=col) +
+    scale_color_manual(values=col) +
+    ylab('tCO2/GDP') +
+    ggtitle(title) +
+    plot_theme
+  
+  return(p)
+}
+
+p1_abs<-plot_abs("CO2 FFI","CO2 FFI absolute emissions","#a6d854")
+p2_abs<-plot_abs("CO2 Land use","CO2 Land use absolute emissions","#e78ac3")
+p3_abs<-plot_abs("CH4","CH4 absolute emissions","#8da0cb")
+p4_abs<-plot_abs("N2O","N2O absolute emissions","#fc8d62")
+p5_abs<-plot_abs("Fgas","F-gas absolute emissions","#66c2a5")
+p6_abs<-plot_abs("GHG","GHG absolute emissions","#B3B3B3")
+
+p1_pc<-plot_pc("CO2 FFI","c. CO2 FFI emissions per capita","#a6d854")
+p2_pc<-plot_pc("CO2 Land use","e. CO2 Land use emissions per capita","#e78ac3")
+p3_pc<-plot_pc("CH4","g. CH4 emissions per capita","#8da0cb")
+p4_pc<-plot_pc("N2O","i. N2O emissions per capita","#fc8d62")
+p5_pc<-plot_pc("Fgas","h. F-gas emissions per capita","#66c2a5")
+p6_pc<-plot_pc("GHG","a. GHG emissions per capita","#B3B3B3")
+
+p1_pgdp<-plot_pgdp("CO2 FFI","d. CO2 FFI emissions intensity","#a6d854")
+p2_pgdp<-plot_pgdp("CO2 Land use","f. CO2 Land use emissions intensity","#e78ac3")
+p3_pgdp<-plot_pgdp("CH4","h. CH4 emissions intensity","#8da0cb")
+p4_pgdp<-plot_pgdp("N2O","j. N2O emissions intensity","#fc8d62")
+p5_pgdp<-plot_pgdp("Fgas","h. F-gas emissions intensity","#66c2a5")
+p6_pgdp<-plot_pgdp("GHG","b.GHG emissions intensity","#B3B3B3")
+
+#p5<-plot_pgdp("CO2","co2_pgdp")
+#p6<-plot_pgdp("CH4","ch4_pgdp")
+#p7<-plot_pgdp("N2O","n2o_pgdp")
+#p8<-plot_pgdp("Fgas","fgas_pgdp")
+
+# p<-edgar_by_gas %>%
+#     filter(gas==gas1) %>%
+#     ggplot(.,aes(x=year,y=per_capita))+
+#     geom_line(aes(color=gas))+
+#     scale_x_continuous(breaks=c(1980,1995,2010)) +
+#     scale_fill_manual(values=colours) +
+#     scale_color_manual(values=colours) +
+#     ylab('Emissions (GtCO2eq/yr)') +
+#     ggtitle(title) +
+#     plot_theme
+# facet_wrap(.~gas,nrow=1)
+
+```
+
+```{r plots,echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="Results/Plots/",dev=c('png','pdf')}
+
+(p6_abs + p6_pc + p6_pgdp + p1_abs + p1_pc + p1_pgdp + p2_abs + p2_pc + p2_pgdp + p3_abs + p3_pc + p3_pgdp + p4_abs + p4_pc + p4_pgdp + p5_abs + p5_pc + p5_pgdp) + plot_layout(nrow=6,heights = c(1/3,1/3)) # +facet_grid(rows=6) #
+#pp5 + pp6 + pp7 + pp8
+
+```

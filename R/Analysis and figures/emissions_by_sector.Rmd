@@ -22,7 +22,10 @@ library(zoo)
 
 source("small_figures.R")
 
-load('../../Data/edgar_data_gwp_ar6.RData')
+end_year = 2018
+
+load('../../Data/edgar6_data_gwp_ar6.RData')
+#load('../../Data/edgar_data_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load('../../Data/indirect_CO2.RData')
 load('../../Data/land.RData')
@@ -70,7 +73,7 @@ edgar_GHG_ar6 <- left_join(edgar_GHG_ar6,regions,by = "region_ar6_10")
 
 land <- land %>%
   filter(year>1989) %>% 
-  filter(year<2019) %>% 
+  filter(year<=end_year) %>% 
   mutate(subsector=7.7) %>% 
   mutate(subsector_title="Land-use (CO2)") %>% 
   select(region_ar6_10,year,subsector,subsector_title,value=mean)
@@ -84,7 +87,9 @@ openxlsx::writeData(wb,sheet="info",info,colNames=F,rowNames=F)
 blarg <- edgar_GHG_ar6 %>%
   filter(year==2018) %>%
   group_by(year,subsector_title,chapter,chapter_title) %>%
-  summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE)
+  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE)
+
+sum(blarg$CO2)
 
 
 # Buildings data for Yamina Saheb
@@ -119,6 +124,7 @@ gather_trend_data <- function(edgar_GHG_ar6,ch) {
   ## sum emissions for the sector
   trend_data <- edgar_GHG_ar6 %>%
     filter(year>1989) %>%
+    filter(year<=end_year) %>% 
     filter(chapter==ch) %>%
     group_by(year,subsector,subsector_title) %>%
     summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>% 
@@ -207,7 +213,7 @@ trend_figure <- function(trend_data,chapter) {
   
   ## align labels
   labels <- trend_data %>%
-    filter(year==2018) %>% 
+    filter(year==end_year) %>% 
     arrange(desc(subsector_title))
   
   labels <- labels %>% 
@@ -224,7 +230,7 @@ trend_figure <- function(trend_data,chapter) {
   
   ## calculate shares
   shares <- trend_data %>%
-    filter(year %in% c(1990,2000,2010,2018)) %>%
+    filter(year %in% c(1990,2000,2010,end_year)) %>%
     group_by(year) %>%
     mutate(totals=sum(value)) %>%
     ungroup() %>%
@@ -236,7 +242,7 @@ trend_figure <- function(trend_data,chapter) {
   
   # # calculate overall growth between years (time 1 time 2)
   growth_data <- trend_data %>%
-    filter(year %in% c(1990,2000,2010,2018)) %>%
+    filter(year %in% c(1990,2000,2010,end_year)) %>%
     group_by(year) %>%
     summarise(value=sum(value)) %>%
     mutate(total_rate = NA)
@@ -281,7 +287,7 @@ trend_figure <- function(trend_data,chapter) {
     ggplot(.,aes(x=year,y=value,fill=subsector_title)) +
     geom_area(color='#737373') +
     
-    geom_vline(xintercept=c(1990,2000,2010,2018),alpha=0.3,linetype="dashed") +
+    geom_vline(xintercept=c(1990,2000,2010,end_year),alpha=0.3,linetype="dashed") +
     geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]),aes(x=year,y=1.05*max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste(round(totals,1),  "Gt")),size=3.5,colour="#252525") +
     
     #geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,size=3.5,colour="#252525") +
@@ -299,9 +305,9 @@ trend_figure <- function(trend_data,chapter) {
     
     # geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(round(fractions,0),"%")),hjust=0,size=3.5,colour="#252525") +
     
-    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<2018),aes(x=ifelse(year==2010,year+4,year+5),y=max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste0(ifelse(total_rate>0,"+","-"),round(abs(total_rate),1),"%")),size=3.5,colour="#252525") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4,year+5),y=max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste0(ifelse(total_rate>0,"+","-"),round(abs(total_rate),1),"%")),size=3.5,colour="#252525") +
     
-    scale_x_continuous(breaks=c(1990,2000,2010,2018),limits = c(1990,2020)) +
+    scale_x_continuous(breaks=c(1990,2000,2010,end_year),limits = c(1990,end_year+2)) +
     scale_y_continuous() +
     expand_limits(y=c(0,max(shares$totals+ifelse(shares$subsector==1,5,1))*1.05)) +
     #scale_fill_brewer(type = "qual",palette="Set2") +
@@ -330,7 +336,7 @@ gather_region_data <- function(edgar_GHG_ar6,ch) {
   ## Gather data
   region_data <- edgar_GHG_ar6 %>% 
     filter(chapter==ch) %>% 
-    filter(year %in% c(1990,2000,2010,2018)) %>% 
+    filter(year %in% c(1990,2000,2010,end_year)) %>% 
     group_by(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year) %>% 
     summarise(value=sum(GHG,na.rm=TRUE)) %>% 
     mutate(value=value/1e9) %>% 
@@ -341,7 +347,7 @@ gather_region_data <- function(edgar_GHG_ar6,ch) {
   if (ch==7) {
     
     land_regions <- land %>% 
-      filter(year %in% c(1990,2000,2010,2018)) %>% 
+      filter(year %in% c(1990,2000,2010,end_year)) %>% 
       group_by(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year) %>% 
       summarise(value=sum(value,na.rm=TRUE)) %>% 
       mutate(value=value/1e9) %>% 
@@ -356,7 +362,7 @@ gather_region_data <- function(edgar_GHG_ar6,ch) {
   if (ch==1) {
     
     land_regions <- land %>% 
-      filter(year %in% c(1990,2000,2010,2018)) %>% 
+      filter(year %in% c(1990,2000,2010,end_year)) %>% 
       group_by(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year) %>% 
       summarise(value=sum(value,na.rm=TRUE)) %>% 
       mutate(value=value/1e9) %>% 
@@ -396,7 +402,7 @@ gather_region_data <- function(edgar_GHG_ar6,ch) {
     if (ch!=6) {
       # 
       # land_regions <- land %>% 
-      #   filter(year %in% c(1990,2000,2010,2018)) %>% 
+      #   filter(year %in% c(1990,2000,2010,end_year)) %>% 
       #   group_by(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year) %>% 
       #   summarise(value=sum(value,na.rm=TRUE)) %>% 
       #   mutate(value=value/1e9) %>% 
@@ -408,7 +414,7 @@ gather_region_data <- function(edgar_GHG_ar6,ch) {
       
       indirect_regions <- indirect_CO2_regions %>% 
         filter(chapter==ch) %>% 
-        filter(year %in% c(1990,2000,2010,2018)) %>% 
+        filter(year %in% c(1990,2000,2010,end_year)) %>% 
         group_by(region_ar6_10,year) %>% 
         summarise(value=sum(CO2_indirect,na.rm=TRUE)) %>% 
         mutate(subsector_title="Indirect CO2") %>% 
@@ -421,7 +427,7 @@ gather_region_data <- function(edgar_GHG_ar6,ch) {
         
         indirect_regions <- indirect_CO2_regions %>%
           filter(chapter==ch) %>%
-          filter(year %in% c(1990,2000,2010,2018)) %>% 
+          filter(year %in% c(1990,2000,2010,end_year)) %>% 
           group_by(region_ar6_10,year,subsector,subsector_title) %>%
           summarise(value=sum(CO2_indirect,na.rm=TRUE)) %>% 
           ungroup()
@@ -510,9 +516,9 @@ calculate_growth_rates <- function(trend_data) {
     ghg = temp_data$value[temp_data$year>=2000 & temp_data$year<=2010]
     temp_data$rate[temp_data$year>=2000 & temp_data$year<2010] = growth_rate(years,ghg)*100
     
-    years = temp_data$year[temp_data$year>=2010 & temp_data$year<=2018]
-    ghg = temp_data$value[temp_data$year>=2010 & temp_data$year<=2018]
-    temp_data$rate[temp_data$year>=2010 & temp_data$year<=2018] = growth_rate(years,ghg)*100
+    years = temp_data$year[temp_data$year>=2010 & temp_data$year<=end_year]
+    ghg = temp_data$value[temp_data$year>=2010 & temp_data$year<=end_year]
+    temp_data$rate[temp_data$year>=2010 & temp_data$year<=end_year] = growth_rate(years,ghg)*100
     
     rates <- rbind(rates,temp_data)
     
@@ -533,8 +539,8 @@ calculate_growth_rates <- function(trend_data) {
       filter(subsector_title==unique(trend_data$subsector_title)[i]) %>% 
       mutate(rate=NA)
     
-    years = temp_data$year[temp_data$year>=1990 & temp_data$year<=2018]
-    ghg = temp_data$value[temp_data$year>=1990 & temp_data$year<=2018]
+    years = temp_data$year[temp_data$year>=1990 & temp_data$year<=end_year]
+    ghg = temp_data$value[temp_data$year>=1990 & temp_data$year<=end_year]
     rates <- add_row(rates,region="World",
                      subsector=unique(trend_data$subsector)[i],
                      subsector_title=unique(trend_data$subsector_title)[i],

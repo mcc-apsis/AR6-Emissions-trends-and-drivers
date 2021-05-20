@@ -20,8 +20,12 @@ library(ggplot2); theme_set(theme_bw())
 source("small_figures.R")
 
 
-load('../../Data/edgar_data_gwp_ar6.RData')
-load("../../Data/edgar_data_all.RData")
+#load('../../Data/edgar_data_gwp_ar6.RData')
+#load("../../Data/edgar_data_all.RData")
+
+load('../../Data/edgar6_data_gwp_ar6.RData')
+load('../../Data/edgar6_data_all.RData')
+
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 
@@ -33,7 +37,7 @@ uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','G
                             uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
 
 
-wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_gas_data_",Sys.Date()))
+wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_gas_data"))
 
 ```
 
@@ -43,32 +47,43 @@ wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_gas_data_",Sys.Date()))
 ####### calculate total emissions for different gases using different GWPs
 
 waterfall_data <- edgar_GHG %>% 
-  group_by(year) %>% 
-  summarise_at(vars(CO2:SF6),sum,na.rm=TRUE) %>% 
-  mutate_at(vars(CO2:SF6),list(~./1e9))
+  group_by(year,gas) %>% 
+  summarise(value=sum(value,na.rm=TRUE)/1e9)
 
-waterfall_data <- gather(waterfall_data,gas,value,CO2:SF6)
 waterfall_data <- left_join(waterfall_data,gwps,by = "gas")
 waterfall_data <- waterfall_data %>% 
   mutate(gwp_ar2=gwp_ar2*value) %>% 
   mutate(gwp_ar4=gwp_ar4*value) %>% 
   mutate(gwp_ar5=gwp_ar5*value) %>% 
   mutate(gwp_ar6=gwp_ar6*value) %>% 
-  select(-value,-gwp_ar6_old)
+  select(-value,-gwp_ar6_sod)
 
 
 #### recalculate methane in AR6 using biogenic / non-biogenic methane GWPs
 
 methane <- edgar_GHG %>% 
-  filter(!is.na(CH4)) %>% 
-  group_by(sector_code,description,year) %>% 
-  summarise(CH4=sum(CH4,na.rm=TRUE))
+  filter(gas=="CH4") %>% 
+  group_by(sector_code,fossil_bio,description,year) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
 
-methane <- left_join(methane,gwps_ch4,by = "sector_code")
+methane <- left_join(methane,gwps_ch4 %>% select(sector_code,fossil_bio,gwp_ar6),by = c("sector_code","fossil_bio"))
+
+any_missing <- anti_join(methane,gwps_ch4 %>% select(sector_code,fossil_bio,gwp_ar6),by = c("sector_code","fossil_bio"))
 
 methane <- methane %>% 
-  mutate(CH4_adjusted=CH4*value) %>% 
-  mutate(CH4_base=CH4*32)
+  mutate(value=value*gwp_ar6) %>% 
+  group_by(year) %>% 
+  summarise(gwp_ar6_ch4=sum(value,na.rm=TRUE)/1e9) %>% 
+  mutate(gas="CH4")
+
+waterfall_data <- left_join(waterfall_data,methane,by=c("gas","year"))
+waterfall_data <- waterfall_data %>% 
+  mutate(gwp_ar6=ifelse(gas=="CH4",gwp_ar6_ch4,gwp_ar6)) %>% 
+  select(-gwp_ar6_ch4)
+
+# methane <- methane %>% 
+#   mutate(CH4_adjusted=CH4*gwp_ar6) %>% 
+#   mutate(CH4_base=CH4*32)
 
 ## which methane sectors explain the difference?
 
@@ -77,17 +92,17 @@ methane <- methane %>%
 #   mutate(difference=(CH4_adjusted-CH4_base)/1e9) %>% 
 #   arrange(desc(difference))
 
-methane <- methane %>% 
-  group_by(year) %>% 
-  summarise(CH4_base=sum(CH4_base)/1e9,CH4_adjusted=sum(CH4_adjusted)/1e9) %>% 
-  mutate(difference=(CH4_adjusted-CH4_base)) %>% 
-  mutate(gas="CH4")
+# methane <- methane %>% 
+#   group_by(year) %>% 
+#   summarise(CH4_base=sum(CH4_base)/1e9,CH4_adjusted=sum(CH4_adjusted)/1e9) %>% 
+#   mutate(difference=(CH4_adjusted-CH4_base)) %>% 
+#   mutate(gas="CH4")
 
-waterfall_data <- left_join(waterfall_data,methane,by = c("year", "gas"))
-
-waterfall_data <- waterfall_data %>% 
-  mutate(gwp_ar6=ifelse(!is.na(CH4_adjusted),CH4_adjusted,gwp_ar6)) %>% 
-  select(-CH4_base,-CH4_adjusted,-difference)
+# waterfall_data <- left_join(waterfall_data,methane,by = c("year", "gas"))
+# 
+# waterfall_data <- waterfall_data %>% 
+#   mutate(gwp_ar6=ifelse(!is.na(CH4_adjusted),CH4_adjusted,gwp_ar6)) %>% 
+#   select(-CH4_base,-CH4_adjusted,-difference)
 
 #### calculate fgas and land emissions
 
@@ -290,17 +305,43 @@ p_gas_totals
 
 
 plot_data_nogwp <- edgar_GHG %>% 
+  filter(sector_code!="4E") %>% 
+  group_by(year,gas) %>% 
+  summarise(value=sum(value,na.rm=TRUE)/1e9)
+
+land_totals <- land %>% 
+  filter(year>1989) %>% 
+  filter(year<2020) %>% 
   group_by(year) %>% 
-  summarise_at(vars(CO2:N2O),sum,na.rm=TRUE) %>% 
-  mutate_at(vars(CO2:N2O),list(~./1e9))
+  summarise(value=sum(mean)/1e9) %>% 
+  mutate(gas="CO2 Land use")
 
-plot_data_nogwp <- left_join(plot_data_nogwp,land_totals,by = "year")
-
-plot_data_nogwp <- gather(plot_data_nogwp,gas,value,CO2:CO2_landuse)
+plot_data_nogwp <- rbind(plot_data_nogwp,land_totals)
 plot_data_nogwp <- plot_data_nogwp %>% 
-  mutate(gas=ifelse(gas=="CO2","CO2 FFI",gas)) %>% 
-  mutate(gas=ifelse(gas=="CO2_landuse","CO2 Land use",gas))
+  mutate(gas=ifelse(gas=="CO2","CO2 FFI",gas))
 
+
+# group fgases
+
+fgas_list <- edgar_GHG %>% 
+  filter(gas!="CO2") %>% 
+  filter(gas!="CH4") %>% 
+  filter(gas!="N2O") %>% 
+  select(gas) %>% 
+  distinct() %>% 
+  mutate(fgas=1)
+
+plot_data_nogwp <- left_join(plot_data_nogwp,fgas_list,by = "gas")
+
+fgases <- left_join(plot_data_nogwp %>% filter(fgas==1),gwps %>% select(gas,gwp_ar6),by="gas")
+
+fgases <- fgases %>% 
+  mutate(value=value*gwp_ar6) %>% 
+  group_by(year) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  mutate(gas="Fgas")
+
+plot_data_nogwp <- rbind(plot_data_nogwp %>% filter(is.na(fgas)) %>% select(-fgas),fgases)
 
 
 # Normalise to 1 in first year?
@@ -319,8 +360,10 @@ plot_data_nogwp <- plot_data_nogwp %>%
 
 #manually map colours
 plot_data_nogwp$gas <- as.factor(plot_data_nogwp$gas)
-plot_data_nogwp$gas <- factor(plot_data_nogwp$gas,levels=levels(plot_data_nogwp$gas)[c(2,3,1,4)])
-colours = c("#a6d854","#e78ac3","#8da0cb","#fc8d62")
+plot_data_nogwp$gas <-  factor(plot_data_nogwp$gas,levels(plot_data_nogwp$gas)[c(2,3,1,5,4)])
+
+
+colours = c("#a6d854","#e78ac3","#8da0cb","#fc8d62","#66c2a5")
 
 
 p_gas_trends <- plot_data_nogwp %>%
@@ -365,6 +408,6 @@ openxlsx::writeData(wb, sheet = "gas_trend", spread(plot_data,year,value), colNa
 
 
 
-openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_gas_data_",Sys.Date(),".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_gas_data.xlsx"),overwrite=T)
 
 ```

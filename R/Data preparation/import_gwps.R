@@ -3,10 +3,7 @@ library(tidyverse)
 
 gwps <- openxlsx::read.xlsx('Data/Codes and classifications/gwps.xlsx','gwps')
 
-gwps_ch4 <- openxlsx::read.xlsx('Data/Codes and classifications/gwps.xlsx','ch4')
-
-
-
+gwps_ch4 <- openxlsx::read.xlsx('Data/Codes and classifications/gwps.xlsx','ch4 EDGARv6')
 
 save(gwps,gwps_ch4,file='Data/gwps.RData')
 

@@ -23,10 +23,48 @@ library(maps)
 library(patchwork)
 
 #load('../../Data/edgar_data_gwp_ar6.RData')
-load('../../Data/dump/edgar_data_gwp_ar6_late_2020.RData')
-edgar_GHG_ar6 <- edgar_GHG_ar6_late_2020 
-rm(edgar_GHG_ar6_late_2020)
+#load('../../Data/dump/edgar_data_gwp_ar6_late_2020.RData')
+#edgar_GHG_ar6 <- edgar_GHG_ar6_late_2020 
+#rm(edgar_GHG_ar6_late_2020)
 load('../../Data/WDI_gdp_pop.RData')
+load("../../Data/dump/edgar_data_gwp_ar5_late_2020.RData")
+
+## recalculate GHG emissions using AR5 GWPs
+#
+# load('../../Data/dump/edgar_data_all_late_2020.RData')
+#
+# load("../../Data/gwps.RData")
+# gwps <- gwps %>% 
+#   filter(gas!="CH4 (fossil/biogenic)") %>% 
+#   filter(gas!="CH4 (fugitive)")
+# 
+# edgar_GHG_ar6 <- edgar_GHG_late_2020
+# 
+# for (row in 1:nrow(gwps)) {
+#   col <- gwps[row, "gas"]
+#   gwp  <- gwps[row, "gwp_ar5"]
+#   edgar_GHG_ar6[col] <- edgar_GHG_ar6[col]*gwp
+# }
+# 
+# fgas_list <- gwps %>% 
+#   filter(gas!="CO2") %>% 
+#   filter(gas!="N2O") %>% 
+#   filter(gas!="CH4") %>% 
+#   select(gas)
+# 
+# edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
+#   mutate(Fgas=rowSums(.[fgas_list$gas],na.rm=T)) %>% 
+#   mutate(nnums=rowSums(!is.na(.[fgas_list$gas]))) %>% 
+#   mutate(Fgas=ifelse(nnums==0,NA,Fgas)) %>% 
+#   select(-nnums,-one_of(fgas_list$gas))
+# 
+# edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
+#   group_by(ISO,year,sector_code) %>% 
+#   mutate(GHG = sum(CO2,CH4,N2O,Fgas,na.rm=T)) %>% 
+#   ungroup() %>% 
+#   mutate(GHG = ifelse(is.na(CO2) & is.na(CH4) & is.na(N2O) & is.na(Fgas),NA,GHG))
+# 
+# save(edgar_GHG_ar6,file="../../Data/dump/edgar_data_gwp_ar5_late_2020.RData")
 
 source("growth_rate.R")
 source("small_figures.R")
@@ -46,6 +84,10 @@ openxlsx::addWorksheet(wb,"info")
 info = data.frame(x=c("Title","Author","Date","Code"),y=c("Analysis of countries with sustained GHG emissions reductions","William F. Lamb (lamb@mcc-berlin.net)",paste(Sys.Date()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/decarbonising_countries.Rmd"))
 
 openxlsx::writeData(wb, sheet = "info", info, colNames = F, rowNames = F)
+
+# change AFOLU to agriculture
+edgar_GHG_ar6$chapter_title <- gsub("AFOLU","Agriculture",edgar_GHG_ar6$chapter_title)
+
 
 
 ```
@@ -318,6 +360,11 @@ data <- data %>%
 data <- data %>% 
   filter(country!="Austria")
 
+# exclude Uzbekistan, due to data issues
+
+data <- data %>% 
+  filter(country!="Uzbekistan")
+
 # exclude countries with emissions growing since 2008
 
 data <- data %>% filter(rate_GHG_2008<0)
@@ -443,7 +490,7 @@ data <- data %>%
   mutate(cluster=as.factor(cluster))
 
 data <- data %>%
-  mutate(cluster_name = ifelse(cluster==1,"Recent Peak",NA)) %>%
+  mutate(cluster_name = ifelse(cluster==1,"Recent peak",NA)) %>%
   mutate(cluster_name = ifelse(cluster==2,"Long-term decline",cluster_name)) %>%
   mutate(cluster_name = ifelse(cluster==3,"Former Eastern Bloc",cluster_name))
 
@@ -467,7 +514,8 @@ plot_data %>%
         legend.position = "bottom",
         legend.title = element_blank(),
         axis.title = element_blank(),
-        plot.title = element_text(size = 12)) +
+        plot.title = element_text(size = 12),
+        strip.text = element_text(size = 11)) +
   guides(color = guide_legend(override.aes = list(size = 2))) +
   ggtitle("Countries with declining CO2 and GHG emissions")
 
@@ -802,7 +850,7 @@ rate_data <- gather(rate_data,growth_rate,value,rate_CO2_peak,rate_GHG_peak,rate
 rate_data <- rate_data %>% 
   mutate(growth_rate=as.factor(growth_rate))
 
-annotes = data.frame(cluster=c("1","2","3"),cluster_name=c("Recent Peak","Long-term decline","Former Eastern Bloc"),country=c("Netherlands","Belgium","Uzbekistan"))
+annotes = data.frame(cluster=c("1","2","3"),cluster_name=c("Recent peak","Long-term decline","Former Eastern Bloc"),country=c("Netherlands","Belgium","Slovak Republic"))
 
 r4 <- rate_data %>% 
   filter(growth_rate!="rate_CO2_cons_peak") %>% 
@@ -880,7 +928,7 @@ sector_data <- sector_data %>%
 sector_data$country <- as.factor(sector_data$country)
 sector_data$country <- fct_reorder(sector_data$country,sector_data$abs_GHG_tot)
 
-annotes <- data.frame(cluster=c("1","2","3"),country=c("Cyprus","Macedonia, FYR","Slovak Republic"),cluster_name=c("Recent Peak","Long-term decline","Former Eastern Bloc"))
+annotes <- data.frame(cluster=c("1","2","3"),country=c("Cyprus","Macedonia, FYR","Slovak Republic"),cluster_name=c("Recent peak","Long-term decline","Former Eastern Bloc"))
 
 # plot
 
@@ -1036,7 +1084,11 @@ for (i in 1:length(unique(data$country))) {
   }
 }
 
-rolling_rates <- left_join(rolling_rates,cluster_data %>% select(country,cluster),by = "country")
+rolling_rates <- left_join(rolling_rates,cluster_data %>% select(country,cluster,peak_year),by = "country")
+
+rolling_rates <- rolling_rates %>% 
+  filter(year>=peak_year)
+
 ```
 
 ```{r scenario_data,echo=FALSE,warning=FALSE,include=FALSE}
@@ -1070,29 +1122,31 @@ scenario_data$aggregated_category <- factor(scenario_data$aggregated_category, l
 ```{r rates_over_time,echo=FALSE,warning=FALSE,fig.width=7,fig.height=9,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 rolling_rates <- rolling_rates %>% 
-  mutate(threshold_CO2=ifelse(rate_rolling_CO2>-4,NA,"yes"))
+  mutate(threshold_CO2=ifelse(rate_rolling_CO2>-1,"> -1%/yr","< -1%/yr")) %>% 
+  mutate(threshold_CO2=ifelse(rate_rolling_CO2>-2,threshold_CO2,"< -2%/yr")) %>% 
+  mutate(threshold_CO2=ifelse(rate_rolling_CO2>-3,threshold_CO2,"< -3%/yr")) %>% 
+  mutate(threshold_CO2=ifelse(rate_rolling_CO2>-4,threshold_CO2,"< -4%/yr"))
 
 lines = scenario_data %>% 
   group_by(aggregated_category) %>% 
   summarise(mean=mean(rate),median=median(rate))
 
-rolling_rates <- rolling_rates %>% 
-  group_by(country) %>% 
-  mutate(median=median(rate_rolling_CO2)) %>% 
-  mutate(mean=mean(rate_rolling_CO2)) %>% 
-  mutate(country <- as.factor(country))
+rolling_rates <- rolling_rates %>%
+  group_by(country) %>%
+  mutate(median=median(rate_rolling_CO2))
 
+rolling_rates$country <- as.factor(rolling_rates$country)
 rolling_rates$country <- fct_reorder(rolling_rates$country,desc(rolling_rates$median))
 
 
-p1 <- rolling_rates %>% ggplot(.,aes(x=country,y=rate_rolling_CO2,fill=as.factor(cluster))) +
+p1 <- rolling_rates %>% ggplot(.,aes(x=country,y=rate_rolling_CO2)) +
   geom_hline(yintercept=0) +
   geom_hline(data=lines,aes(yintercept=median,color=aggregated_category),linetype="dashed") +
-  geom_boxplot() +
+  geom_boxplot(fill="#969696") +
   coord_flip()  +
   ylim(-15,15) +
   scale_color_manual(values=c("#e78ac3","#a6d854","#ffd92f")) +
-  scale_fill_brewer(palette="Set2") +
+  #scale_fill_brewer(palette="Set2") +
   facet_grid(cluster~.,scales="free",space="free") +
   theme(axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
@@ -1105,7 +1159,7 @@ p1 <- rolling_rates %>% ggplot(.,aes(x=country,y=rate_rolling_CO2,fill=as.factor
         strip.background = element_blank(),
         strip.text = element_blank(),
         plot.margin = unit(c(0,0,0,0),units="cm")) +
-  ggtitle(str_wrap("a. 5 year rolling average CO2 growth rates",width=35))
+  ggtitle(str_wrap("a. CO2 growth rates since peak years (5 year rolling avg.)",width=35))
 
 p3 <- scenario_data %>% ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregated_category)) +
   geom_hline(yintercept=0) +
@@ -1128,15 +1182,16 @@ p3 <- scenario_data %>% ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregate
   ggtitle(str_wrap("b. Average CO2 growth rates in scenarios compatible with warming targets",width=35))
 
 p2 <- rolling_rates %>% ggplot(.,aes(x=country,y=year,fill=threshold_CO2)) +
-  geom_tile(color="white",size=0.2) +
-  scale_fill_manual(values=c("#636363"))+
+  geom_tile(color="#cccccc",size=0.2) +
+  #scale_fill_manual(values=c("#bdbdbd","#969696","#636363","#252525"))+
+  scale_fill_manual(values=c("#ffffcc","#a1dab4","#41b6c4","#2c7fb8","white"))+
   coord_flip()  +
   facet_grid(cluster~.,scales="free",space="free") +
   scale_y_continuous(breaks=c(1975,1985,1995,2005,2015)) +
+  labs(fill = "Rolling average growth rate") +
   theme(axis.title.x = element_blank(),
         axis.title.y = element_blank(),
-        legend.position="none",
-        legend.title=element_blank(),
+        panel.grid.minor = element_blank(),
         plot.title = element_text(size = 11),
         plot.background = element_blank(),
         strip.background = element_blank(),
@@ -1144,9 +1199,10 @@ p2 <- rolling_rates %>% ggplot(.,aes(x=country,y=year,fill=threshold_CO2)) +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         plot.margin = unit(c(0,0,0,0),units="cm")) +
-  ggtitle(str_wrap("c. Years where rolling average CO2 growth rates < -4%",width=35))
+  ggtitle(str_wrap("c. CO2 growth rates since peak years (5 year rolling avg. thresholds)",width=38))
 
-(p1 + p2) / (p3 + plot_spacer()) + plot_layout(heights=c(6,1))
+p1 + p2 + p3 + guide_area() + plot_layout(heights=c(6,1)) + plot_layout(guides = 'collect')
+
 
 ```
 
@@ -1294,16 +1350,41 @@ kaya_data_countries %>%
 
 ```{r write_data,echo=FALSE,warning=FALSE}
 
+load("../../Data/ipcc_sectors.RData")
+ipcc_sectors <- ipcc_sectors %>% 
+  select(EDGAR_code=code,description,sector=IPCC_AR6_chapter_title,subsector=subsector_title)
+
+openxlsx::addWorksheet(wb,"sectors")
+openxlsx::writeData(wb, sheet = "sectors", ipcc_sectors, colNames = T, rowNames = F)
+
+load("../../Data/gwps.RData")
+gwps <- gwps %>% 
+  filter(gas!="CH4 (fossil/biogenic)") %>% 
+  filter(gas!="CH4 (fugitive)") %>% 
+  select(gas,gwp_ar5)
+
+openxlsx::addWorksheet(wb,"gwps")
+openxlsx::writeData(wb, sheet = "gwps", gwps, colNames = T, rowNames = F)
+
 openxlsx::addWorksheet(wb,"countries")
 openxlsx::writeData(wb, sheet = "countries", table, colNames = T, rowNames = F)
 
 openxlsx::addWorksheet(wb,"clusters")
 openxlsx::writeData(wb, sheet = "clusters", cluster_table, colNames = T, rowNames = F)
 
+all_data <- left_join(edgar_GHG_ar6,data %>% select(country,cluster,peak_year) %>% distinct(),by = "country")
+all_data <- all_data %>% filter(!is.na(cluster))
+all_data <- all_data %>% 
+  group_by(ISO,country,cluster,year,peak_year,sector=chapter_title,subsector_title) %>% 
+  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE)
+
 openxlsx::addWorksheet(wb,"all_data")
-openxlsx::writeData(wb, sheet = "all_data", data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "all_data", all_data, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Data/decarbonising_countries.xlsx"),overwrite=T)
+
+
+
 
 ```
 

@@ -17,3 +17,15 @@ data <- data %>%
   arrange(chapter_title,sector_code)
 
 openxlsx::write.xlsx(data,"edgar_gases.xlsx")
+
+
+
+vars <- names(edgar_GHG)
+vars <- vars [15:37]
+
+load('Data/edgar_data_all.RData')
+data <- edgar_GHG %>% 
+  group_by(year) %>% 
+  summarise_at(all_of(vars),sum,na.rm=T)
+
+openxlsx::write.xlsx(data,"data.xlsx")

@@ -1,0 +1,199 @@
+---
+title: "edgar6_check"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(openxlsx)
+library(patchwork)
+library(zoo)
+theme_set(theme_bw())
+
+
+load('../../Data/edgar6_data_all.RData')
+
+
+
+```
+
+
+
+```{r gas_comparison,fig.width=8,fig.height=5}
+
+load('../../Data/edgar_data_gwp_ar6.RData')
+v5 <- edgar_GHG_ar6
+load('../../Data/edgar6_data_gwp_ar6.RData')
+v6 <- edgar_GHG_ar6
+
+v5 <- v5 %>% 
+  group_by(year) %>% 
+  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE)
+
+v6 <- v6 %>% 
+  group_by(year) %>% 
+  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE)
+
+v5 <- gather(v5,gas,value,-year) %>% 
+  mutate(version="edgar_v5")
+
+v6 <- gather(v6,gas,value,-year) %>% 
+  mutate(version="edgar_v6")
+
+totals <- rbind(v5,v6)
+
+
+totals %>% ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path() +
+  facet_wrap(.~gas,scales="free") +
+  theme(axis.title = element_blank())
+
+```
+
+
+
+```{r edgar6_gas_trend,fig.width=8,fig.height=8}
+
+gases <- edgar_GHG %>% 
+  group_by(year,gas) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
+
+gases <- gases %>% 
+  group_by(gas) %>%
+  mutate(growth=nth(value,-1)/nth(value,-2))
+
+gases$gas <- as.factor(gases$gas)
+gases$gas <- fct_reorder(gases$gas,gases$growth,.desc=TRUE)
+
+
+gases %>% ggplot(.,aes(x=year,y=value)) +
+  geom_path() +
+  facet_wrap(.~gas,scales="free") +
+  theme(axis.title = element_blank(),
+        axis.text.y = element_blank())
+
+```
+
+```{r edgar6_code_trend,fig.width=8,fig.height=8}
+
+codes <- edgar_GHG %>% 
+  mutate(value_gwp = value*gwp100_ar6)
+
+codes <- codes %>% 
+  group_by(year,sector_code,fossil_bio,description) %>% 
+  summarise(value_gwp=sum(value_gwp,na.rm=TRUE))
+
+codes <- codes %>% 
+  group_by(sector_code,fossil_bio) %>%
+  mutate(growth=nth(value_gwp,-1)/nth(value_gwp,-2)) %>% 
+  mutate(label=paste0(sector_code,"_",fossil_bio))
+
+codes$label <- as.factor(codes$label)
+codes$label <- fct_reorder(codes$label,codes$growth,.desc=TRUE)
+
+
+codes %>% filter(growth>1.5) %>%  ggplot(.,aes(x=year,y=value_gwp/1e9)) +
+  geom_path() +
+  facet_wrap(description~label) +
+  ylab("GtCO2eq") +
+  theme(axis.title.x = element_blank()) +
+  ggtitle("Codes >1.5x higher in 2019 compared to 2018")
+
+codes %>% filter(growth<0.5) %>%  ggplot(.,aes(x=year,y=value_gwp/1e9)) +
+  geom_path() +
+  facet_wrap(description~label) +
+  ylab("GtCO2eq") +
+  theme(axis.title.x = element_blank()) +
+  ggtitle("Codes <0.5x higher in 2019 compared to 2018")
+
+```
+```{r edgar6_subsector_trend,fig.width=10,fig.height=8}
+
+subsectors <- edgar_GHG %>% 
+  mutate(value_gwp = value*gwp100_ar6)
+
+subsectors <- subsectors %>% 
+  group_by(year,subsector_title) %>% 
+  summarise(value_gwp=sum(value_gwp,na.rm=TRUE))
+
+subsectors <- subsectors %>% 
+  group_by(subsector_title) %>%
+  mutate(growth=nth(value_gwp,-1)/nth(value_gwp,-2)) %>% 
+  mutate(difference=nth(value_gwp,-1)-nth(value_gwp,-2))
+
+subsectors$subsector_title <- as.factor(subsectors$subsector_title)
+subsectors$subsector_title <- fct_reorder(subsectors$subsector_title,subsectors$growth,.desc=TRUE)
+
+
+subsectors %>% filter(year>2014) %>% ggplot(.,aes(x=year,y=value_gwp/1e9)) +
+  geom_bar(stat='identity') +
+  facet_wrap(.~subsector_title,scales="free_y") +
+  ylab("GtCO2eq") +
+  theme(axis.title.x = element_blank()) +
+  ggtitle("subsectors")
+
+
+```
+
+
+```{r edgar6_region_trend,fig.width=8,fig.height=6}
+
+regions <- edgar_GHG %>% 
+  mutate(value_gwp = value*gwp100_ar6)
+
+regions <- regions %>% 
+  group_by(year,region_ar6_10) %>% 
+  summarise(value_gwp=sum(value_gwp,na.rm=TRUE))
+
+regions <- regions %>% 
+  group_by(region_ar6_10) %>%
+  mutate(growth=nth(value_gwp,-1)/nth(value_gwp,-2)) %>% 
+  mutate(difference=nth(value_gwp,-1)-nth(value_gwp,-2))
+
+regions$region_ar6_10 <- as.factor(regions$region_ar6_10)
+regions$region_ar6_10 <- fct_reorder(regions$region_ar6_10,regions$growth,.desc=TRUE)
+
+
+regions %>% filter(year>2014) %>% ggplot(.,aes(x=year,y=value_gwp/1e9)) +
+  geom_bar(stat='identity') +
+  facet_wrap(.~region_ar6_10,scales="free_y") +
+  ylab("GtCO2eq") +
+  theme(axis.title.x = element_blank()) +
+  ggtitle("regions")
+
+
+```
+
+```{r edgar6_country_trend,fig.width=8,fig.height=6}
+
+countries <- edgar_GHG %>% 
+  mutate(value_gwp = value*gwp100_ar6)
+
+countries <- countries %>% 
+  group_by(year,country) %>% 
+  summarise(value_gwp=sum(value_gwp,na.rm=TRUE))
+
+countries <- countries %>% 
+  group_by(country) %>%
+  mutate(growth=nth(value_gwp,-1)/nth(value_gwp,-2)) %>% 
+  mutate(difference=nth(value_gwp,-1)-nth(value_gwp,-2))
+
+countries$country <- as.factor(countries$country)
+countries$country <- fct_reorder(countries$country,countries$growth,.desc=TRUE)
+
+
+countries %>% filter(year>2014) %>% filter(growth>1.2) %>% ggplot(.,aes(x=year,y=value_gwp/1e9)) +
+  geom_bar(stat='identity') +
+  facet_wrap(.~country,scales="free_y") +
+  ylab("GtCO2eq") +
+  theme(axis.title.x = element_blank()) +
+  ggtitle("countries")
+
+
+```
