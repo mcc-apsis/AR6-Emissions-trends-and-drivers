@@ -23,12 +23,22 @@ source("small_figures.R")
 #load('../../Data/edgar_data_gwp_ar6.RData')
 #load("../../Data/edgar_data_all.RData")
 
-load('../../Data/edgar6_data_gwp_ar6.RData')
-load('../../Data/edgar6_data_all.RData')
+load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_data_raw_gwp_ar6.RData')
+
+#load('../../Data/edgar6_data_gwp_ar5.RData')
+#load('../../Data/edgar6_data_all_gwp_ar5.RData')
+
 
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 
+
+land_totals <- land %>% 
+  filter(year>1989) %>% 
+  filter(year<2020) %>% 
+  group_by(year) %>% 
+  summarise(CO2_landuse=sum(mean)/1e9)
 
 # set palette
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
@@ -113,11 +123,6 @@ fgas <- waterfall_data %>%
   mutate(gas="Fgas") %>% 
   select(year,gas,everything())
 
-land_totals <- land %>% 
-  filter(year>1989) %>% 
-  filter(year<2020) %>% 
-  group_by(year) %>% 
-  summarise(CO2_landuse=sum(mean)/1e9)
 
 waterfall_land <- land_totals %>% 
   mutate(gas="CO2 Land use") %>% 
@@ -236,7 +241,8 @@ p_waterfall
 
 ```{r gas_trend, echo=FALSE,warning=FALSE,include=FALSE,fig.width=8,fig.height=4}
 
-plot_data <- edgar_GHG_ar6 %>% 
+
+plot_data <- edgar_ghg %>% 
   filter(year>1989) %>% 
   filter(year<2020) %>% 
   group_by(year) %>% 

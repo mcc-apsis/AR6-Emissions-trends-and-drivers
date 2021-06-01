@@ -81,12 +81,27 @@ edgar_GHG <- full_join(edgar_GHG,jos_Fgas)
 
 ########### join source categories from compilation (see category_mapping.R) ########### 
 
+# match edgar v5 to v6 codes
+matching_codes <- read.xlsx('Data/Codes and classifications/edgar_v5_v6_sector_codes.xlsx',sheet="matched_codes")
+edgar_GHG <- left_join(edgar_GHG,matching_codes %>%
+                       select(sector_code_v5,sector_code_v6,fossil_bio,description_v6),
+                     by = c("code"="sector_code_v5"))
+
+not_matched <- anti_join(edgar_GHG,matching_codes %>%
+                           select(sector_code_v5,sector_code_v6,fossil_bio,description_v6),
+                         by = c("code"="sector_code_v5"))
+
+# edgar 6 has two descriptions for 2B5g2, which doubles these codes in edgar 5. remove one of them until they send us a clean sheet
+edgar_GHG <- edgar_GHG %>%
+  filter(description_v6!="Ethylene chloride production")
+
+
 load('Data/ipcc_sectors.RData')
 
-edgar_GHG <- left_join(edgar_GHG,ipcc_sectors %>% select(code,description,IPCC_AR6_chapter,IPCC_AR6_chapter_title,subsector,subsector_title),by=c("code"="code"))
+edgar_GHG <- left_join(edgar_GHG,ipcc_sectors %>% select(code,fossil_bio,IPCC_AR6_chapter,IPCC_AR6_chapter_title,subsector,subsector_title),by=c("sector_code_v6"="code","fossil_bio"))
 
 edgar_GHG <- edgar_GHG %>% 
-  select(ISO,sector_code=code,chapter=IPCC_AR6_chapter,chapter_title=IPCC_AR6_chapter_title,description,subsector,subsector_title,year,everything(),-EDGAR_description)
+  select(ISO,sector_code=sector_code_v6,sector_code_v5=code,chapter=IPCC_AR6_chapter,chapter_title=IPCC_AR6_chapter_title,description_v5=EDGAR_description,description=description_v6,subsector,subsector_title,year,everything())
 
 missing_codes <- edgar_GHG %>% 
   filter(is.na(chapter) | is.na(description) | is.na(sector_code)) %>% 
@@ -145,7 +160,7 @@ edgar_GHG$region_ar6_5_short[edgar_GHG$ISO=="AIR"] <- "AIR"
 
 edgar_GHG <- edgar_GHG %>% 
   mutate(year=as.numeric(year)) %>% 
-  select(ISO,country=name,region_ar6_5,region_ar6_5_short,region_ar6_10,region_ar6_22,region_ar6_dev,year,chapter,chapter_title,sector_code,description,subsector,subsector_title,CO2,CH4,N2O,everything(),-EDGAR_country)
+  select(ISO,country=name,region_ar6_5,region_ar6_5_short,region_ar6_10,region_ar6_22,region_ar6_dev,year,chapter,chapter_title,subsector,subsector_title,sector_code,sector_code_v5,fossil_bio,description,description_v5,subsector,subsector_title,CO2,CH4,N2O,everything(),-EDGAR_country)
 
 
 ############## factorise regions
@@ -155,105 +170,138 @@ edgar_GHG$region_ar6_5_short <- as.factor(edgar_GHG$region_ar6_5_short)
 edgar_GHG$region_ar6_5_short <- factor(edgar_GHG$region_ar6_5_short,levels(edgar_GHG$region_ar6_5_short)[c(2,8,1,3,4,5,6,7)])
 
 
-##############convert from Kton to t
+############## gather and remove zero values (file is a lot easier to handle and edgar v6 mostly did this)
 
-column_rows <- names(edgar_GHG %>% select(-ISO,-country,-region_ar6_5,-region_ar6_5_short,-region_ar6_10,-region_ar6_22,-region_ar6_dev,-year,-chapter,-chapter_title,-sector_code,-description,-subsector,-subsector_title))
+gases <- names(edgar_GHG[-(1:17)])
+edgar_GHG <- gather(edgar_GHG,gas,value,gases)
+edgar_GHG <- edgar_GHG %>% 
+  filter(value!=0)
+
+############## convert from Kton to t
 
 edgar_GHG <- edgar_GHG %>% 
-  mutate_at(vars(all_of(column_rows)),~(.*1000))
-
+  mutate(value=value*1000)
 
 ############## calculate gwps based on ar6 values
 
 load('Data/gwps.RData')
 gwps <- gwps %>% 
-  filter(gas!="CH4 (fossil/biogenic)") %>% 
-  filter(gas!="CH4 (fugitive)") %>% 
   filter(gas!="CH4")
 
-# do we have all the gases
-missing_gwps <- gather(edgar_GHG_ar6 %>% slice(1),gas,value,column_rows)
-missing_gwps <- left_join(missing_gwps,gwps,by="gas")
+edgar_GHG <- left_join(edgar_GHG,gwps %>% select(gas,gwp_ar6,gwp_ar5),by="gas")
 
+# any gwps now missing ?
+missing_gwps_ar6 <- anti_join(gwps %>% select(gas,gwp_ar6),edgar_GHG,by="gas")
+missing_gwps_ar5 <- anti_join(gwps %>% select(gas,gwp_ar5),edgar_GHG,by="gas")
 
-## apply all gwps except CH4
-edgar_GHG_ar6 <- edgar_GHG
-for (row in 1:nrow(gwps)) {
-  col <- gwps[row, "gas"]
-  gwp  <- gwps[row, "gwp_ar6"]
-  edgar_GHG_ar6[col] <- edgar_GHG_ar6[col]*gwp
-}
+## get CH4 gwps based on a more detailed breakdown of sources
 
-## apply CH4 gwps based on a more detailed breakdown of sources
+gwps_ch4 <- gwps_ch4 %>% select(sector_code,fossil_bio,ch4_gwp_ar6=gwp_ar6,ch4_gwp_ar5=gwp_ar5)
 
-gwps_ch4 <- left_join(gwps_ch4,gwps)
+edgar_GHG <- left_join(edgar_GHG,gwps_ch4,by = c("sector_code","fossil_bio"))
 
+# do we have all the non-CH4 gases?
 
-edgar_GHG_ar6 <- left_join(edgar_GHG_ar6,gwps_ch4 %>% select(sector_code,gwp_ch4=value),
-                           by = "sector_code")
-  
-edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
-  mutate(CH4=ifelse(!is.na(gwp_ch4),CH4*gwp_ch4,CH4))
+ch4_gwps <- edgar_GHG %>% 
+  filter(gas=="CH4") %>% 
+  select(sector_code,fossil_bio,description,gas,ch4_gwp_ar6,ch4_gwp_ar5) %>% 
+  distinct()
 
-## any missing?
-missing_ch4 <- edgar_GHG_ar6 %>% 
-  filter(!is.na(CH4) & is.na(gwp_ch4))
+edgar_GHG <- edgar_GHG %>% 
+  mutate(gwp_ar6=ifelse(gas=="CH4",ch4_gwp_ar6,gwp_ar6)) %>% 
+  mutate(gwp_ar5=ifelse(gas=="CH4",ch4_gwp_ar5,gwp_ar5)) %>% 
+  select(-ch4_gwp_ar6,-ch4_gwp_ar5)
 
-edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
-  select(-gwp_ch4)
+## apply all gwps
+edgar_GHG_ar6 <- edgar_GHG %>% mutate(value_gwp=value*gwp_ar6)
+edgar_GHG_ar5 <- edgar_GHG %>% mutate(value_gwp=value*gwp_ar5)
 
 ## merge all Fgases into a single variable
 
-fgas_list <- gwps %>% 
-  filter(gas!="CO2") %>% 
-  filter(gas!="N2O") %>% 
-  filter(gas!="CH4") %>% 
-  select(gas)
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>% select(-value,-gwp_ar6,-gwp_ar5)
+edgar_GHG_ar5 <- edgar_GHG_ar5 %>% select(-value,-gwp_ar6,-gwp_ar5)
+
+edgar_GHG_ar6 <- spread(edgar_GHG_ar6,gas,value_gwp)
+edgar_GHG_ar5 <- spread(edgar_GHG_ar5,gas,value_gwp)
+
+fgas_list_ar6 <- names(edgar_GHG_ar6[-(1:17)] %>% select(-CO2,-CH4,-N2O))
+fgas_list_ar5 <- names(edgar_GHG_ar5[-(1:17)] %>% select(-CO2,-CH4,-N2O))
 
 edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
-  mutate(Fgas=rowSums(.[fgas_list$gas],na.rm=T)) %>% 
-  mutate(nnums=rowSums(!is.na(.[fgas_list$gas]))) %>% 
-  mutate(Fgas=ifelse(nnums==0,NA,Fgas)) %>% 
-  select(-nnums,-one_of(fgas_list$gas))
+  mutate(Fgas=rowSums(.[fgas_list_ar6],na.rm=T)) %>% 
+  mutate(Fgas=ifelse(Fgas==0,NA,Fgas))
+
+edgar_GHG_ar5 <- edgar_GHG_ar5 %>% 
+  mutate(Fgas=rowSums(.[fgas_list_ar5],na.rm=T)) %>% 
+  mutate(Fgas=ifelse(Fgas==0,NA,Fgas))
+
+## remove underlying fgases
+
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>% select(-one_of(fgas_list_ar6))
+edgar_GHG_ar5 <- edgar_GHG_ar5 %>% select(-one_of(fgas_list_ar5))
+
+
+## calculate total GHG emissions
 
 edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
-  group_by(ISO,year,sector_code) %>% 
+  group_by(ISO,year,sector_code,fossil_bio) %>% 
   mutate(GHG = sum(CO2,CH4,N2O,Fgas,na.rm=T)) %>% 
   ungroup() %>% 
   mutate(GHG = ifelse(is.na(CO2) & is.na(CH4) & is.na(N2O) & is.na(Fgas),NA,GHG))
 
+edgar_GHG_ar5 <- edgar_GHG_ar5 %>% 
+  group_by(ISO,year,sector_code,fossil_bio) %>% 
+  mutate(GHG = sum(CO2,CH4,N2O,Fgas,na.rm=T)) %>% 
+  ungroup() %>% 
+  mutate(GHG = ifelse(is.na(CO2) & is.na(CH4) & is.na(N2O) & is.na(Fgas),NA,GHG))
+
+## rename gwps for authors
+
+edgar_GHG <- edgar_GHG %>% 
+  select(everything(),gwp100_ar6=gwp_ar6,gwp100_ar5=gwp_ar5) %>%  
+  relocate(value,.after=gwp100_ar5)
+
+## relevel the gases
+
+edgar_GHG$gas <- as.factor(edgar_GHG$gas) 
+edgar_GHG$gas <- fct_relevel(edgar_GHG$gas,c("CO2","CH4","N2O"))
+
 ############## build a summary sheet of sectors vs gases
 
-summary <- edgar_GHG %>% 
-  filter(year==2019) %>% 
-  group_by(chapter,chapter_title,subsector_title,sector_code,description) %>% 
-  summarise_at(vars(all_of(column_rows)),sum,na.rm=TRUE) %>% 
-  arrange(chapter,sector_code)
-
-summary_gwps <- edgar_GHG_ar6 %>% 
-  filter(year==2019) %>% 
-  group_by(chapter,chapter_title,subsector_title,sector_code,description) %>% 
-  summarise_at(vars(all_of(c("CO2","CH4","N2O","Fgas","GHG"))),sum,na.rm=TRUE) %>% 
-  arrange(chapter,sector_code)
-  
-
-info = data.frame("x" = c("Last update","source"),
-                  "y" = c(as.character(Sys.time()),
-                          "Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610"                  ))
-
-wb <- openxlsx::createWorkbook(title = "ipcc_ar6_data_summary")
-addWorksheet(wb,"info")
-addWorksheet(wb,"sectors_gases_2019")
-addWorksheet(wb,"sectors_gases_gwps_2019")
-writeData(wb, sheet = "info",info,colNames=F)
-writeData(wb, sheet = "sectors_gases_2019",summary,colNames=T)
-writeData(wb, sheet = "sectors_gases_gwps_2019",summary_gwps,colNames=T)
-saveWorkbook(wb,"Results/Data/ipcc_ar6_data_summary.xlsx",overwrite = T)
-
-
+# summary <- edgar_GHG %>% 
+#   filter(year==2019) %>% 
+#   group_by(chapter,chapter_title,subsector_title,sector_code,description) %>% 
+#   summarise_at(vars(all_of(column_rows)),sum,na.rm=TRUE) %>% 
+#   arrange(chapter,sector_code)
+# 
+# summary_gwps <- edgar_GHG_ar6 %>% 
+#   filter(year==2019) %>% 
+#   group_by(chapter,chapter_title,subsector_title,sector_code,description) %>% 
+#   summarise_at(vars(all_of(c("CO2","CH4","N2O","Fgas","GHG"))),sum,na.rm=TRUE) %>% 
+#   arrange(chapter,sector_code)
+#   
+# 
+# info = data.frame("x" = c("Last update","source"),
+#                   "y" = c(as.character(Sys.time()),
+#                           "Crippa, M., Oreggioni, G., Guizzardi, D., Muntean, M., Schaaf, E., Lo Vullo, E., Solazzo, E., Monforti-Ferrario, F., Olivier, J.G.J., Vignati, E., Fossil CO2 and GHG emissions of all world countries - 2019 Report, EUR 29849 EN, Publications Office of the European Union, Luxembourg, 2019, ISBN 978-92-76-11100-9, doi:10.2760/687800, JRC117610"                  ))
+# 
+# wb <- openxlsx::createWorkbook(title = "ipcc_ar6_data_summary")
+# addWorksheet(wb,"info")
+# addWorksheet(wb,"sectors_gases_2019")
+# addWorksheet(wb,"sectors_gases_gwps_2019")
+# writeData(wb, sheet = "info",info,colNames=F)
+# writeData(wb, sheet = "sectors_gases_2019",summary,colNames=T)
+# writeData(wb, sheet = "sectors_gases_gwps_2019",summary_gwps,colNames=T)
+# saveWorkbook(wb,"Results/Data/ipcc_ar6_data_summary.xlsx",overwrite = T)
 
 
 ############## save two datasets
 
-save(edgar_GHG,file='Data/edgar_data_all.RData')
-save(edgar_GHG_ar6,file='Data/edgar_data_gwp_ar6.RData')
+edgar_raw <- edgar_GHG
+save(edgar_raw,file='Data/edgar5_data_raw.RData')
+
+edgar_ghg <- edgar_GHG_ar6
+save(edgar_ghg,file='Data/edgar5_data_ghg_gwp_ar6.RData')
+
+edgar_ghg <- edgar_GHG_ar5
+save(edgar_ghg,file='Data/edgar5_data_ghg_gwp_ar5.RData')

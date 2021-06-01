@@ -1,6 +1,8 @@
 ---
 title: "emissions_maps"
 output: word_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "Results") })
 ---
 
 ```{r setup, include=FALSE}
@@ -17,7 +19,7 @@ library(scales)
 source("../Analysis and figures/small_figures.R")
 
 
-load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 load('../../Data/WDI_gdp_pop.RData')
@@ -29,6 +31,8 @@ isos <- openxlsx::read.xlsx("../../Data/Codes and classifications/ISOcodes.xlsx"
 # set palette
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
 
+wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_map_data_",Sys.Date()))
+
 ```
 
 
@@ -37,7 +41,7 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2"
 ```{r data, include=FALSE,echo=FALSE}
 
 
-mapdata <- edgar_GHG_ar6 %>% 
+mapdata <- edgar_ghg %>% 
   filter(year>1969) %>% 
   group_by(country,ISO,year) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE))
@@ -79,6 +83,12 @@ world <- map_data("world") %>%
   filter(region!="Antarctica")
 world <- left_join(world %>% mutate(region=tolower(region)),isos,by=c("region"="alternative.name"))
 world <- left_join(world,mapdata,by=c("alpha.3"="ISO"))
+
+##save data
+openxlsx::addWorksheet(wb,"growth_rates")
+openxlsx::writeData(wb, sheet = "growth_rates", mapdata, colNames = T, rowNames = F)
+
+openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_map_data_",Sys.Date(),".xlsx"),overwrite=T)
 
 ```
 

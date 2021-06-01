@@ -1,0 +1,99 @@
+---
+title: "build_summary_sheets"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(openxlsx)
+library(patchwork)
+library(zoo)
+
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
+options(dplyr.summarise.inform = FALSE)
+
+
+load('../../Data/edgar6_data_raw.RData')
+load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+load('../../Data/land.RData')
+
+
+
+```
+
+```{r gas_sheets}
+
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_edgar_summary")
+
+gases <- edgar_raw %>% 
+  group_by(year,gas,gwp100_ar6,gwp100_ar5) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  ungroup()
+
+gases_land <- land %>% 
+  filter(year>1969) %>% 
+  group_by(year) %>% 
+  summarise(value=sum(mean,na.rm=TRUE)) %>% 
+  mutate(gas="CO2 (Land-use)") %>% 
+  mutate(gwp100_ar6=1) %>% 
+  mutate(gwp100_ar5=1) %>% 
+  ungroup()
+
+gases <- rbind(gases,gases_land)
+gases$gas <- fct_relevel(gases$gas,c("CO2","CO2 (Land-use)","CH4","N2O"))
+gases <- spread(gases,year,value)
+
+gases_gwps <- gather(gases,year,value,`1970`:`2019`) 
+gases_gwps <- gases_gwps %>% 
+  mutate(value=value*gwp100_ar5)
+
+gases_gwps <- spread(gases_gwps,year,value) 
+
+
+addWorksheet(wb,"gases")
+writeData(wb, sheet = "gases", gases, colNames = T)
+addWorksheet(wb,"gases_gwp_ar5")
+writeData(wb, sheet = "gases_gwp_ar5", gases_gwps %>% select(-gwp100_ar6), colNames = T)
+
+
+
+
+
+
+
+```
+
+```{r sector_sheets}
+
+sectors <- edgar_raw %>% 
+  filter(year==2018) %>% 
+  group_by(sector_code,fossil_bio,description,chapter_title,subsector_title,gas) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  ungroup()
+
+sectors <- spread(sectors,gas,value)
+
+
+sectors_gwps <- edgar_raw %>% 
+  filter(year==2018) %>% 
+  mutate(value=value*gwp100_ar5) %>% 
+  group_by(sector_code,fossil_bio,description,chapter_title,subsector_title,gas) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  ungroup()
+
+sectors_gwps <- spread(sectors_gwps,gas,value)
+
+
+addWorksheet(wb,"sectors")
+writeData(wb, sheet = "sectors", sectors, colNames = T)
+addWorksheet(wb,"sectors_gwp_ar5")
+writeData(wb, sheet = "sectors_gwp_ar5", sectors_gwps, colNames = T)
+
+
+saveWorkbook(wb,"../../Results/Data/Data summaries/ipcc_ar6_edgar_v6_summary.xlsx",overwrite = T)
+
+
+```

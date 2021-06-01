@@ -18,7 +18,7 @@ library(zoo)
 
 source("../../R/Analysis and figures/small_figures.R")
 
-load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
 load('../../Data/gwps.RData')
 load('../../Data/land.RData')
 
@@ -38,12 +38,12 @@ land <- land %>%
 
 ########## summary sheet
 
-# wb <- openxlsx::createWorkbook(title = paste("ipcc_sector_data",Sys.Date()))
-# 
-# info <- data.frame(x=c("Author","Date","Units","Contact","Code"),y=c("William F. Lamb",as.character(Sys.Date()),"tCO2eq","Lamb@mcc-berlin.net","https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd"))
-# 
-# openxlsx::addWorksheet(wb,sheetName="info")
-# openxlsx::writeData(wb,sheet="info",info,colNames=F,rowNames=F)
+wb <- openxlsx::createWorkbook(title = paste("ipcc_sector_data",Sys.Date()))
+
+info <- data.frame(x=c("Author","Date","Units","Contact","Code"),y=c("William F. Lamb",as.character(Sys.Date()),"tCO2eq","Lamb@mcc-berlin.net","https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd"))
+
+openxlsx::addWorksheet(wb,sheetName="info")
+openxlsx::writeData(wb,sheet="info",info,colNames=F,rowNames=F)
 
 
 ```
@@ -53,7 +53,7 @@ land <- land %>%
 ######### data preparation
 
 ## sum emissions for the sector
-sector_data <- edgar_GHG_ar6 %>%
+sector_data <- edgar_ghg %>%
   filter(year>1969) %>%
   group_by(year,chapter,chapter_title) %>%
   summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>% 
@@ -81,6 +81,9 @@ sector_data <- sector_data %>%
 trend_ghg_data <- sector_data
 sector_data <- sector_data %>% 
   select(year,chapter,chapter_title,value=GHG)
+
+openxlsx::addWorksheet(wb,"sector_trends")
+openxlsx::writeData(wb, sheet = "sector_trends", spread(sector_data,year,value), colNames = T, rowNames = F)
 
 ######### label preparation
 
@@ -173,7 +176,7 @@ p1
 
 
 ## sum emissions for the sector
-subsector_data <- edgar_GHG_ar6 %>%
+subsector_data <- edgar_ghg %>%
   filter(year>1969) %>%
   group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
   summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>% 
@@ -219,7 +222,7 @@ threshold <- sum(threshold$GHG,na.rm=T)*0.9
 
 subsector_data <- subsector_data %>% 
   filter(year %in% c(time_start,2019)) %>% 
-  group_by(subsector_title) %>% 
+  group_by(subsector,subsector_title) %>% 
   mutate(avg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_growth=last(GHG)-first(GHG)) %>%
   filter(year==2019) %>% 
@@ -231,8 +234,8 @@ subsector_data <- subsector_data %>%
   ungroup() %>% 
   arrange(desc(GHG)) %>% 
   mutate(cumulative_GHG=cumsum(GHG)) %>% 
-  mutate(cutoff = ifelse(cumulative_GHG<threshold,1,0))# %>% 
-  #filter(cutoff==1)
+  mutate(cutoff = ifelse(cumulative_GHG<threshold,1,0)) %>% 
+  select(-cumulative_GHG)
 
 subsector_data <- gather(subsector_data,var,value,avg_growth,abs_growth)
 
@@ -274,6 +277,12 @@ p3 <- subsector_data %>%
   ggtitle(str_wrap("c. Absolute GHG emissions growth",width=35)) +
     annotate(geom = 'text', label = 'Years: 1990-2019',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
+
+##save data
+openxlsx::addWorksheet(wb,"Emissions by subsector")
+openxlsx::writeData(wb, sheet = "Emissions by subsector", subsector_data, colNames = T, rowNames = F)
+
+openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_sector_data_",Sys.Date(),".xlsx"),overwrite=T)
 
 ```
 

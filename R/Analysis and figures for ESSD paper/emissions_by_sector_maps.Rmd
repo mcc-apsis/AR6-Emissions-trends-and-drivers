@@ -1,6 +1,8 @@
 ---
 title: "emissions_by_sector_maps"
 output: word_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "Results") })
 ---
 
 ```{r setup, include=FALSE}
@@ -17,7 +19,7 @@ library(scales)
 source("../Analysis and figures/small_figures.R")
 
 
-load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 load('../../Data/WDI_gdp_pop.RData')
@@ -28,27 +30,24 @@ isos <- openxlsx::read.xlsx("../../Data/Codes and classifications/ISOcodes.xlsx"
 # set palette
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
 
+wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_sector_map_data_",Sys.Date()))
+
 ```
-
-
 
 
 ```{r data, include=FALSE,echo=FALSE}
 
 
-mapdata <- edgar_GHG_ar6 %>% 
+mapdata <- edgar_ghg %>% 
   filter(year>1969) %>% 
   group_by(country,ISO,year,chapter_title) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE))
 
 mapdata <- left_join(mapdata,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
 
-
 mapdata <- mapdata %>% 
   mutate(GHGpc=GHG/population) %>% 
   filter(population>1e6)
-
-
 
 ## calculate average annual and absolute growth
 
@@ -78,6 +77,12 @@ world <- map_data("world") %>%
   filter(region!="Antarctica")
 world <- left_join(world %>% mutate(region=tolower(region)),isos,by=c("region"="alternative.name"))
 world <- left_join(world,mapdata,by=c("alpha.3"="ISO"))
+
+##save data
+openxlsx::addWorksheet(wb,"secor_growth_rates")
+openxlsx::writeData(wb, sheet = "secor_growth_rates", mapdata, colNames = T, rowNames = F)
+
+openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_sector_map_data_",Sys.Date(),".xlsx"),overwrite=T)
 
 ```
 
