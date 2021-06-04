@@ -1,0 +1,103 @@
+---
+title: "UNFCCC data availability"
+author: "Niklas Döbbeling"
+date: "4 6 2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+library(readxl)
+library(ggmap)
+library(maps)
+library(tidyverse)
+library(ggplot2); theme_set(theme_bw())
+library(scales)
+
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+
+unfccc <- read_excel("C:/Users/doen/ownCloud/AR6-Emissions-trends-and-drivers/R/Analysis and figures for ESSD paper/UNFCCC reports.xlsx")
+
+unfccc$`last reporting year BUR`<-as.numeric(unfccc$`last reporting year BUR`)
+unfccc$`last reporting year NC`<-as.numeric(unfccc$`last reporting year NC`)
+unfccc$`last reporting year NIR`<-as.numeric(unfccc$`last reporting year NIR`)
+
+unfccc <- unfccc %>%
+  mutate(`last reporting year NC`=ifelse(country=="Nepal",2001,`last reporting year NC`)) %>%
+  #mutate(`annex-1`=!is.na(`annex-1`)) %>%
+  mutate(country=ifelse(country=="Democratic People's Republic of Korea","North Korea",country)) %>%
+  mutate(country=ifelse(country=="Republic of Korea","South Korea",country)) %>%
+  mutate(country=ifelse(country=="Russian Federation","Russia",country)) %>%
+  mutate(country=ifelse(country=="United States","USA",country)) %>%
+  mutate(country=ifelse(country=="United Kingdom","UK",country)) %>%
+  mutate(country=ifelse(country=="Cote d'Ivoire","Ivory Coast",country)) %>%
+  mutate(country=ifelse(country=="Czechia","Czech Republic",country)) %>%
+  mutate(country=ifelse(country=="Argentinia","Argentina",country)) %>%
+  mutate(country=ifelse(country=="Urkaine","Ukraine",country)) %>%
+  mutate(country=ifelse(country=="Eswatini","Swaziland",country)) %>%
+  mutate(country=ifelse(country=="Brunei Darussalam","Brunei",country)) %>%
+  mutate(country=ifelse(country=="Cabo Verde","Cape Verde",country)) %>%
+  mutate(country=ifelse(country=="Congo","Republic of Congo",country)) %>%
+  mutate(country=ifelse(country=="Equitorial Guinea","Equatorial Guinea",country)) %>%
+  mutate(country=ifelse(country=="Kyrgysztan","Kyrgyzstan",country)) %>%
+  mutate(country=ifelse(country=="Lao People's Democratic Republic","Laos",country)) %>%
+  mutate(country=ifelse(country=="Micornesia","Micronesia",country)) %>%
+  mutate(country=ifelse(country=="Republic of Moldova","Moldova",country)) %>%
+  mutate(country=ifelse(country=="Syrian Arab Republic","Syria",country)) %>%
+  mutate(country=ifelse(country=="The Republic of North Macedonia","Macedonia",country)) %>%
+  mutate(country=ifelse(country=="United Republic of Tanzania","Tanzania",country)) %>%
+  mutate(country=ifelse(country=="Viet Nam","Vietnam",country)) %>%
+  mutate(country=ifelse(country=="State of Palestine","Palestine",country)) %>%
+  mutate(country=ifelse(country=="Vanatu","Vanuatu",country))
+
+unfccc<-unfccc %>%
+  mutate(last_reporting_year=pmax(`last reporting year BUR`,`last reporting year NC`,`last reporting year NIR`,na.rm=TRUE)) %>%
+  rename(annex1=`annex-1`)
+
+world <- map_data("world") %>% 
+  filter(region!="Antarctica") %>%
+  mutate(region=ifelse(region=="Antigua", "Antigua and Barbuda", region)) %>%
+  mutate(region=ifelse(region=="Barbuda", "Antigua and Barbuda", region)) %>%
+  mutate(region=ifelse(region=="Nevis", "Saint Kitts and Nevis", region)) %>%
+  mutate(region=ifelse(region=="Saint Kitts", "Saint Kitts and Nevis", region)) %>%
+  mutate(region=ifelse(region=="Trinidad", "Trinidad and Tobago", region)) %>%
+  mutate(region=ifelse(region=="Tobago", "Trinidad and Tobago", region)) %>%
+  mutate(region=ifelse(region=="Saint Vincent", "Saint Vincent and the Grenadines", region)) %>%
+  mutate(region=ifelse(region=="Grenadines", "Saint Vincent and the Grenadines", region)) #%>%
+#world <- left_join(world %>% mutate(region=tolower(region)),isos,by=c("region"="alternative.name"))
+world <- left_join(world,unfccc,by=c("region"="country"))
+
+check <- anti_join(world,unfccc,by=c("region"="country"))
+check1 <- anti_join(unfccc,world,by=c("country"="region"))
+```
+
+
+```{r map,include=FALSE,echo=FALSE,fig.width=6,fig.height=3}
+p1 <- ggplot() + 
+  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=last_reporting_year),color="grey",size=0.25,na.rm=T) + 
+  scale_fill_steps(low = 'lightyellow',high = "darkblue", na.value="lightgrey", breaks=c(1990,2000,2010,2015,2019),limits=c(1990,2020),oob=squish) +
+  geom_polygon(data = world %>% filter(!is.na(annex1)), mapping=aes(x=long, y = lat, group=group, fill=annex1),color="grey",size=0.25,na.rm=T,fill=c("darkgreen")) + 
+  #geom_text(aes(text="2019"),hjust=0.47,vjust=0)+
+  #guides(fill = guide_legend(override.aes = list(fill = c(scale_fill_steps(low = 'lightyellow',high = "darkblue", na.value="lightgrey", breaks=c(1990,1995,2000,2005,2010,2015,2020), oob=squish))))) +
+  #scale_fill_discrete(c("green","yellow")) +
+  #check again with new data the limit to 35 tCO2eq per capita
+  theme(panel.border = element_rect(colour = "black",fill=NA),
+        legend.position = c(0.4,0),
+        legend.direction = "horizontal",
+        legend.key.width = unit(2,"cm"),
+        legend.key.height = unit(.2,"cm"),
+        legend.background = element_blank(),
+        legend.title = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        plot.margin = unit(c(0,0,0.5,0),units="cm"),
+        plot.title = element_text(size=12),
+        panel.grid=element_blank()) #+
+  #ggtitle("Last UNFCCC reported data")
+```
+
+
+```{r maps,echo=FALSE,fig.width=6,results='asis',fig.path="Results/Plots/",dev=c('png','pdf')}
+p1
+```
+

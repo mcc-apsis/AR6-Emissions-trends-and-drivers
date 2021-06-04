@@ -262,33 +262,36 @@ load('Data/gwps.RData')
 gwps <- gwps %>% 
   filter(gas!="CH4")
 
-edgar_GHG <- left_join(edgar_GHG,gwps %>% select(gas,gwp_ar6,gwp_ar5),by="gas")
+edgar_GHG <- left_join(edgar_GHG,gwps %>% select(gas,gwp_ar6,gwp_ar5,gwp_ar2),by="gas")
 
 # any gases now missing ?
 missing_gases_ar6 <- anti_join(gwps %>% select(gas,gwp_ar6),edgar_GHG,by="gas")
 missing_gases_ar5 <- anti_join(gwps %>% select(gas,gwp_ar5),edgar_GHG,by="gas")
+missing_gases_ar2 <- anti_join(gwps %>% select(gas,gwp_ar2),edgar_GHG,by="gas")
 
 # do we have all the non-CH4 gases?
 
 missing_gwps_ar6 <- edgar_GHG %>% filter(is.na(gwp_ar6)) %>% select(sector_code,gas) %>% distinct()
 missing_gwps_ar5 <- edgar_GHG %>% filter(is.na(gwp_ar5)) %>% select(sector_code,gas) %>% distinct()
+missing_gwps_ar2 <- edgar_GHG %>% filter(is.na(gwp_ar2)) %>% select(sector_code,gas) %>% distinct()
 
 ## get CH4 gwps based on a more detailed breakdown of sources
 
-gwps_ch4 <- gwps_ch4 %>% select(sector_code,fossil_bio,ch4_gwp_ar6=gwp_ar6,ch4_gwp_ar5=gwp_ar5)
+gwps_ch4 <- gwps_ch4 %>% select(sector_code,fossil_bio,ch4_gwp_ar6=gwp_ar6,ch4_gwp_ar5=gwp_ar5,ch4_gwp_ar2=gwp_ar2)
 edgar_GHG <- left_join(edgar_GHG,gwps_ch4,by = c("sector_code","fossil_bio"))
 
 # do we have all the CH4 gases?
 
 ch4_gwps <- edgar_GHG %>% 
   filter(gas=="CH4") %>% 
-  select(sector_code,fossil_bio,description,gas,ch4_gwp_ar6,ch4_gwp_ar5) %>% 
+  select(sector_code,fossil_bio,description,gas,ch4_gwp_ar6,ch4_gwp_ar5,ch4_gwp_ar2) %>% 
   distinct()
 
 edgar_GHG <- edgar_GHG %>% 
   mutate(gwp_ar6=ifelse(gas=="CH4",ch4_gwp_ar6,gwp_ar6)) %>% 
   mutate(gwp_ar5=ifelse(gas=="CH4",ch4_gwp_ar5,gwp_ar5)) %>% 
-  select(-ch4_gwp_ar6,-ch4_gwp_ar5)
+  mutate(gwp_ar2=ifelse(gas=="CH4",ch4_gwp_ar2,gwp_ar2)) %>% 
+  select(-ch4_gwp_ar6,-ch4_gwp_ar5,-ch4_gwp_ar2)
 
 ## apply all gwps
 edgar_GHG_ar6 <- edgar_GHG %>% mutate(value_gwp=value*gwp_ar6)
@@ -296,8 +299,8 @@ edgar_GHG_ar5 <- edgar_GHG %>% mutate(value_gwp=value*gwp_ar5)
 
 ## merge all Fgases into a single variable
 
-edgar_GHG_ar6 <- edgar_GHG_ar6 %>% select(-value,-gwp_ar6,-gwp_ar5)
-edgar_GHG_ar5 <- edgar_GHG_ar5 %>% select(-value,-gwp_ar6,-gwp_ar5)
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>% select(-value,-gwp_ar6,-gwp_ar5,-gwp_ar2)
+edgar_GHG_ar5 <- edgar_GHG_ar5 %>% select(-value,-gwp_ar6,-gwp_ar5,-gwp_ar2)
 
 edgar_GHG_ar6 <- spread(edgar_GHG_ar6,gas,value_gwp)
 edgar_GHG_ar5 <- spread(edgar_GHG_ar5,gas,value_gwp)
@@ -335,8 +338,8 @@ edgar_GHG_ar5 <- edgar_GHG_ar5 %>%
 ## rename gwps for authors
 
 edgar_GHG <- edgar_GHG %>% 
-  select(everything(),gwp100_ar6=gwp_ar6,gwp100_ar5=gwp_ar5) %>% 
-  relocate(value,.after=gwp100_ar5)
+  select(everything(),gwp100_ar6=gwp_ar6,gwp100_ar5=gwp_ar5,gwp100_ar2=gwp_ar2) %>% 
+  relocate(value,.after=gwp100_ar2)
 
 ## relevel the gases
 
