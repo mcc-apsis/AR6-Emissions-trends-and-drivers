@@ -34,16 +34,36 @@ load('../../Data/land.RData')
 
 ```
 
-```{r gas_sheets}
+
+
+
+```{r table_of_contents}
+
 
 wb <- openxlsx::createWorkbook(title = "ipcc_ar6_edgar_summary")
 addWorksheet(wb,"info")
-info = data.frame(x=c("Author","Units","Last update","Code"),
+info = data.frame(x=c("Author","Units","Last update","Code","","",
+                      "Contents","gases sheets","sectors sheets","regions sheets","CO2, CH4, etc. sheets"),
                   y=c("William F. Lamb",
                       "Gt of gas (or GtCO2eq in GWP tabs)",
                       as.character(Sys.Date()),
-                      "https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Data%20preparation/build_summary_sheets.Rmd"))
+                      "https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Data%20preparation/build_summary_sheets.Rmd",
+                  "","","",
+                  "Emissions by gas in all years, with and without gwps applied",
+                  "Emissions by sectors and gases in 2018, with and without gwps applied",
+                  "Emissions by regions and gases in 2018, with and without gwps applied",
+                  "Emissions by gas and sector in all years, no gwps applied"))
 writeData(wb, sheet = "info",info, colNames = F, rowNames = F)
+
+
+
+
+
+```
+
+
+
+```{r gas_sheets}
 
 
 gases <- edgar_raw %>% 
@@ -173,6 +193,39 @@ writeData(wb, sheet = "regions_2018_gwp_ar5", regions_ar5, colNames = T)
 writeData(wb, sheet = "regions_2018_gwp_ar6", regions_ar6, colNames = T)
 
 ```
+
+```{r sheet_for_each_gas}
+
+each_gas <- edgar_raw %>% 
+  group_by(sector_code,fossil_bio,description,subsector,subsector_title,chapter,chapter_title,year,gas,gwp100_ar5,gwp100_ar6) %>% 
+  summarise(value=sum(value)/1e9) %>% 
+  arrange(gas)
+
+gas_names <- as.character(unique(each_gas$gas))
+
+
+for (i in 1:length(gas_names)) {
+  
+  addWorksheet(wb,gas_names[i])
+  data <- each_gas %>% 
+    filter(gas==gas_names[i])
+  
+  data <- spread(data,year,value)
+  
+  data <- data %>% 
+    filter_at(vars(-sector_code,-fossil_bio,-description,-subsector,-subsector_title,-chapter,-chapter_title,-gas,-gwp100_ar5,gwp100_ar6),
+              any_vars(.!=0))
+  
+  writeData(wb, sheet = gas_names[i], data, colNames = T)
+  
+}
+
+
+```
+
+
+
+
 
 ```{r classifications}
 
