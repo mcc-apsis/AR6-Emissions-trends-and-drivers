@@ -5,6 +5,15 @@ output: word_document
 
 ```{r setup, include=FALSE}
 
+## This is for summarising the current version of our data including:
+## - Global totals by gas
+## - Sector totals by gas
+## - Regional totals by sector
+
+## It also generates a summary sheet with the IPCC sectors, regions, and GWPs
+
+## This script should be run after compiling the data (import_edgar6_data.R)
+
 rm(list = ls())
 library(tidyverse)
 library(ggpubr)
@@ -15,55 +24,37 @@ library(zoo)
 knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
 options(dplyr.summarise.inform = FALSE)
 
-
 load('../../Data/edgar6_data_raw.RData')
 load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
+edgar_ghg_ar5 <- edgar_ghg
+load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+edgar_ghg_ar6 <- edgar_ghg
 load('../../Data/land.RData')
 
-#edgar6_ghg <- edgar_ghg
-# load('../../Data/edgar5_data_ghg_gwp_ar5.RData')
-# edgar5_ghg <- edgar_ghg
-```
-
-```{r blarg,fig.height=6,fig.width=8}
-# 
-# 
-# us <- edgar6_ghg %>% 
-#   filter(ISO=="USA") %>% 
-#   filter(sector_code %in% c("1B2b1","1B2b3","1B2b4","1B2b5","1B2c")) %>% 
-#   mutate(version="edgar6") %>% 
-#   select(year,GHG,sector_code,version)
-# 
-# us2 <- edgar5_ghg %>% 
-#   filter(ISO=="USA") %>% 
-#   filter(sector_code %in% c("1B2b1","1B2b3","1B2b4","1B2b5","1B2c")) %>% 
-#   mutate(version="edgar5") %>% 
-#   select(year,GHG,sector_code,version)
-# 
-# us <- rbind(us,us2)
-# 
-# 
-# us %>% ggplot(.,aes(x=year,y=GHG,color=version)) +
-#   geom_path() +
-#   facet_grid(sector_code~.,scales="free") +
-#   theme(legend.position="bottom")
 
 ```
-
 
 ```{r gas_sheets}
 
 wb <- openxlsx::createWorkbook(title = "ipcc_ar6_edgar_summary")
+addWorksheet(wb,"info")
+info = data.frame(x=c("Author","Units","Last update","Code"),
+                  y=c("William F. Lamb",
+                      "Gt of gas (or GtCO2eq in GWP tabs)",
+                      as.character(Sys.Date()),
+                      "https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Data%20preparation/build_summary_sheets.Rmd"))
+writeData(wb, sheet = "info",info, colNames = F, rowNames = F)
+
 
 gases <- edgar_raw %>% 
   group_by(year,gas,gwp100_ar6,gwp100_ar5) %>% 
-  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  summarise(value=sum(value,na.rm=TRUE)/1e9) %>% 
   ungroup()
 
 gases_land <- land %>% 
   filter(year>1969) %>% 
   group_by(year) %>% 
-  summarise(value=sum(mean,na.rm=TRUE)) %>% 
+  summarise(value=sum(mean,na.rm=TRUE)/1e9) %>% 
   mutate(gas="CO2 (Land-use)") %>% 
   mutate(gwp100_ar6=1) %>% 
   mutate(gwp100_ar5=1) %>% 
@@ -73,17 +64,26 @@ gases <- rbind(gases,gases_land)
 gases$gas <- fct_relevel(gases$gas,c("CO2","CO2 (Land-use)","CH4","N2O"))
 gases <- spread(gases,year,value)
 
-gases_gwps <- gather(gases,year,value,`1970`:`2019`) 
-gases_gwps <- gases_gwps %>% 
+gases_gwps_ar5 <- gather(gases,year,value,`1970`:`2019`) 
+gases_gwps_ar5 <- gases_gwps_ar5 %>% 
   mutate(value=value*gwp100_ar5)
+gases_gwps_ar5 <- spread(gases_gwps_ar5,year,value) 
 
-gases_gwps <- spread(gases_gwps,year,value) 
+
+gases_gwps_ar6 <- gather(gases,year,value,`1970`:`2019`) 
+gases_gwps_ar6 <- gases_gwps_ar6 %>% 
+  mutate(value=value*gwp100_ar6)
+gases_gwps_ar6 <- spread(gases_gwps_ar6,year,value) 
+
 
 
 addWorksheet(wb,"gases")
-writeData(wb, sheet = "gases", gases, colNames = T)
 addWorksheet(wb,"gases_gwp_ar5")
-writeData(wb, sheet = "gases_gwp_ar5", gases_gwps %>% select(-gwp100_ar6), colNames = T)
+addWorksheet(wb,"gases_gwp_ar6")
+
+writeData(wb, sheet = "gases", gases, colNames = T)
+writeData(wb, sheet = "gases_gwp_ar5", gases_gwps_ar5 %>% select(-gwp100_ar6), colNames = T)
+writeData(wb, sheet = "gases_gwp_ar6", gases_gwps_ar6 %>% select(-gwp100_ar5), colNames = T)
 
 
 ```
@@ -93,59 +93,163 @@ writeData(wb, sheet = "gases_gwp_ar5", gases_gwps %>% select(-gwp100_ar6), colNa
 sectors <- edgar_raw %>% 
   filter(year==2018) %>% 
   group_by(sector_code,fossil_bio,description,chapter_title,subsector_title,gas) %>% 
-  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  summarise(value=sum(value,na.rm=TRUE)/1e9) %>% 
   ungroup()
 
 sectors <- spread(sectors,gas,value)
 
 
-sector_gwps <- edgar_ghg %>% 
+sector_gwps_ar5 <- edgar_ghg_ar5 %>% 
   filter(year==2018) %>% 
   group_by(sector_code,fossil_bio,description,chapter_title,subsector_title) %>% 
   summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
   ungroup()
 
-sector_gwps <- gather(sector_gwps,gas,value,CO2:Fgas) %>% 
+sector_gwps_ar5 <- gather(sector_gwps_ar5,gas,value,CO2:Fgas) %>% 
   mutate(value=value/1e9)
-sector_gwps$gas <- as.factor(sector_gwps$gas)
-sector_gwps$gas <- fct_relevel(sector_gwps$gas,"CO2","CH4","N2O")
-sector_gwps <- spread(sector_gwps,gas,value)
+sector_gwps_ar5$gas <- as.factor(sector_gwps_ar5$gas)
+sector_gwps_ar5$gas <- fct_relevel(sector_gwps_ar5$gas,"CO2","CH4","N2O")
+sector_gwps_ar5 <- spread(sector_gwps_ar5,gas,value)
+
+
+sector_gwps_ar6 <- edgar_ghg_ar6 %>% 
+  filter(year==2018) %>% 
+  group_by(sector_code,fossil_bio,description,chapter_title,subsector_title) %>% 
+  summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
+  ungroup()
+
+sector_gwps_ar6 <- gather(sector_gwps_ar6,gas,value,CO2:Fgas) %>% 
+  mutate(value=value/1e9)
+sector_gwps_ar6$gas <- as.factor(sector_gwps_ar6$gas)
+sector_gwps_ar6$gas <- fct_relevel(sector_gwps_ar6$gas,"CO2","CH4","N2O")
+sector_gwps_ar6 <- spread(sector_gwps_ar6,gas,value)
+
 
 addWorksheet(wb,"sectors_2018")
-writeData(wb, sheet = "sectors_2018", sectors, colNames = T)
 addWorksheet(wb,"sectors_2018_gwp_ar5")
-writeData(wb, sheet = "sectors_2018_gwp_ar5", sector_gwps, colNames = T)
+addWorksheet(wb,"sectors_2018_gwp_ar6")
 
 
-saveWorkbook(wb,"../../Results/Data/Data summaries/ipcc_ar6_edgar_v6_summary.xlsx",overwrite = T)
+writeData(wb, sheet = "sectors_2018", sectors, colNames = T)
+writeData(wb, sheet = "sectors_2018_gwp_ar5", sector_gwps_ar5, colNames = T)
+writeData(wb, sheet = "sectors_2018_gwp_ar6", sector_gwps_ar6, colNames = T)
 
 
 ```
 
 ```{r region_sheets}
 
-regions <- edgar_ghg %>% 
+regions_ar5 <- edgar_ghg_ar5 %>% 
   filter(year==2018) %>% 
-  group_by(region_ar6_5,chapter_title) %>% 
+  group_by(region_ar6_6,chapter_title) %>% 
   summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
   ungroup()
 
-regions <- gather(regions,gas,value,CO2:Fgas) %>% 
+regions_ar5 <- gather(regions_ar5,gas,value,CO2:Fgas) %>% 
   mutate(value=value/1e9)
-regions$gas <- as.factor(regions$gas)
-regions$gas <- fct_relevel(regions$gas,"CO2","CH4","N2O")
-regions <- spread(regions,gas,value)
+regions_ar5$gas <- as.factor(regions_ar5$gas)
+regions_ar5$gas <- fct_relevel(regions_ar5$gas,"CO2","CH4","N2O")
+regions_ar5 <- spread(regions_ar5,gas,value)
+
+
+regions_ar6 <- edgar_ghg_ar6 %>% 
+  filter(year==2018) %>% 
+  group_by(region_ar6_6,chapter_title) %>% 
+  summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
+  ungroup()
+
+regions_ar6 <- gather(regions_ar6,gas,value,CO2:Fgas) %>% 
+  mutate(value=value/1e9)
+regions_ar6$gas <- as.factor(regions_ar6$gas)
+regions_ar6$gas <- fct_relevel(regions_ar6$gas,"CO2","CH4","N2O")
+regions_ar6 <- spread(regions_ar6,gas,value)
+
 
 
 addWorksheet(wb,"regions_2018_gwp_ar5")
-writeData(wb, sheet = "regions_2018_gwp_ar5", regions, colNames = T)
+addWorksheet(wb,"regions_2018_gwp_ar6")
+
+writeData(wb, sheet = "regions_2018_gwp_ar5", regions_ar5, colNames = T)
+writeData(wb, sheet = "regions_2018_gwp_ar6", regions_ar6, colNames = T)
+
+```
+
+```{r classifications}
+
+wb2 <- openxlsx::createWorkbook(title = "ipcc_ar6_data_metadata")
+
+load('../../Data/ipcc_regions.RData')
+load('../../Data/ipcc_sectors.RData')
+load('../../Data/gwps.RData')
+
+info = data.frame(x=c("Author","Last update","Code"),
+                  y=c("William F. Lamb",
+                      as.character(Sys.Date()),
+                      "https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Data%20preparation/build_summary_sheets.Rmd"))
+
+
+addWorksheet(wb2,"info")
+addWorksheet(wb2,"ipcc_sectors")
+addWorksheet(wb2,"ipcc_regions")
+addWorksheet(wb2,"ipcc_gwps")
+addWorksheet(wb2,"ipcc_gwps_ch4")
+
+writeData(wb2, sheet = "info",info, colNames = F, rowNames = F)
+writeData(wb2, sheet = "ipcc_sectors", ipcc_sectors, colNames = T)
+writeData(wb2, sheet = "ipcc_regions", ipcc_regions, colNames = T)
+writeData(wb2, sheet = "ipcc_gwps", gwps, colNames = T)
+writeData(wb2, sheet = "ipcc_gwps_ch4", gwps_ch4, colNames = T)
+
+
+
+```
+
+```{r sectors_gases}
+
+# summary of sectors and their gases
+
+sectors_gases <- edgar_raw %>% 
+  group_by(chapter_title,subsector_title,sector_code,fossil_bio,gas) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
+
+sectors_gases <- sectors_gases %>% 
+  ungroup() %>% 
+  mutate(sector_code = paste0(sector_code," (",fossil_bio,")")) %>% 
+  select(-fossil_bio)
+
+sectors_gases <- sectors_gases %>% 
+  mutate(gas=as.character(gas)) %>% 
+  mutate(gas=ifelse(value==0,NA,gas)) %>% 
+  filter(!is.na(gas)) %>% 
+  select(-value)
+
+only_gases <- sectors_gases %>% 
+  ungroup() %>% 
+  select(-sector_code) %>% 
+  distinct() %>% 
+  group_by(chapter_title,subsector_title) %>% 
+  summarise(gases=paste0(gas,collapse=", "))
+
+only_sectors <- sectors_gases %>% 
+  ungroup() %>% 
+  select(-gas) %>% 
+  distinct() %>% 
+  group_by(chapter_title,subsector_title) %>% 
+  summarise(sector_code=paste0(sector_code,collapse=", "))
+
+sectors_gases <- left_join(only_sectors,only_gases,by = c("chapter_title", "subsector_title"))
+
+
+addWorksheet(wb2,"sectors_gases")
+writeData(wb2, sheet = "sectors_gases",sectors_gases, colNames = T, rowNames = F)
 
 ```
 
 
 ```{r save}
 
-saveWorkbook(wb,"../../Results/Data/Data summaries/ipcc_ar6_edgar_v6_summary.xlsx",overwrite = T)
+saveWorkbook(wb,"../../Results/Data/ipcc_ar6_data_summary.xlsx",overwrite = T)
+saveWorkbook(wb2,"../../Results/Data/ipcc_ar6_data_metadata.xlsx",overwrite = T)
 
 
 ```

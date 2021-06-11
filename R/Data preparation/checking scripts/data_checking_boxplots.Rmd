@@ -1,0 +1,74 @@
+---
+title: "Data checking - Sector boxplots"
+author: "Niklas Döbbeling"
+date: "14 4 2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+library(tidyverse)
+library(ggplot2)
+library(ggpubr)
+library(patchwork)
+library(ggplot2); theme_set(theme_bw())
+
+options(dplyr.summarise.inform = FALSE)
+
+load('../../Data/edgar_data_gwp_ar6.RData')
+```
+
+
+```{r region_data,echo=FALSE,warning=FALSE}
+
+#only total GHG emissions needed
+edgar_data<-edgar_GHG_ar6 %>%
+  select(-CO2,-CH4,-N2O,-Fgas)
+
+#calcualte sector shares
+country_totals<-edgar_data %>%
+  group_by(ISO,year) %>%
+  summarise(GHG_total=sum(GHG,na.rm = TRUE))
+
+edgar_data<-left_join(edgar_data,country_totals,by=c("ISO","year"))
+
+edgar_data<-edgar_data %>%
+  mutate(sector_share=GHG/GHG_total)
+
+#plot sector shares
+is_outlier <- function(x) {
+  return(x < quantile(x, 0.25,na.rm=TRUE) - 1.5 * IQR(x,na.rm=TRUE) -0.1 | x > quantile(x, 0.75,na.rm=TRUE) + 1.5 * IQR(x,na.rm=TRUE) +0.1)   #outliers in boxplots are shown outside the interval [quantile(x, 0.25) - 1.5 * IQR(x); x > quantile(x, 0.75) + 1.5 * IQR(x)], I added an aditional 10 percentage points to reduce the number to relevant ones
+}
+
+box_shares<-function(plot_year,chap){
+  
+  p<-edgar_data %>%
+    filter(year==plot_year) %>%
+    filter(chapter_title==chap) %>%
+    group_by(sector_code) %>%
+    mutate(outlier = ifelse(is_outlier(sector_share), ISO, NA)) %>%
+    #ggplot(aes(x=sector_code,goup=sector_code,y=sector_share)) + geom_boxplot() +
+    ggplot(aes(y=sector_code,goup=sector_code,x=sector_share)) + geom_boxplot() +
+      geom_text(aes(label = outlier), na.rm = TRUE, hjust = -0.3,size=2)+
+      #theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust = 0.5))+
+      xlab("percentage share of total GHG emissions")+
+      ggtitle(paste("GHG share by sector across countries in", plot_year, "(", chap, ")", sep=" "))
+  return(p)
+}
+
+p1<-box_shares(2018,"Energy systems")
+p2<-box_shares(2018,"Industry")
+p3<-box_shares(2018,"Transport")
+p4<-box_shares(2018,"Buildings")
+p5<-box_shares(2018,"AFOLU")
+
+```
+```{r regions_countries,echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,dev=c('png','pdf')}
+
+p1
+p2
+p3
+p4
+p5
+
+```

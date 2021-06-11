@@ -1,6 +1,8 @@
 
-data <- edgar_GHG_ar6 %>% 
-  group_by(description,sector_code,chapter_title) %>% 
+load('Data/edgar6_data_ghg_gwp_ar5.RData')
+
+data <- edgar_ghg %>% 
+  group_by(description,sector_code,fossil_bio,chapter_title) %>% 
   summarise_at(vars(CO2,N2O,CH4,Fgas),sum,na.rm=T)
 
 data <- data %>% 

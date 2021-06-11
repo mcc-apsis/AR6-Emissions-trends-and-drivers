@@ -14,6 +14,20 @@ library(openxlsx)
 
 ```
 
+
+```{r fix_classification_sheet}
+
+
+
+
+
+
+```
+
+
+
+
+
 ```{r load_iea}
 
 ######### read IEA data and clean empty country rows
@@ -131,15 +145,16 @@ totals <- iea %>%
 
 ######### match IEA sectors to (EDGAR) IPCC 2006 codes
 
-matching <- openxlsx::read.xlsx("../../Data/Codes and classifications/iea_ipcc_sector_classification.xlsx",sheet = "sectors")
+matching <- openxlsx::read.xlsx("../../Data/Codes and classifications/iea_ipcc_sector_classification.xlsx",sheet = "edgar_v6")
 matching <- matching %>% 
-  select(CODE,LEVEL,ipcc.code,sector_chapter,chapter_title,description)
-iea <- left_join(iea,matching %>% select(CODE,LEVEL,ipcc.code),by=c("flow"="CODE"))
+  select(CODE,LEVEL,ipcc.code=sector_code_v6,fossil_bio)
+iea <- left_join(iea,matching %>% select(CODE,LEVEL,ipcc.code,fossil_bio),by=c("flow"="CODE"))
+
 
 ######### use IPCC 2006 codes to merge IEA with AR6 sectors and subsectors
 
 load("../../Data/ipcc_sectors.RData")
-iea <- left_join(iea,ipcc_sectors %>% select(-IPCC.2006),by=c("ipcc.code"="code"))
+iea <- left_join(iea,ipcc_sectors %>% select(-IPCC.2006),by=c("ipcc.code"="code","fossil_bio"))
 
 
 ######### allocate OTHEN to "Other incl. Indirect N2O"
@@ -148,7 +163,7 @@ iea <- iea %>%
   mutate(IPCC_AR6_chapter=ifelse(flow=="OTHEN",6,IPCC_AR6_chapter)) %>% 
   mutate(IPCC_AR6_chapter_title=ifelse(flow=="OTHEN","Energy systems",IPCC_AR6_chapter_title)) %>% 
   mutate(subsector=ifelse(flow=="OTHEN",6.6,subsector)) %>% 
-  mutate(subsector_title=ifelse(flow=="OTHEN","Other incl. Indirect N2O",subsector_title))
+  mutate(subsector_title=ifelse(flow=="OTHEN","Other (energy systems)",subsector_title))
 
 
 ########### trim down to sectors that we match in EDGAR (ONONSPEC and OTHEN are removed)
@@ -174,8 +189,8 @@ iea <- iea %>%
 
 ######### join EDGAR world ELECHEAT
 
-load("../../Data/edgar_data_gwp_ar6.RData")
-edgar_world_elec_heat <- edgar_GHG_ar6 %>% 
+load("../../Data/edgar6_data_ghg_gwp_ar6.RData")
+edgar_world_elec_heat <- edgar_ghg %>% 
   filter(year>1989) %>% 
   filter(chapter==6) %>% 
   group_by(year,chapter,sector_code,description,subsector,subsector_title) %>% 
@@ -221,7 +236,7 @@ iea <- iea %>%
 
 load("../../Data/ipcc_regions.RData")
 regions_10 <- ipcc_regions %>%
-  select(region_ar6_10,region_ar6_5) %>%
+  select(region_ar6_10,region_ar6_6) %>%
   distinct() %>%
   mutate(include=1)
 
@@ -235,7 +250,7 @@ indirect_CO2_regions <- left_join(iea,regions_10,by=c("country"="region_ar6_10")
 indirect_CO2_regions <- indirect_CO2_regions %>%
   filter(include==1) %>% 
   select(-include) %>% 
-  select(region_ar6_10=country,region_ar6_5,everything())
+  select(region_ar6_10=country,region_ar6_6,everything())
 
 not_joined <- anti_join(iea,regions_10,by=c("country"="region_ar6_10"))
 
@@ -260,7 +275,7 @@ indirect_CO2_countries <- indirect_CO2_countries %>%
   filter(!is.na(alpha.3)) %>% 
   filter(alpha.3!="ZZZZ")
 
-edgar_countries <- edgar_GHG_ar6 %>% 
+edgar_countries <- edgar_ghg %>% 
   select(country,ISO) %>% 
   distinct()
 
@@ -277,7 +292,7 @@ removed <- indirect_CO2_countries %>%
   distinct()
 
 indirect_CO2_countries <- indirect_CO2_countries %>% 
-  select(country,ISO=alpha.3,region_ar6_5,region_ar6_10,region_ar6_22,region_ar6_dev,region_ar6_5_short,year,everything()) %>% 
+  select(country,ISO=alpha.3,region_ar6_6,region_ar6_10,region_ar6_22,region_ar6_dev,region_ar6_6_short,year,everything()) %>% 
   select(-name)
 
 ```
@@ -322,9 +337,8 @@ save(indirect_CO2_regions,indirect_CO2_world,indirect_CO2_countries,file="../../
 
 wb <- openxlsx::createWorkbook(title = paste("ipcc_indirect_emissions"))
 
-
 openxlsx::addWorksheet(wb,"info")
-info = data.frame(x=c("Author","Date","Code"),y=c("William F. Lamb",as.character(Sys.Date()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Data%20preparation/indirect_emissions.Rmd"))
+info = data.frame(x=c("Author","Units","Date","Code"),y=c("William F. Lamb","GtCO2",as.character(Sys.Date()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Data%20preparation/indirect_emissions.Rmd"))
 openxlsx::writeData(wb, sheet = "info",info , colNames = F, rowNames = F)
 
 
@@ -337,7 +351,7 @@ openxlsx::writeData(wb, sheet = "World",indirect_CO2_world , colNames = T, rowNa
 openxlsx::addWorksheet(wb,"Countries")
 openxlsx::writeData(wb, sheet = "Countries",indirect_CO2_countries , colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_data_indirect_emissions.xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_data_indirect_co2.xlsx"),overwrite=T)
 
 
 

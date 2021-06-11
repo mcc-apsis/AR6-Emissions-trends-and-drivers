@@ -16,10 +16,10 @@ library(ggpubr)
 library(ggplot2); theme_set(theme_bw())
 library(RColorBrewer)
 
-load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
 load('../../Data/indirect_CO2.RData')
 
-data <- edgar_GHG_ar6 %>% 
+data <- edgar_ghg %>% 
   filter(year==2018) %>% 
   group_by(chapter,chapter_title,subsector,subsector_title) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE)/1e9,CO2=sum(CO2,na.rm=TRUE)/1e9)

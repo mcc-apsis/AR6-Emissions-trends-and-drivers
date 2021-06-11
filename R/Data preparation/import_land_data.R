@@ -10,12 +10,9 @@ library(openxlsx)
 #houghton <- read.xlsx("../../Data/Land and GCB/Country_ELUC_25112020_forWill.xlsx",sheet="H&N_2017_IPCC_regions")
 #oscar <- read.xlsx("../../Data/Land and GCB/Country_ELUC_25112020_forWill.xlsx",sheet="OSCAR_IPCC_regions")
 
-blue <- read.xlsx("../../Data/Land and GCB/Country_ELUC_23032021.xlsx",sheet="BLUE_GCB2020_IPCC_regions")
-houghton <- read.xlsx("../../Data/Land and GCB/Country_ELUC_23032021.xlsx",sheet="H&N_2017_IPCC_regions")
-oscar <- read.xlsx("../../Data/Land and GCB/Country_ELUC_23032021.xlsx",sheet="oscar_10ipccregions")
-
-#load("../../Data/land.RData")
-#land_old<-land
+blue <- read.xlsx("Data/Land and GCB/Country_ELUC_23032021.xlsx",sheet="BLUE_GCB2020_IPCC_regions")
+houghton <- read.xlsx("Data/Land and GCB/Country_ELUC_23032021.xlsx",sheet="H&N_2017_IPCC_regions")
+oscar <- read.xlsx("Data/Land and GCB/Country_ELUC_23032021.xlsx",sheet="oscar_10ipccregions")
 
 blue <- gather(blue,region_ar6_10,blue,`Africa`:`Southern.Asia`) %>% 
   select(region_ar6_10,year=X1,blue) %>%
@@ -44,11 +41,13 @@ land <- land %>%
 # check country names and regions
 land$region_ar6_10 <- gsub("[.]"," ",land$region_ar6_10)
 
-load('../../Data/ipcc_regions.RData')
+load('Data/ipcc_regions.RData')
 
-regions <- ipcc_regions %>% select(region_ar6_10) %>% distinct()
+regions <- ipcc_regions %>% select(region_ar6_10,region_ar6_6,region_ar6_10_short,region_ar6_6_short) %>% distinct()
 
 uhoh <- anti_join(land,regions,by="region_ar6_10")
+
+land <- left_join(land,regions,by="region_ar6_10")
 
 #check updated data vs. previous data
 # colnames(land_old)[3:6]<-paste(colnames(land_old)[3:6],"_old",sep = "")
@@ -68,12 +67,16 @@ uhoh <- anti_join(land,regions,by="region_ar6_10")
 #   select(region_ar6_10,year,blue,blue_old,blue_diff,blue_diff_rate)
 
 wb <- createWorkbook()
-info = data.frame(x=c("Author","Units","Date","Contact"),y=c("Julia Pongratz","tCO2",as.character(Sys.Date()),"Lamb@mcc-berlin.net"))
+info = data.frame(x=c("Author","Units","Last update","Contact","Code"),y=c("Julia Pongratz",
+    "tCO2",
+    as.character(Sys.Date()),
+    "Lamb@mcc-berlin.net",
+    "https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Data%20preparation/import_land_data.R"))
 addWorksheet(wb,"info")
 openxlsx::writeData(wb, sheet = "info", info, colNames = F, rowNames = F)
 addWorksheet(wb,"data")
 openxlsx::writeData(wb, sheet = "data", land, colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,"../../Results/Data/ipcc_ar6_land_data_2021-04-06.xlsx",overwrite=F)
+openxlsx::saveWorkbook(wb,"Results/Data/ipcc_ar6_data_land_co2.xlsx",overwrite=T)
 
-save(land,file='../../Data/land.RData')
+save(land,file='Data/land.RData')

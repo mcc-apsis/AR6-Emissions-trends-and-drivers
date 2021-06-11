@@ -3,6 +3,8 @@ title: "Comparison of EDGAR data with CRF data from PRIMAP"
 author: "Niklas Döbbeling"
 date: "12 4 2021"
 output: word_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
 ---
 
 ```{r loading data, echo=FALSE,warning=FALSE,include=FALSE}
