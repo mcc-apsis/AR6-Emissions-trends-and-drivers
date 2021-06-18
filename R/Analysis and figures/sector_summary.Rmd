@@ -1,0 +1,199 @@
+---
+title: "sector_summary"
+author: "William F. Lamb"
+date: "14 6 2021"
+output: word_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggplot2); theme_set(theme_bw())
+library(patchwork)
+library(RColorBrewer)
+
+end_year = 2019
+
+load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+load('../../Data/gwps.RData')
+load('../../Data/indirect_CO2.RData')
+load('../../Data/land.RData')
+load('../../Data/ipcc_regions.RData')
+load('../../Data/WDI_gdp_pop.RData')
+
+options(dplyr.summarise.inform = FALSE)
+
+
+## join datasets
+
+data <- edgar_ghg %>% 
+  filter(region_ar6_10_short!="AIR") %>% 
+  filter(region_ar6_10_short!="SEA") %>% 
+  group_by(ISO,country,region_ar6_10,region_ar6_10_short,year,chapter_title,subsector_title) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+# land CO2 data
+
+land <- land %>%
+  filter(year>1969) %>% 
+  filter(year<=end_year) %>% 
+  mutate(subsector_title="Land-use (CO2)") %>% 
+  mutate(chapter_title="AFOLU") %>% 
+  select(region_ar6_10,region_ar6_10_short,year,chapter_title,subsector_title,value=mean)
+
+# population data
+
+pop <- left_join(ipcc_regions %>% select(ISO,region_ar6_10,region_ar6_10_short),wdi_data_gdp_pop %>% select(ISO=iso3c,year,population), by = "ISO")
+
+data <- left_join(data,pop,by = c("region_ar6_10", "region_ar6_10_short", "year","ISO"))
+
+# indirect CO2 data (save for later...)
+
+indirect_CO2_countries <- indirect_CO2_countries %>% 
+  group_by(ISO,country,region_ar6_10,year,chapter_title,subsector_title) %>% 
+  summarise(CO2_indirect=sum(CO2_indirect,na.rm=TRUE)*1e9)
+
+
+```
+
+
+```{r totals,fig.width=7,fig.height=8}
+
+sector_totals <- left_join(data,indirect_CO2_countries,by = c("ISO", "country", "region_ar6_10", "year", "chapter_title", "subsector_title"))
+
+world_totals <- sector_totals %>% 
+  filter(year==2018) %>% 
+  group_by(chapter_title,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
+  mutate(GHG_indirect=sum(GHG,CO2_indirect))
+
+world_totals_totals <- sector_totals %>% 
+  filter(year==2018) %>% 
+  group_by(year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
+  mutate(GHG_indirect=sum(GHG)) %>% 
+  mutate(chapter_title="Total")
+
+world_totals <- rbind(world_totals,world_totals_totals)
+
+sector_totals_totals <- sector_totals %>% 
+  filter(year==2018) %>% 
+  group_by(region_ar6_10,region_ar6_10_short,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
+  mutate(chapter_title="Total") %>% 
+  mutate(GHG_indirect=sum(GHG))
+
+sector_totals <- sector_totals %>% 
+  filter(year==2018) %>% 
+  group_by(region_ar6_10,region_ar6_10_short,chapter_title,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE))
+
+sector_totals <- sector_totals %>% 
+  mutate(GHG_indirect=sum(GHG,CO2_indirect))
+
+sector_totals <- rbind(sector_totals,sector_totals_totals)
+
+sector_totals <- left_join(sector_totals,world_totals %>% select(chapter_title,year,world_total=GHG_indirect),by = c("chapter_title", "year"))
+
+
+sector_totals <- sector_totals %>% 
+  mutate(fraction=GHG_indirect/world_total)
+
+
+p1<- sector_totals %>% ggplot(.,aes(x=region_ar6_10_short,y=fraction*100,fill=region_ar6_10_short)) +
+  geom_bar(stat="identity",color="#737373") +
+  facet_grid(factor(chapter_title,levels=c("AFOLU","Buildings","Energy systems","Industry","Transport","Total"))~.,scales="free",switch = "both") +
+  scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(10)) +
+  scale_y_continuous(position = "right") +
+  theme(legend.position="none",
+        legend.title=element_blank(),
+        axis.title.y = element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x = element_text(angle=45,hjust=1),
+        title = element_text(size=9)) +
+  ggtitle('a. Regional contributions to sector emissions (%)')
+
+
+```
+
+
+```{r sector_emissions_per_capita,fig.width=7,fig.height=8}
+
+per_capita <- left_join(data,indirect_CO2_countries,by = c("ISO", "country", "region_ar6_10", "year", "chapter_title", "subsector_title"))
+
+per_capita_world <- per_capita %>% 
+  group_by(year,chapter_title) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
+  mutate(GHG_indirect=GHG+CO2_indirect) %>% 
+  mutate(ISO="WLD")
+
+per_capita_world <- left_join(per_capita_world,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population), by = c("year", "ISO"))
+
+per_capita_world <- per_capita_world %>% 
+  mutate(GHG_indirect_pc=GHG_indirect/population) %>% 
+  filter(year==2018) %>% 
+  mutate(label="World average")
+
+total_world <- per_capita_world %>% 
+  group_by(year,label) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE),population=nth(population,1)) %>%
+  mutate(GHG_indirect_pc=GHG/population) %>% 
+  mutate(chapter_title="Total")
+
+per_capita_world <- rbind(per_capita_world,total_world)
+
+totals <- per_capita %>% 
+  filter(year %in% c(2010,2018)) %>% 
+  group_by(ISO,country,region_ar6_10,region_ar6_10_short,year) %>% 
+  summarise(GHG=sum(GHG),population=nth(population,1),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
+  mutate(GHG_indirect=GHG+CO2_indirect) %>% 
+  mutate(GHG_pc=GHG/population) %>% 
+  mutate(GHG_indirect_pc=GHG_indirect/population) %>% 
+  mutate(year=as.factor(year)) %>% 
+  filter(population>1e6) %>% 
+  mutate(chapter_title="Total")
+
+per_capita <- per_capita %>% 
+  filter(year %in% c(2010,2018)) %>% 
+  group_by(ISO,country,region_ar6_10,region_ar6_10_short,chapter_title,year) %>% 
+  summarise(GHG=sum(GHG),population=nth(population,1),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
+  mutate(GHG_indirect=GHG+CO2_indirect) %>% 
+  mutate(GHG_pc=GHG/population) %>% 
+  mutate(GHG_indirect_pc=GHG_indirect/population) %>% 
+  mutate(year=as.factor(year)) %>% 
+  filter(population>1e6)
+
+per_capita <- rbind(per_capita,totals)
+
+p2 <- per_capita %>% 
+  filter(year==2018) %>% 
+  ggplot(aes(x=region_ar6_10_short,y=GHG_indirect_pc,fill=region_ar6_10_short)) +
+  geom_boxplot(outlier.alpha = 0.5,color="#737373",show.legend=FALSE) +
+  geom_hline(data=per_capita_world,aes(yintercept=GHG_indirect_pc,color=label),alpha=0.8,linetype="dashed") +
+  facet_grid(factor(chapter_title,levels=c("AFOLU","Buildings","Energy systems","Industry","Transport","Total"))~.,scales="free") +
+  scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(10)) +
+  ylab("GHG emissions per capita (tCO2eq/capita)") +
+  scale_y_continuous(position = "right") +
+  theme(legend.position = "bottom",
+        legend.title=element_blank(),
+        legend.background = element_blank(),
+        legend.margin = margin(t = 0, unit='cm'),
+        axis.title.x=element_blank(),
+        axis.title.y=element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.text.x = element_text(angle=45,hjust=1),
+        title = element_text(size=9)) +
+  ggtitle("b. Per capita sector emissions in 2018 (tCO2eq/capita)")
+
+```
+
+
+```{r sector_region_summary,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+p1 + p2 + plot_layout(width = c(1,1.05))
+
+```

@@ -23,9 +23,11 @@ source("../Analysis and figures/small_figures.R")
 
 # load('../../Data/edgar_data_gwp_ar6.RData')
 # load("../../Data/edgar_data_all.RData")
-load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
-#load("../../Data/edgar6_data_raw_gwp_ar5.RData")
-load("../../Data/edgar6_data_raw.RData")
+#load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
+load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+#load("../../Data/edgar6_data_raw_gwp_ar5.RData") #if changed to ar6 change line 432 and 440
+#load("../../Data/edgar6_data_raw.RData")
+load("../../Data/edgar_essd_data_raw.RData")
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 
@@ -50,18 +52,21 @@ waterfall_data <- edgar_raw %>%
   # group_by(year) %>% 
   # summarise_at(vars(CO2:SF6),sum,na.rm=TRUE) %>% 
   # mutate_at(vars(CO2:SF6),list(~./1e9))
-  group_by(year,gas) %>% 
+  group_by(year,gas,gwp100_ar2,gwp100_ar5) %>% 
   summarise(value=sum(value,na.rm=TRUE)) %>% 
-  mutate(value=value/1e9)
+  mutate(value=value/1e9) %>%
+  ungroup()
 
 #waterfall_data <- gather(waterfall_data,gas,value,CO2:SF6)
-waterfall_data <- left_join(waterfall_data,gwps,by = "gas")
+#waterfall_data <- left_join(waterfall_data,gwps,by = "gas")
 waterfall_data <- waterfall_data %>% 
-  mutate(gwp_ar2=gwp_ar2*value) %>% 
-  mutate(gwp_ar4=gwp_ar4*value) %>% 
-  mutate(gwp_ar5=gwp_ar5*value) %>% 
+  mutate(gwp_ar2=gwp100_ar2*value) %>% 
+  #mutate(gwp_ar4=gwp100_ar4*value) %>% 
+  mutate(gwp_ar5=gwp100_ar5*value) %>% 
   #mutate(gwp_ar6=gwp_ar6*value) %>% 
-  select(-value,-gwp_ar6_sod)
+  group_by(year,gas) %>% 
+  summarise_at(vars(gwp_ar2:gwp_ar5),sum,na.rm=TRUE) #%>% 
+  #select(-value,-gwp100_ar2,-gwp100_ar5)#,-gwp_ar6_sod)
 
 
 #### recalculate methane in AR6 using biogenic / non-biogenic methane GWPs
@@ -117,7 +122,7 @@ land_totals <- land %>%
 waterfall_land <- land_totals %>% 
   mutate(gas="CO2 Land use") %>% 
   mutate(gwp_ar2=CO2_landuse) %>% 
-  mutate(gwp_ar4=CO2_landuse) %>% 
+  #mutate(gwp_ar4=CO2_landuse) %>% 
   mutate(gwp_ar5=CO2_landuse) %>% 
   #mutate(gwp_ar6=CO2_landuse) %>% 
   select(-CO2_landuse)
@@ -126,6 +131,7 @@ waterfall_data <- waterfall_data %>%
   filter(gas %in% c("CO2","CH4","N2O"))
 waterfall_data <- rbind(waterfall_data,fgas)
 waterfall_data <- rbind(waterfall_data,waterfall_land) %>% 
+  mutate(gas=as.character(gas)) %>%
   mutate(gas=ifelse(gas=="CO2","CO2 FFI",gas))
 
 waterfall_data <- waterfall_data %>% 
@@ -422,7 +428,8 @@ crf_total_sector<-gather(crf_total_sector,key = "year", value = "value", "1986":
   mutate(year=as.numeric(year))
 
 crf_total_sector<-crf_total_sector %>% 
-  mutate(GHG_crf=value*gwp_ar6) %>%
+  #mutate(GHG_crf=value*gwp_ar6) %>%
+  mutate(GHG_crf=value*gwp_ar5) %>%
   select(-gwp_ar5,-gwp_ar6,-Code.gwps)
 
 ##adjusting for fugitive methane
@@ -430,8 +437,9 @@ crf_methane_adjustment<-gather(crf_methane_adjustment,key = "year", value = "val
   mutate(value=value/1e6) %>%   #transforming kt to Gt
   mutate(unit="Gt") %>%
   mutate(year=as.numeric(year)) %>%
-  mutate(GHG_crf=value*(29.8-27.2))          #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
-
+  #mutate(GHG_crf=value*(29.8-27.2))          #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
+  mutate(GHG_crf=value*(30-28))
+  
 crf_total_sector<-rbind(crf_total_sector,crf_methane_adjustment)
 
 crf_total_sector<-crf_total_sector %>%
@@ -443,14 +451,14 @@ crf_total_sector<-crf_total_sector %>%
 time_start=2010
 
 countries <- edgar_ghg %>% 
-  filter(region_ar6_5_short!="AIR") %>% 
-  filter(region_ar6_5_short!="SEA") %>% 
+  filter(region_ar6_6_short!="AIR") %>% 
+  filter(region_ar6_6_short!="SEA") %>% 
   filter(year>=time_start & year<=2019) %>% 
-  group_by(country,ISO,year,region_ar6_5_short) %>% 
+  group_by(country,ISO,year,region_ar6_6_short) %>% 
   summarise_at(vars(CH4:GHG),sum,na.rm=TRUE) %>% 
   mutate_at(vars(CH4:GHG),list(~./1e9)) %>%
   ungroup() %>%
-  mutate(region_ar6_5_short=as.character(region_ar6_5_short))
+  mutate(region_ar6_6_short=as.character(region_ar6_6_short))
 
 # what is 75% of the emissions?
 threshold <- countries %>%
@@ -539,8 +547,8 @@ time_start=2010
 ## get country level data
 
 sectors <- edgar_ghg %>% 
- # filter(region_ar6_5_short!="AIR") %>% 
-#  filter(region_ar6_5_short!="SEA") %>% 
+ # filter(region_ar6_6_short!="AIR") %>% 
+#  filter(region_ar6_6_short!="SEA") %>% 
   filter(year>=time_start & year<=2019) %>% 
   group_by(year,chapter,chapter_title,subsector,subsector_title) %>% 
   summarise_at(vars(CH4:GHG),sum,na.rm=TRUE) %>% 

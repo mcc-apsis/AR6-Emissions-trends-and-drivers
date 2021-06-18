@@ -19,7 +19,8 @@ library(scales)
 source("../Analysis and figures/small_figures.R")
 
 
-load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
+#load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
+load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 load('../../Data/WDI_gdp_pop.RData')
@@ -75,9 +76,19 @@ mapdata_2010 <- mapdata %>%
   mutate(avg_growth_2010=avg_growth_2010*100) %>% 
   select(country,ISO,avg_growth_2010)
 
+time_start=1970
+mapdata_1970 <- mapdata %>% 
+  filter(year %in% c(time_start,2019)) %>% 
+  group_by(country,ISO) %>% 
+  mutate(avg_growth_1970=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
+  filter(year==2019) %>% 
+  mutate(avg_growth_1970=avg_growth_1970*100) %>% 
+  select(country,ISO,avg_growth_1970)
+
 mapdata <- mapdata %>% filter(year==2019)
 mapdata <- left_join(mapdata,mapdata_1990,by = c("country", "ISO"))
 mapdata <- left_join(mapdata,mapdata_2010,by = c("country", "ISO"))
+mapdata <- left_join(mapdata,mapdata_1970,by = c("country", "ISO"))
 
 world <- map_data("world") %>% 
   filter(region!="Antarctica")
@@ -168,11 +179,30 @@ p3 <- ggplot() +
   ggtitle("c. Average annual GHG emissions growth in percent (1990-2019)")
 p3
 
+## growth 1970-2019
+p4 <- ggplot() + 
+  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_1970),color="grey",size=0.25,na.rm=T) + 
+  #scale_fill_viridis_c() +
+  scale_fill_steps2(low = "midnightblue",mid = "lightyellow",high = "darkred", na.value="lightgrey", midpoint=0, breaks=c(-8,-6,-4,-2,0,2,4,6,8), limits=c(-10,10),oob=squish) +
+  theme(panel.border = element_rect(colour = "black",fill=NA),
+        legend.position = c(0.5,0),
+        legend.direction = "horizontal",
+        legend.key.width = unit(2,"cm"),
+        legend.key.height = unit(.2,"cm"),
+        legend.background = element_blank(),
+        legend.title = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        plot.margin = unit(c(0,0,0.5,0),units="cm"),
+        plot.title = element_text(size=12),
+        panel.grid=element_blank()) +
+  ggtitle("d. Average annual GHG emissions growth in percent (1970-2019)")
 
 ```
 
-```{r maps,echo=FALSE,fig.width=6,fig.height=8,results='asis',fig.path="Results/Plots/",dev=c('png','pdf')}
+```{r maps,echo=FALSE,fig.width=5,fig.height=9,results='asis',fig.path="Results/Plots/",dev=c('png','pdf')}
 
-p1/p2/p3
+p1/p2/p3/p4
 
 ```

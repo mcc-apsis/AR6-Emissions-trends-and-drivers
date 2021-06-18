@@ -18,7 +18,8 @@ library(zoo)
 
 source("../../R/Analysis and figures/small_figures.R")
 
-load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
+#load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
+load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
 load('../../Data/gwps.RData')
 load('../../Data/land.RData')
 

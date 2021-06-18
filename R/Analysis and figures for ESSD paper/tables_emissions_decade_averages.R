@@ -3,7 +3,8 @@ library(tidyverse)
 library(lubridate)
 
 #load('../../Data/edgar_data_gwp_ar6.RData')
-load("../../Data/edgar6_data_raw_gwp_ar5.RData")
+#load("../../Data/edgar6_data_raw_gwp_ar5.RData")
+load('../../Data/edgar_essd_data_raw.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 
@@ -40,8 +41,8 @@ GHG_data<-GHG_data %>%
   mutate(region_ar6_10=as.character(region_ar6_10)) %>%
   mutate(region_ar6_10=ifelse(region_ar6_10=="Intl. Aviation","Intl. Aviation and Shipping",region_ar6_10)) %>% 
   mutate(region_ar6_10=ifelse(region_ar6_10=="Intl. Shipping","Intl. Aviation and Shipping",region_ar6_10))
-  #mutate(region_ar6_10=ifelse(region_ar6_5=="Intl. Aviation","Intl. Aviation and Shipping",region_ar6_10)) %>% 
-  #mutate(region_ar6_10=ifelse(region_ar6_5=="Intl. Shipping","Intl. Aviation and Shipping",region_ar6_10))
+  #mutate(region_ar6_10=ifelse(region_ar6_6=="Intl. Aviation","Intl. Aviation and Shipping",region_ar6_10)) %>% 
+  #mutate(region_ar6_10=ifelse(region_ar6_6=="Intl. Shipping","Intl. Aviation and Shipping",region_ar6_10))
   
 methane <- GHG_data %>% 
   filter(gas=="CH4") 
@@ -192,19 +193,19 @@ GHG_by_gas<-GHG_by_gas[7:1,]
 
 ## by region
 
-region_ar6_5<-edgar_raw%>%
-  select(region_ar6_5,region_ar6_10)%>%
+region_ar6_6<-edgar_raw%>%
+  select(region_ar6_6,region_ar6_10)%>%
   unique() %>%
   mutate(region_ar6_10=ifelse(region_ar6_10=="Intl. Aviation","Intl. Aviation and Shipping",region_ar6_10)) %>% 
   mutate(region_ar6_10=ifelse(region_ar6_10=="Intl. Shipping","Intl. Aviation and Shipping",region_ar6_10)) %>%
-  mutate(region_ar6_5=ifelse(region_ar6_5=="Intl. Aviation","Intl. Aviation and Shipping",region_ar6_5)) %>% 
-  mutate(region_ar6_5=ifelse(region_ar6_5=="Intl. Shipping","Intl. Aviation and Shipping",region_ar6_5)) %>%
+  mutate(region_ar6_6=ifelse(region_ar6_6=="Intl. Aviation","Intl. Aviation and Shipping",region_ar6_6)) %>% 
+  mutate(region_ar6_6=ifelse(region_ar6_6=="Intl. Shipping","Intl. Aviation and Shipping",region_ar6_6)) %>%
   unique()
 
-GHG_by_region_ext <- left_join(GHG_data,region_ar6_5,by="region_ar6_10")
+GHG_by_region_ext <- left_join(GHG_data,region_ar6_6,by="region_ar6_10")
 
 GHG_by_region <- GHG_by_region_ext %>%
-  group_by(region_ar6_5,year) %>%
+  group_by(region_ar6_6,year) %>%
   summarise(value=sum(value,na.rm=TRUE)) %>%
   mutate(decade=ifelse((year>1969 & year<1980),"1970-1979",NA)) %>%
   mutate(decade=ifelse((year>1979 & year<1990),"1980-1989",decade)) %>%
@@ -225,12 +226,12 @@ GHG_by_region<-rbind(GHG_by_region,GHG_by_region_1970,GHG_by_region_2019)
 GHG_by_region_total <- GHG_by_region %>%
   group_by(decade, year) %>%
   summarise(value=sum(value,na.rm=TRUE)) %>%
-  mutate(region_ar6_5="world")
+  mutate(region_ar6_6="world")
   
 GHG_by_region<-rbind(GHG_by_region,GHG_by_region_total)
 
 GHG_by_region <- GHG_by_region %>%  
-  group_by(region_ar6_5,decade) %>%
+  group_by(region_ar6_6,decade) %>%
   #mutate(avg_annual_growth=((last(value,order_by = year)/first(value,order_by = year))^(1/10)-1)*100) %>%
   mutate(avg_annual_growth=growth_rate(years = year,y=value)) %>%
   mutate(avg_annual_growth=avg_annual_growth*100) %>%
@@ -239,7 +240,7 @@ GHG_by_region <- GHG_by_region %>%
 GHG_growth<-GHG_by_region %>%
  select(-value) %>%
  mutate(avg_annual_growth=paste(as.character(round(avg_annual_growth,1)),"%",sep = "")) %>%
- spread(region_ar6_5,avg_annual_growth) %>%
+ spread(region_ar6_6,avg_annual_growth) %>%
  select("decade", "Africa", "Middle East","Asia and Developing Pacific",
         "Developed Countries", "Eastern Europe and West-Central Asia",
         "Latin America and Caribbean", "Intl. Aviation and Shipping", "world")
@@ -247,7 +248,7 @@ GHG_growth<-GHG_by_region %>%
 GHG_by_region<-GHG_by_region %>%
   select(-avg_annual_growth) %>%
   mutate(value=as.character(signif(value,2))) %>%
-  spread(region_ar6_5,value) %>%
+  spread(region_ar6_6,value) %>%
   select("decade", "Africa", "Middle East","Asia and Developing Pacific",
          "Developed Countries", "Eastern Europe and West-Central Asia",
          "Latin America and Caribbean", "Intl. Aviation and Shipping", "world")
@@ -257,7 +258,7 @@ GHG_by_region<-GHG_by_region[,c(1,2,11,3,12,4,13,5,14,6,15,7,16,8,17,9,18)]
 
 GHG_by_region<-GHG_by_region[7:1,]
 
-rm(region_ar6_5)
+rm(region_ar6_6)
 
 ## by sector
 GHG_data_AIRSEA <- GHG_data %>%
