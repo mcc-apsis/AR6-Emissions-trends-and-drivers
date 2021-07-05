@@ -22,21 +22,21 @@ options(dplyr.summarise.inform = FALSE)
 theme_set(theme_bw())
 ggplot <- function(...) ggplot2::ggplot(...) + scale_fill_brewer(palette="Set2")
 
-load('../../Data/edgar6_data_raw_gwp_ar6.RData')
+load('../../../Data/edgar6_data_raw.RData')
 edgar_raw_v6 <- edgar_raw
-load('../../Data/edgar5_data_raw_gwp_ar6.RData')
-edgar_raw_v5 <- edgar_raw %>% filter(sector_code!="4E")
+load('../../../Data/edgar5_data_raw.RData')
+edgar_raw_v5 <- edgar_raw #%>% filter(sector_code!="4E")
 rm(edgar_raw)
 
-load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+load('../../../Data/edgar6_data_ghg_gwp_ar6.RData')
 edgar_ghg_v6 <- edgar_ghg
-load('../../Data/edgar5_data_ghg_gwp_ar6.RData')
-edgar_ghg_v5 <- edgar_ghg %>% filter(sector_code!="4E")
+load('../../../Data/edgar5_data_ghg_gwp_ar6.RData')
+edgar_ghg_v5 <- edgar_ghg #%>% filter(sector_code!="4E")
 rm(edgar_ghg)
 
 
 
-load('../../Data/WDI_gdp_pop.RData')
+load('../../../Data/WDI_gdp_pop.RData')
 edgar_ghg_v5 <- left_join(edgar_ghg_v5,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population), by = c("ISO", "year"))
 edgar_ghg_v6 <- left_join(edgar_ghg_v6,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population), by = c("ISO", "year"))
 
@@ -68,6 +68,9 @@ plot_data %>% filter(gas %in% c("CO2","CH4","N2O")) %>%
   ylab("t native units") +
   theme(axis.title.x = element_blank(),
         legend.position = "bottom")
+
+
+blarg <- spread(plot_data,gas,value)
 
 ```
 

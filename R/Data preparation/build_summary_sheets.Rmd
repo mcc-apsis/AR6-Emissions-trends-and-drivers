@@ -24,11 +24,8 @@ library(zoo)
 knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
 options(dplyr.summarise.inform = FALSE)
 
-load('../../Data/edgar6_data_raw.RData')
-load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
-edgar_ghg_ar5 <- edgar_ghg
-load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
-edgar_ghg_ar6 <- edgar_ghg
+load('../../Data/edgar_essd_data_raw.RData')
+load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
 load('../../Data/land.RData')
 
 
@@ -90,20 +87,11 @@ gases_gwps_ar5 <- gases_gwps_ar5 %>%
 gases_gwps_ar5 <- spread(gases_gwps_ar5,year,value) 
 
 
-gases_gwps_ar6 <- gather(gases,year,value,`1970`:`2019`) 
-gases_gwps_ar6 <- gases_gwps_ar6 %>% 
-  mutate(value=value*gwp100_ar6)
-gases_gwps_ar6 <- spread(gases_gwps_ar6,year,value) 
-
-
-
 addWorksheet(wb,"gases")
 addWorksheet(wb,"gases_gwp_ar5")
-addWorksheet(wb,"gases_gwp_ar6")
 
 writeData(wb, sheet = "gases", gases, colNames = T)
 writeData(wb, sheet = "gases_gwp_ar5", gases_gwps_ar5 %>% select(-gwp100_ar6), colNames = T)
-writeData(wb, sheet = "gases_gwp_ar6", gases_gwps_ar6 %>% select(-gwp100_ar5), colNames = T)
 
 
 ```
@@ -119,7 +107,7 @@ sectors <- edgar_raw %>%
 sectors <- spread(sectors,gas,value)
 
 
-sector_gwps_ar5 <- edgar_ghg_ar5 %>% 
+sector_gwps_ar5 <- edgar_ghg %>% 
   filter(year==2018) %>% 
   group_by(sector_code,fossil_bio,description,chapter_title,subsector_title) %>% 
   summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
@@ -131,35 +119,19 @@ sector_gwps_ar5$gas <- as.factor(sector_gwps_ar5$gas)
 sector_gwps_ar5$gas <- fct_relevel(sector_gwps_ar5$gas,"CO2","CH4","N2O")
 sector_gwps_ar5 <- spread(sector_gwps_ar5,gas,value)
 
-
-sector_gwps_ar6 <- edgar_ghg_ar6 %>% 
-  filter(year==2018) %>% 
-  group_by(sector_code,fossil_bio,description,chapter_title,subsector_title) %>% 
-  summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
-  ungroup()
-
-sector_gwps_ar6 <- gather(sector_gwps_ar6,gas,value,CO2:Fgas) %>% 
-  mutate(value=value/1e9)
-sector_gwps_ar6$gas <- as.factor(sector_gwps_ar6$gas)
-sector_gwps_ar6$gas <- fct_relevel(sector_gwps_ar6$gas,"CO2","CH4","N2O")
-sector_gwps_ar6 <- spread(sector_gwps_ar6,gas,value)
-
-
 addWorksheet(wb,"sectors_2018")
 addWorksheet(wb,"sectors_2018_gwp_ar5")
-addWorksheet(wb,"sectors_2018_gwp_ar6")
 
 
 writeData(wb, sheet = "sectors_2018", sectors, colNames = T)
 writeData(wb, sheet = "sectors_2018_gwp_ar5", sector_gwps_ar5, colNames = T)
-writeData(wb, sheet = "sectors_2018_gwp_ar6", sector_gwps_ar6, colNames = T)
 
 
 ```
 
 ```{r region_sheets}
 
-regions_ar5 <- edgar_ghg_ar5 %>% 
+regions_ar5 <- edgar_ghg %>% 
   filter(year==2018) %>% 
   group_by(region_ar6_6,chapter_title) %>% 
   summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
@@ -171,26 +143,9 @@ regions_ar5$gas <- as.factor(regions_ar5$gas)
 regions_ar5$gas <- fct_relevel(regions_ar5$gas,"CO2","CH4","N2O")
 regions_ar5 <- spread(regions_ar5,gas,value)
 
-
-regions_ar6 <- edgar_ghg_ar6 %>% 
-  filter(year==2018) %>% 
-  group_by(region_ar6_6,chapter_title) %>% 
-  summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
-  ungroup()
-
-regions_ar6 <- gather(regions_ar6,gas,value,CO2:Fgas) %>% 
-  mutate(value=value/1e9)
-regions_ar6$gas <- as.factor(regions_ar6$gas)
-regions_ar6$gas <- fct_relevel(regions_ar6$gas,"CO2","CH4","N2O")
-regions_ar6 <- spread(regions_ar6,gas,value)
-
-
-
 addWorksheet(wb,"regions_2018_gwp_ar5")
-addWorksheet(wb,"regions_2018_gwp_ar6")
 
 writeData(wb, sheet = "regions_2018_gwp_ar5", regions_ar5, colNames = T)
-writeData(wb, sheet = "regions_2018_gwp_ar6", regions_ar6, colNames = T)
 
 ```
 
@@ -259,15 +214,23 @@ writeData(wb2, sheet = "ipcc_gwps_ch4", gwps_ch4, colNames = T)
 
 ```{r sectors_gases}
 
+
+ipcc_codes <- read.xlsx('../../Data/Codes and classifications/EDGAR_IPCC1996_to_IPCC2006.xlsx',sheet=3)
+
 # summary of sectors and their gases
 
 sectors_gases <- edgar_raw %>% 
   group_by(chapter_title,subsector_title,sector_code,fossil_bio,gas) %>% 
   summarise(value=sum(value,na.rm=TRUE))
 
+# join dodgy IPCC 2006 correspondence
+
+sectors_gases <- left_join(sectors_gases,ipcc_codes %>% select(-description,-ipcc_1996),by="sector_code")
+
 sectors_gases <- sectors_gases %>% 
   ungroup() %>% 
   mutate(sector_code = paste0(sector_code," (",fossil_bio,")")) %>% 
+  mutate(ipcc_2006 = paste0(ipcc_2006," (",fossil_bio,")")) %>% 
   select(-fossil_bio)
 
 sectors_gases <- sectors_gases %>% 
@@ -276,19 +239,21 @@ sectors_gases <- sectors_gases %>%
   filter(!is.na(gas)) %>% 
   select(-value)
 
+only_sectors <- sectors_gases %>% 
+  ungroup() %>% 
+  select(-gas,-sector_code) %>% 
+  distinct() %>% 
+  group_by(chapter_title,subsector_title) %>% 
+  summarise(ipcc_2006=paste0(ipcc_2006,collapse=", "))
+
+
 only_gases <- sectors_gases %>% 
   ungroup() %>% 
-  select(-sector_code) %>% 
+  select(-sector_code,-ipcc_2006) %>% 
   distinct() %>% 
   group_by(chapter_title,subsector_title) %>% 
   summarise(gases=paste0(gas,collapse=", "))
 
-only_sectors <- sectors_gases %>% 
-  ungroup() %>% 
-  select(-gas) %>% 
-  distinct() %>% 
-  group_by(chapter_title,subsector_title) %>% 
-  summarise(sector_code=paste0(sector_code,collapse=", "))
 
 sectors_gases <- left_join(only_sectors,only_gases,by = c("chapter_title", "subsector_title"))
 
@@ -307,3 +272,23 @@ saveWorkbook(wb2,"../../Results/Data/ipcc_ar6_data_metadata.xlsx",overwrite = T)
 
 ```
 
+```{r n20}
+
+# load('../../Data/edgar5_data_raw.RData')
+# n2o_5 <- edgar_raw %>%
+#   filter(sector_code!="4E") %>% 
+#   filter(gas=="N2O") %>% 
+#   group_by(year) %>% 
+#   summarise(N2O_5=sum(value,na.rm=TRUE))
+# 
+# load('../../Data/edgar6_data_raw.RData')
+# n2o_6 <- edgar_raw %>%
+#   filter(gas=="N2O") %>% 
+#   group_by(year) %>% 
+#   summarise(N2O_6=sum(value,na.rm=TRUE))
+# 
+# n2o <- left_join(n2o_5,n2o_6)
+# n2o <- n2o %>% 
+#   mutate(difference=((N2O_6/N2O_5)-1)*100)
+# 
+# 

@@ -2,7 +2,8 @@
 rm(list = ls())
 library(tidyverse)
 library(openxlsx)
-load('Data/edgar6_data_ghg_gwp_ar6.RData')
+load('Data/edgar_essd_data_ghg_gwp_ar5.RData')
+load('Data/land.RData')
 load('Data/ipcc_regions.RData')
 load('Data/ipcc_sectors.RData')
 load('Data/gwps.RData')
@@ -21,29 +22,36 @@ edgar_ghg <- edgar_ghg %>%
   arrange(ISO)
 
 gwps_ch4 <- gwps_ch4 %>% 
-  select(-gwp_ar2,-gwp_ar5,-value)
+  select(-value,-gwp_ar6,-gwp_ar4,-gwp_ar2)
+
+gwps <- gwps %>% 
+  select(gas,gwp_ar5)
 
 edgar_ghg <- left_join(edgar_ghg,wdi_data_gdp_pop %>% select(-gdp_real),by=c("ISO"="iso3c","year"))
 
 
 #################### meta data
 
-meta <- data.frame("Variable" = c("CO2","CH4","N2O","Fgas","GHG","gdp_ppp","population"),
-                   "Description" = c("Carbon emissions","Methane emissions","Nitrous oxide emissions","Flourinated gas emissions","Total greenhouse gas emissions","Gross Domestic Product","Population"),
-                   "Units" = c("tCO2","tCO2eq","tCO2eq","tCO2eq","tCO2eq","US $ (constant 2017 international PPP)","persons"),
-                   "Source" = c("EDGAR_v6.0","EDGAR_v6.0","EDGAR_v6.0","EDGAR_v6.0","EDGAR_v6.0","World Bank","World Bank"),
+meta <- data.frame("Variable" = c("CO2","CH4","N2O","Fgas","GHG","gdp_ppp","population","blue","houghton","oscar","mean"),
+                   "Description" = c("Carbon dioxide emissions","Methane emissions","Nitrous oxide emissions","Flourinated gas emissions","Total greenhouse gas emissions","Gross Domestic Product","Population","Carbon dioxide emissions","Carbon dioxide emissions","Carbon dioxide emissions","Carbon dioxide emissions"),
+                   "Units" = c("tCO2","tCO2eq","tCO2eq","tCO2eq","tCO2eq","US $ (constant 2017 international PPP)","persons","tCO2","tCO2","tCO2","tCO2"),
+                   "Source" = c("EDGAR_v6.0","EDGAR_v6.0","EDGAR_v6.0","EDGAR_v6.0","EDGAR_v6.0","World Bank","World Bank","BLUE (bookkeeping of land use emissions) model","Houghton & Nassikas bookeeping model","OSCAR, a compact Earth system model","Mean of BLUE, H&N, OSCAR"),
                    "Citation" = c("Crippa, Monica; Guizzardi, Diego; Muntean, Marilena; Schaaf, Edwin; Lo Vullo, Eleonora; Solazzo, Efisio; Monforti-Ferrario, Fabio; Olivier, Jos; Vignati, Elisabetta (2021):  EDGAR v6.0 Greenhouse Gas Emissions. European Commission, Joint Research Centre (JRC) [Dataset] PID: http://data.europa.eu/89h/97a67d67-c62e-4826-b873-9d972c4f670b",
                                   "Crippa, Monica; Guizzardi, Diego; Muntean, Marilena; Schaaf, Edwin; Lo Vullo, Eleonora; Solazzo, Efisio; Monforti-Ferrario, Fabio; Olivier, Jos; Vignati, Elisabetta (2021):  EDGAR v6.0 Greenhouse Gas Emissions. European Commission, Joint Research Centre (JRC) [Dataset] PID: http://data.europa.eu/89h/97a67d67-c62e-4826-b873-9d972c4f670b",
                                   "Crippa, Monica; Guizzardi, Diego; Muntean, Marilena; Schaaf, Edwin; Lo Vullo, Eleonora; Solazzo, Efisio; Monforti-Ferrario, Fabio; Olivier, Jos; Vignati, Elisabetta (2021):  EDGAR v6.0 Greenhouse Gas Emissions. European Commission, Joint Research Centre (JRC) [Dataset] PID: http://data.europa.eu/89h/97a67d67-c62e-4826-b873-9d972c4f670b",
                                   "Crippa, Monica; Guizzardi, Diego; Muntean, Marilena; Schaaf, Edwin; Lo Vullo, Eleonora; Solazzo, Efisio; Monforti-Ferrario, Fabio; Olivier, Jos; Vignati, Elisabetta (2021):  EDGAR v6.0 Greenhouse Gas Emissions. European Commission, Joint Research Centre (JRC) [Dataset] PID: http://data.europa.eu/89h/97a67d67-c62e-4826-b873-9d972c4f670b",
                                   "Crippa, Monica; Guizzardi, Diego; Muntean, Marilena; Schaaf, Edwin; Lo Vullo, Eleonora; Solazzo, Efisio; Monforti-Ferrario, Fabio; Olivier, Jos; Vignati, Elisabetta (2021):  EDGAR v6.0 Greenhouse Gas Emissions. European Commission, Joint Research Centre (JRC) [Dataset] PID: http://data.europa.eu/89h/97a67d67-c62e-4826-b873-9d972c4f670b",
                                   "World Bank. (2021). World Bank Development Indicators. Retrieved March 12, 2021, from http://data.worldbank.org/",
-                                  "World Bank. (2021). World Bank Development Indicators. Retrieved March 12, 2021, from http://data.worldbank.org/"))
+                                  "World Bank. (2021). World Bank Development Indicators. Retrieved March 12, 2021, from http://data.worldbank.org/",
+                                  "Hansis, E., Davis, S. J., & Pongratz, J. (2015). Relevance of methodological choices for accounting of land use change carbon fluxes. Global Biogeochemical Cycles, 29(8), 1230–1246. https://doi.org/10.1002/2014GB004997",
+                                  "Houghton, R. A., & Nassikas, A. A. (2017). Global and regional fluxes of carbon from land use and land cover change 1850–2015. Global Biogeochemical Cycles, 31, 456–472. https://doi.org/10.1002/2016GB005546",
+                                  "Gasser, T., Crepin, L., Quilcaille, Y., Houghton, R. A., Ciais, P., & Obersteiner, M. (2020). Historical CO2 emissions from land use and land cover change and their uncertainty. Biogeosciences, 17(15), 4075–4101. https://doi.org/10.5194/bg-17-4075-2020",
+                                  "Hansis et al. 2015, Houghton et al. 2017, Gasser et al. 2020"))
 
 
 #################### info
 
-info = data.frame("x" = c("Data description","Appropriate use","Global warming potentials","Year coverage","Fossil vs. bio sources","Sector codes","Region codes","Author & contact","R code","Land use data","","Last update","","","Emissions data source","Link to public version"),
+info = data.frame("x" = c("Data description","Appropriate use","Global warming potentials","Year coverage","Fossil vs. bio sources","Sector codes","Region codes","Author & contact","R code","Land use data","","Last date of compilation","","","Sources","Link to public EDGAR version"),
                   "y" = c("This data file provides detailed emissions accounts for use in IPCC AR6, as well as supplementary GDP and population data for countries.",
                           "This data is only authorised for use within the IPCC AR6 process, as it contains a level of detail that is not currently publically available. To use this data for non-IPCC purposes, including the publication of articles, please contact Monica Crippa at the Joint Research Centre (Monica.CRIPPA@ec.europa.eu).",
                           "CH4, N2O and Fgas emissions are converted to 100 year global warming potentials based on values from AR6 WGI (see '100_yr_gwps' tab). In AR6 CH4 emissions have two separate GWPs for biogenic and fugitive sources. The specific sources and their CH4 GWPs are listed in the CH4_gwps tab.",
@@ -53,22 +61,23 @@ info = data.frame("x" = c("Data description","Appropriate use","Global warming p
                           "Countries have been allocated to regions by the WGIII Technical Support Unit. A summary of the country and region codes is in the region_classification tab.",
                           "William F. Lamb (Lamb@mcc-berlin.net) compiled this data from underlying sources (see metadata).",
                           "The code for compiling this data (as well as summary figures for AR6 Ch2) is available online: https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers",
-                          "CO2 emissions from land-use change (e.g. LULUCF emissions) are available as a separate file, for IPCC regions only.",
+                          "CO2-LULUCF emissions are also available, but for IPCC regions only.",
                           "",
                           as.character(Sys.time()),
                           "",
                           "",
-                          "Crippa, Monica; Guizzardi, Diego; Muntean, Marilena; Schaaf, Edwin; Lo Vullo, Eleonora; Solazzo, Efisio; Monforti-Ferrario, Fabio; Olivier, Jos; Vignati, Elisabetta (2021):  EDGAR v6.0 Greenhouse Gas Emissions. European Commission, Joint Research Centre (JRC) [Dataset] PID: http://data.europa.eu/89h/97a67d67-c62e-4826-b873-9d972c4f670b ",
+                          "See metadata tab",
                           "https://edgar.jrc.ec.europa.eu/dataset_ghg60"))
 
 
 
 #################### full file
 
-wb <- openxlsx::createWorkbook(title = "ipcc_ar6_data_edgar_gwp100.xlsx")
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_data_edgar_essd_gwp100.xlsx")
 addWorksheet(wb,"info")
 addWorksheet(wb,"metadata")
 addWorksheet(wb,"data")
+addWorksheet(wb,"data (CO2-LULUCF)")
 addWorksheet(wb,"sector_classification")
 addWorksheet(wb,"region_classification")
 addWorksheet(wb,"100_yr_gwps")
@@ -77,28 +86,30 @@ addWorksheet(wb,"CH4_gwps")
 writeData(wb, sheet = "info", info, colNames = F)
 writeData(wb, sheet = "metadata", meta, colNames = T)
 writeData(wb, sheet = "data", edgar_ghg, colNames = T)
+writeData(wb, sheet = "data (CO2-LULUCF)",land, colNames = T)
 writeData(wb, sheet = "sector_classification",ipcc_sectors,colNames=T)
 writeData(wb, sheet = "region_classification",ipcc_regions,colNames=T)
 writeData(wb, sheet = "100_yr_gwps",gwps,colNames=T)
 writeData(wb, sheet = "CH4_gwps",gwps_ch4,colNames=T)
 
-saveWorkbook(wb,"Results/Data/ipcc_ar6_data_edgar_gwp100.xlsx",overwrite = T)
+saveWorkbook(wb,"Results/Data/ipcc_ar6_data_edgar_essd_gwp100.xlsx",overwrite = T)
 
+
+write.csv(x = edgar_ghg,file="Results/Data/test.csv",sep = ",")
 
 
 
 ########################## NO GWPS
 
-
-load('Data/edgar6_data_raw.RData')
+load('Data/edgar_essd_data_raw.RData')
 
 edgar_raw <- edgar_raw %>% 
-  select(-gwp100_ar2,-gwp100_ar5) %>% 
+  select(-gwp100_ar2,-gwp100_ar2,-gwp100_ar6) %>% 
   arrange(ISO)
 
 edgar_raw <- left_join(edgar_raw,wdi_data_gdp_pop %>% select(-gdp_real),by=c("ISO"="iso3c","year"))
 
-info = data.frame("x" = c("Data description","Appropriate use","Global warming potentials","Year coverage","Fossil vs. bio sources","Sector codes","Region codes","Author & contact","R code","Land use data","","Last update","","","Emissions data source","Link to public version"),
+info = data.frame("x" = c("Data description","Appropriate use","Global warming potentials","Year coverage","Fossil vs. bio sources","Sector codes","Region codes","Author & contact","R code","Land use data","","Last date of compilation","","","Sources","Link to public EDGAR version"),
                   "y" = c("This data file provides detailed emissions accounts for use in IPCC AR6, as well as supplementary GDP and population data for countries.",
                           "This data is only authorised for use within the IPCC AR6 process, as it contains a level of detail that is not currently publically available. To use this data for non-IPCC purposes, including the publication of articles, please contact Monica Crippa at the Joint Research Centre (Monica.CRIPPA@ec.europa.eu).",
                           "This data file provides a non-aggregated list of greenhouse gases in their original units. For convenience, we also include the 100 year global warming potentials provided by working group I as a column in the dataset. Please see the separate file 'ipcc_ar6_data_edgar_gwp100.xlsx' for data already aggregated to 100 year global warming potentials.",
@@ -108,28 +119,32 @@ info = data.frame("x" = c("Data description","Appropriate use","Global warming p
                           "Countries have been allocated to regions by the WGIII Technical Support Unit. A summary of the country and region codes is in the region_classification tab.",
                           "William F. Lamb (Lamb@mcc-berlin.net) compiled this data from underlying sources (see metadata).",
                           "The code for compiling this data (as well as summary figures for AR6 Ch2) is available online: https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers",
-                          "CO2 emissions from land-use change (e.g. LULUCF emissions) are available as a separate file, for IPCC regions only.",
+                          "CO2-LULUCF emissions are also available, but for IPCC regions only.",
                           "",
                           as.character(Sys.time()),
                           "",
                           "",
-                          "Crippa, Monica; Guizzardi, Diego; Muntean, Marilena; Schaaf, Edwin; Lo Vullo, Eleonora; Solazzo, Efisio; Monforti-Ferrario, Fabio; Olivier, Jos; Vignati, Elisabetta (2021):  EDGAR v6.0 Greenhouse Gas Emissions. European Commission, Joint Research Centre (JRC) [Dataset] PID: http://data.europa.eu/89h/97a67d67-c62e-4826-b873-9d972c4f670b ",
+                          "See metadata tab",
                           "https://edgar.jrc.ec.europa.eu/dataset_ghg60"))
 
 
 
-meta_raw <- data.frame("Variable" = c("gas","gwp100_ar6","value","gdp_ppp","population"),
-                   "Description" = c("Greenhouse gas (CO2, CH4, N2O or Fgas)","Global warming potential with a 100 year time horizon, AR6 values","Total value for each sector","Gross Domestic Product","Population"),
-                   "Units" = c("NA","NA","t native units","US $ (constant 2017 international PPP)","persons"),
-                   "Source" = c("NA","IPCC AR6 WG1 Ch7","EDGAR_v6.0","World Bank","World Bank"),
-                   "Citation" = c("NA","IPCC AR6 WG1 Ch7",
+meta_raw <- data.frame("Variable" = c("gas","gwp100_ar5","value","gdp_ppp","population","blue","houghton","oscar","mean"),
+                   "Description" = c("Greenhouse gas (CO2, CH4, N2O or Fgas)","Global warming potential with a 100 year time horizon, AR6 values","Total value for each sector","Gross Domestic Product","Population","Carbon dioxide emissions","Carbon dioxide emissions","Carbon dioxide emissions","Carbon dioxide emissions"),
+                   "Units" = c("NA","NA","t native units","US $ (constant 2017 international PPP)","persons","tCO2","tCO2","tCO2","tCO2"),
+                   "Source" = c("NA","IPCC AR5 WG1","EDGAR_v6.0","World Bank","World Bank","BLUE (bookkeeping of land use emissions) model","Houghton & Nassikas bookeeping model","OSCAR, a compact Earth system model","Mean of BLUE, H&N, OSCAR"),
+                   "Citation" = c("NA","IPCC AR5 WG1",
                                   "Crippa, Monica; Guizzardi, Diego; Muntean, Marilena; Schaaf, Edwin; Lo Vullo, Eleonora; Solazzo, Efisio; Monforti-Ferrario, Fabio; Olivier, Jos; Vignati, Elisabetta (2021):  EDGAR v6.0 Greenhouse Gas Emissions. European Commission, Joint Research Centre (JRC) [Dataset] PID: http://data.europa.eu/89h/97a67d67-c62e-4826-b873-9d972c4f670b",
                                   "World Bank. (2021). World Bank Development Indicators. Retrieved March 12, 2021, from http://data.worldbank.org/",
-                                  "World Bank. (2021). World Bank Development Indicators. Retrieved March 12, 2021, from http://data.worldbank.org/"))
+                                  "World Bank. (2021). World Bank Development Indicators. Retrieved March 12, 2021, from http://data.worldbank.org/",
+                                  "Hansis, E., Davis, S. J., & Pongratz, J. (2015). Relevance of methodological choices for accounting of land use change carbon fluxes. Global Biogeochemical Cycles, 29(8), 1230–1246. https://doi.org/10.1002/2014GB004997",
+                                  "Houghton, R. A., & Nassikas, A. A. (2017). Global and regional fluxes of carbon from land use and land cover change 1850–2015. Global Biogeochemical Cycles, 31, 456–472. https://doi.org/10.1002/2016GB005546",
+                                  "Gasser, T., Crepin, L., Quilcaille, Y., Houghton, R. A., Ciais, P., & Obersteiner, M. (2020). Historical CO2 emissions from land use and land cover change and their uncertainty. Biogeosciences, 17(15), 4075–4101. https://doi.org/10.5194/bg-17-4075-2020",
+                                  "Hansis et al. 2015, Houghton et al. 2017, Gasser et al. 2020"))
 
 
 
-wb2 <- openxlsx::createWorkbook(title = "ipcc_ar6_data_edgar_nogwps")
+wb2 <- openxlsx::createWorkbook(title = "ipcc_ar6_data_edgar_essd_nogwps")
 addWorksheet(wb2,"info")
 addWorksheet(wb2,"data")
 addWorksheet(wb2,"metadata")
@@ -146,7 +161,25 @@ writeData(wb2, sheet = "region_classification",ipcc_regions,colNames=T)
 writeData(wb2, sheet = "100_yr_gwps",gwps,colNames=T)
 writeData(wb2, sheet = "CH4_gwps",gwps_ch4,colNames=T)
 
-saveWorkbook(wb2,"Results/Data/ipcc_ar6_edgar_data_no_gwp.xlsx",overwrite = T)
+saveWorkbook(wb2,"Results/Data/ipcc_ar6_edgar_data_essd_no_gwp.xlsx",overwrite = T)
+
+
+
+############################################################   by gases for Robbie
+
+
+gases <- edgar_raw %>% 
+  group_by(year,gas) %>%
+  summarise(value=sum(value))
+  
+gases <- spread(gases,gas,value)
+write.xlsx(gases,'Results/Data/gases_essd.xlsx')
+
+writeData(wb2, sheet = "info", info, colNames = F)
+writeData(wb2, sheet = "metadata", meta_raw, colNames = T)
+
+
+
 
 
 ############################################################   for iiasa database

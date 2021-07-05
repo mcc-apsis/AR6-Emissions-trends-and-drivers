@@ -49,6 +49,10 @@ unfccc <- unfccc %>%
   mutate(country=ifelse(country=="State of Palestine","Palestine",country)) %>%
   mutate(country=ifelse(country=="Vanatu","Vanuatu",country))
 
+unfccc[duplicated((unfccc$country)),] #Kazakhstan and Malta are found to be listed twice
+unfccc[unfccc$country=="Malta","annex-1"]<-"yes"
+unfccc[unfccc$country=="Kazakhstan","annex-1"]<-"yes"
+
 unfccc<-unfccc %>%
   mutate(last_reporting_year=pmax(`last reporting year BUR`,`last reporting year NC`,`last reporting year NIR`,na.rm=TRUE)) %>%
   mutate(last_reporting_bin=findInterval(last_reporting_year,c(1990,2000,2005,2010,2015,2020),left.open = FALSE)) %>%
@@ -67,7 +71,8 @@ world <- map_data("world") %>%
   mutate(region=ifelse(region=="Trinidad", "Trinidad and Tobago", region)) %>%
   mutate(region=ifelse(region=="Tobago", "Trinidad and Tobago", region)) %>%
   mutate(region=ifelse(region=="Saint Vincent", "Saint Vincent and the Grenadines", region)) %>%
-  mutate(region=ifelse(region=="Grenadines", "Saint Vincent and the Grenadines", region)) #%>%
+  mutate(region=ifelse(region=="Grenadines", "Saint Vincent and the Grenadines", region)) %>%
+  mutate(region=ifelse(region=="Greenland", "Denmark", region))
 #world <- left_join(world %>% mutate(region=tolower(region)),isos,by=c("region"="alternative.name"))
 world <- left_join(world,unfccc,by=c("region"="country"))
 

@@ -15,8 +15,6 @@ ipcc_sectors <- openxlsx::read.xlsx('Data/Codes and classifications/sector_class
 
 save(ipcc_sectors,file='Data/ipcc_sectors.RData')
 
-
-
 ###
 
 

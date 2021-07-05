@@ -49,6 +49,11 @@ uhoh <- anti_join(land,regions,by="region_ar6_10")
 
 land <- left_join(land,regions,by="region_ar6_10")
 
+land <- land %>% 
+  select(year,region_ar6_6,region_ar6_6_short,region_ar6_10,region_ar6_10_short,blue,houghton,oscar,mean) %>% 
+  arrange(region_ar6_6,region_ar6_10,year)
+
+
 #check updated data vs. previous data
 # colnames(land_old)[3:6]<-paste(colnames(land_old)[3:6],"_old",sep = "")
 # comp<-left_join(land,land_old,by=c("year","region_ar6_10"))

@@ -79,11 +79,6 @@ edgar_raw_5_fgas <- edgar_raw_5_fgas %>%
   select(-keep,-sector_code_v5,-description_v5)
 
 
-## add gwp100_ar2 to the edgar_raw_5_fgas set
-
-load('Data/gwps.RData')
-edgar_raw_5_fgas <- left_join(edgar_raw_5_fgas,gwps %>% select(gas,gwp100_ar2=gwp_ar2),by = "gas")
-
 ## bind new data
 
 edgar_ghg_essd <- rbind(edgar_ghg_essd,edgar_ghg_5_fgas)

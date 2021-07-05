@@ -28,7 +28,7 @@ land <- land %>%
 
 
 uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
-                            uncertainty_gas=c(0.08,0.5,0.2,0.6,0.2,0.1))
+                            uncertainty_gas=c(0.08,0.7,0.3,0.6,0.3,0.1))
 
 ```
 

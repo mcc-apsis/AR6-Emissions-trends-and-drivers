@@ -4,12 +4,18 @@ library(lubridate)
 
 #load('../../Data/edgar_data_gwp_ar6.RData')
 #load("../../Data/edgar6_data_raw_gwp_ar5.RData")
+#load('../../Data/edgar_essd_data_raw.RData')
+#load('../../Data/gwps.RData')
+#load("../../Data/land.RData")
 load('../../Data/edgar_essd_data_raw.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 
-uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
-                            uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
+
+# uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
+#                             uncertainty=c(0.08,0.7,0.3,0.6,0.3,0.1))
+uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas'),
+                            uncertainty=c(0.08,0.7,0.3,0.6,0.3))
 
 
 wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_10_year_averages",Sys.Date()))
@@ -19,6 +25,7 @@ growth_rate <- function(years,y) {
   data <- data.frame(years,y)
   
   data <- data %>%
+    filter(!is.na(y)) %>%
     mutate(leap_years = leap_year(years)) %>%
     mutate(y = ifelse(leap_years==TRUE,y*365/366,y))
 
@@ -174,6 +181,19 @@ GHG_by_gas <- left_join(GHG_by_gas,uncertainties,by="gas")
 GHG_by_gas <- GHG_by_gas %>%
   mutate(uncertainty=uncertainty*value)
 
+uncertainty_GHG <- GHG_by_gas %>%
+  filter(gas!="GHG") %>%
+  mutate(uncertainty=uncertainty^2) %>%
+  group_by(decade) %>%
+  summarise(uncertainty=sum(uncertainty,na.rm=TRUE)) %>%
+  mutate(uncertainty=sqrt(uncertainty)) %>%
+  mutate(gas="GHG") %>%
+  rename(GHG_uncertainty=uncertainty)
+
+GHG_by_gas <- left_join(GHG_by_gas,uncertainty_GHG,by=c("gas","decade")) %>%
+  mutate(uncertainty=ifelse(is.na(GHG_uncertainty),uncertainty,GHG_uncertainty)) %>%
+  select(-GHG_uncertainty)
+
 GHG_growth<-GHG_by_gas %>%
   select(-value,-uncertainty) %>%
   mutate(avg_annual_growth=paste(as.character(round(avg_annual_growth,1)),"%",sep = "")) %>%
@@ -321,3 +341,4 @@ openxlsx::addWorksheet(wb,"Emissions by sector")
 openxlsx::writeData(wb, sheet = "Emissions by sector", GHG_by_sector, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_10_year_averages",".xlsx"),overwrite=T)
+#openxlsx::saveWorkbook(wb,paste0("R/Analysis and figures for ESSD paper/Results/Data/ipcc_ar6_10_year_averages",".xlsx"),overwrite=T)

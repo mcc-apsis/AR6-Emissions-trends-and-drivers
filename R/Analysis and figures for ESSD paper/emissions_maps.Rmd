@@ -159,25 +159,25 @@ p2 <- ggplot() +
 p2
 
 ## growth 1990-2019
-p3 <- ggplot() + 
-  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_1990),color="grey",size=0.25,na.rm=T) + 
-  #scale_fill_viridis_c() +
-  scale_fill_steps2(low = "midnightblue",mid = "lightyellow",high = "darkred", na.value="lightgrey", midpoint=0, breaks=c(-8,-6,-4,-2,0,2,4,6,8), limits=c(-10,10),oob=squish) +
-  theme(panel.border = element_rect(colour = "black",fill=NA),
-        legend.position = c(0.5,0),
-        legend.direction = "horizontal",
-        legend.key.width = unit(2,"cm"),
-        legend.key.height = unit(.2,"cm"),
-        legend.background = element_blank(),
-        legend.title = element_blank(),
-        axis.title = element_blank(),
-        axis.ticks = element_blank(),
-        axis.text = element_blank(),
-        plot.margin = unit(c(0,0,0.5,0),units="cm"),
-        plot.title = element_text(size=12),
-        panel.grid=element_blank()) +
-  ggtitle("c. Average annual GHG emissions growth in percent (1990-2019)")
-p3
+# p3 <- ggplot() + 
+#   geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_1990),color="grey",size=0.25,na.rm=T) + 
+#   #scale_fill_viridis_c() +
+#   scale_fill_steps2(low = "midnightblue",mid = "lightyellow",high = "darkred", na.value="lightgrey", midpoint=0, breaks=c(-8,-6,-4,-2,0,2,4,6,8), limits=c(-10,10),oob=squish) +
+#   theme(panel.border = element_rect(colour = "black",fill=NA),
+#         legend.position = c(0.5,0),
+#         legend.direction = "horizontal",
+#         legend.key.width = unit(2,"cm"),
+#         legend.key.height = unit(.2,"cm"),
+#         legend.background = element_blank(),
+#         legend.title = element_blank(),
+#         axis.title = element_blank(),
+#         axis.ticks = element_blank(),
+#         axis.text = element_blank(),
+#         plot.margin = unit(c(0,0,0.5,0),units="cm"),
+#         plot.title = element_text(size=12),
+#         panel.grid=element_blank()) +
+#   ggtitle("c. Average annual GHG emissions growth in percent (1990-2019)")
+# p3
 
 ## growth 1970-2019
 p4 <- ggplot() + 
@@ -197,12 +197,12 @@ p4 <- ggplot() +
         plot.margin = unit(c(0,0,0.5,0),units="cm"),
         plot.title = element_text(size=12),
         panel.grid=element_blank()) +
-  ggtitle("d. Average annual GHG emissions growth in percent (1970-2019)")
+  ggtitle("c. Average annual GHG emissions growth in percent (1970-2019)")
 
 ```
 
 ```{r maps,echo=FALSE,fig.width=5,fig.height=9,results='asis',fig.path="Results/Plots/",dev=c('png','pdf')}
 
-p1/p2/p3/p4
+p1/p2/p4
 
 ```
