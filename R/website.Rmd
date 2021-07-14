@@ -17,6 +17,8 @@ library(RColorBrewer)
 library(openxlsx)
 library(scales)
 
+captions <- read.xlsx('../Results/Plots/captions.xlsx')
+
 ```
 
 -----------------------------------------------------------------------
@@ -28,8 +30,11 @@ library(scales)
 load('../Results/Plots/R plots/gases.RData')
 gases
 
+print(paste(">",captions$caption[captions$plot=="gases"]))
 
 ```
+### Caption and links
+
 
 Links: <a href="url">Data</a> | <a href="url">Code</a> | <a href="url">Download png</a>
 
@@ -45,6 +50,9 @@ regions
 
 
 ```
+
+Links: <a href="url">Data</a> | <a href="url">Code</a> | <a href="url">Download png</a>
+
 
 ### Chart C
 
