@@ -1,10 +1,25 @@
 ---
-title: "Untitled"
+title: "AR6 Emissions Trends and Drivers"
 output: 
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: scroll
+    theme:
+      version: 4
+      bootswatch: bootstrap
+      
 ---
+
+<style>
+
+body {
+	width: 800px;
+	margin: auto;
+}
+
+</style>
+
+
 
 ```{r setup, include=FALSE}
 
@@ -21,22 +36,37 @@ captions <- read.xlsx('../Results/Plots/captions.xlsx')
 
 ```
 
+Global emissions trends
+=====================================
+
+
 -----------------------------------------------------------------------
 
-### Trends in total greenhouse gas emissions, by gas (SPM.1)
+### Here is some text about this page
+
+
+
+
+
+
+----------------------------------------------------------------------
+
+### Trends in total greenhouse gas emissions by gas (SPM.1)
 
 ```{r,fig.width=8,fig.height=6}
 
 load('../Results/Plots/R plots/gases.RData')
 gases
 
-print(paste(">",captions$caption[captions$plot=="gases"]))
-
 ```
-### Caption and links
-
-
-Links: <a href="url">Data</a> | <a href="url">Code</a> | <a href="url">Download png</a>
+```{r,results = 'asis'}
+cat("<br>")
+cat("<strong>Caption: </strong>")
+cat(captions$caption[captions$plot=="gases"])
+cat("<br>")
+cat("<strong>Links: </strong>")
+cat("Links: <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm1_gases.xlsx'>Data</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_gas.Rmd'>Code</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/gas_trends_spm-2.png'>Download png</a>")
+```
 
 -----------------------------------------------------------------------
 
@@ -44,19 +74,163 @@ Links: <a href="url">Data</a> | <a href="url">Code</a> | <a href="url">Download 
 
 ```{r,fig.width=8,fig.height=7}
 
-
 load('../Results/Plots/R plots/regions.RData')
 regions
 
-
 ```
-
-Links: <a href="url">Data</a> | <a href="url">Code</a> | <a href="url">Download png</a>
-
+```{r,results = 'asis'}
+cat("<br>")
+cat("<strong>Caption: </strong>")
+cat(captions$caption[captions$plot=="regions"])
+cat("<br>")
+cat("<strong>Links: </strong>")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>Data</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_region.Rmd'>Code</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/region_trends_spm-2.png'>Download png</a>")
+```
 
 ### Chart C
 
 ```{r}
 
 ```
+
+
+
+Sector emissions trends
+=====================================
+
+-----------------------------------------------------------------------
+### Trends by sector and region
+
+
+```{r,fig.width=8,fig.height=6}
+
+load('../Results/Plots/R plots/sectors.RData')
+sector_totals
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<strong>Caption: </strong>")
+#cat(captions$caption[captions$plot=="regions"])
+cat("<br>")
+cat("<strong>Links: </strong>")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>Data</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd'>Code</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/Results/Plots/Sectors/totals-1.png'>Download png</a>")
+```
+
+-----------------------------------------------------------------------
+### Energy sector trends by region
+
+
+```{r,fig.width=8,fig.height=6}
+
+sector_energy
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<strong>Caption: </strong>")
+#cat(captions$caption[captions$plot=="regions"])
+cat("<br>")
+cat("<strong>Links: </strong>")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>Data</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd'>Code</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/Results/Plots/Sectors/energy-1.png'>Download png</a>")
+```
+
+-----------------------------------------------------------------------
+### Industry sector trends by region
+
+
+```{r,fig.width=8,fig.height=6}
+
+sector_industry
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<strong>Caption: </strong>")
+#cat(captions$caption[captions$plot=="regions"])
+cat("<br>")
+cat("<strong>Links: </strong>")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>Data</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd'>Code</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/Results/Plots/Sectors/industry-1.png'>Download png</a>")
+```
+
+
+-----------------------------------------------------------------------
+### Building sector trends by region
+
+
+```{r,fig.width=8,fig.height=6}
+
+sector_buildings
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<strong>Caption: </strong>")
+#cat(captions$caption[captions$plot=="regions"])
+cat("<br>")
+cat("<strong>Links: </strong>")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>Data</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd'>Code</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/Results/Plots/Sectors/buildings-1.png'>Download png</a>")
+```
+
+
+-----------------------------------------------------------------------
+### Building sector trends by region (with embedded CO2 emissions)
+
+
+```{r,fig.width=8,fig.height=6}
+
+sector_buildings_2
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<strong>Caption: </strong>")
+#cat(captions$caption[captions$plot=="regions"])
+cat("<br>")
+cat("<strong>Links: </strong>")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>Data</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd'>Code</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/Results/Plots/Sectors/buildings_with_scope3-1.png'>Download png</a>")
+```
+
+
+-----------------------------------------------------------------------
+### Transport sector trends by region
+
+
+```{r,fig.width=8,fig.height=6}
+
+sector_transport
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<strong>Caption: </strong>")
+#cat(captions$caption[captions$plot=="regions"])
+cat("<br>")
+cat("<strong>Links: </strong>")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>Data</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd'>Code</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/Results/Plots/Sectors/transport-1.png'>Download png</a>")
+```
+
+
+-----------------------------------------------------------------------
+### AFOLU sector trends by region
+
+
+```{r,fig.width=8,fig.height=6}
+
+sector_afolu
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<strong>Caption: </strong>")
+#cat(captions$caption[captions$plot=="regions"])
+cat("<br>")
+cat("<strong>Links: </strong>")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>Data</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd'>Code</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/Results/Plots/Sectors/afolu-1.png'>Download png</a>")
+```
+
+Country emissions trends
+=====================================
+
+
 
