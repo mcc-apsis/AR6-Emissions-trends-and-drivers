@@ -32,7 +32,10 @@ library(RColorBrewer)
 library(openxlsx)
 library(scales)
 
-captions <- read.xlsx('../Results/Plots/captions.xlsx')
+captions <- read.xlsx('Results/Plots/captions.xlsx')
+
+load('Results/Plots/R plots/sectors.RData')
+
 
 ```
 
@@ -55,7 +58,7 @@ Global emissions trends
 
 ```{r,fig.width=8,fig.height=6}
 
-load('../Results/Plots/R plots/gases.RData')
+load('Results/Plots/R plots/gases.RData')
 gases
 
 ```
@@ -74,7 +77,7 @@ cat("Links: <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drive
 
 ```{r,fig.width=8,fig.height=7}
 
-load('../Results/Plots/R plots/regions.RData')
+load('Results/Plots/R plots/regions.RData')
 regions
 
 ```
@@ -104,7 +107,6 @@ Sector emissions trends
 
 ```{r,fig.width=8,fig.height=6}
 
-load('../Results/Plots/R plots/sectors.RData')
 sector_totals
 
 ```
