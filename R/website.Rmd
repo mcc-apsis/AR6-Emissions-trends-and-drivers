@@ -1,0 +1,54 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: scroll
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(flexdashboard)
+library(tidyverse)
+library(ggplot2); theme_set(theme_bw())
+library(patchwork)
+library(RColorBrewer)
+library(openxlsx)
+library(scales)
+
+```
+
+-----------------------------------------------------------------------
+
+### Trends in total greenhouse gas emissions, by gas (SPM.1)
+
+```{r,fig.width=8,fig.height=6}
+
+load('../Results/Plots/R plots/gases.RData')
+gases
+
+
+```
+
+Links: <a href="url">Data</a> | <a href="url">Code</a> | <a href="url">Download png</a>
+
+-----------------------------------------------------------------------
+
+### Trends in total greenhouse gas emissions, by region (SPM.2)
+
+```{r,fig.width=8,fig.height=7}
+
+
+load('../Results/Plots/R plots/regions.RData')
+regions
+
+
+```
+
+### Chart C
+
+```{r}
+
+```
+

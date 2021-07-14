@@ -25,7 +25,7 @@ source("../Analysis and figures/small_figures.R")
 # load('../../Data/edgar_data_gwp_ar6.RData')
 # load("../../Data/edgar_data_all.RData")
 #load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
-load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
 #load("../../Data/edgar6_data_raw_gwp_ar5.RData") #if changed to ar6 change line 432 and 440
 #load("../../Data/edgar6_data_raw.RData")
 load("../../Data/edgar_essd_data_raw.RData")

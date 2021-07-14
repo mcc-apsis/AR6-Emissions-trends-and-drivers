@@ -189,7 +189,8 @@ iea <- iea %>%
 
 ######### join EDGAR world ELECHEAT
 
-load("../../Data/edgar6_data_ghg_gwp_ar6.RData")
+#load("../../Data/edgar6_data_ghg_gwp_ar6.RData")
+load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
 edgar_world_elec_heat <- edgar_ghg %>% 
   filter(year>1989) %>% 
   filter(chapter==6) %>% 
@@ -294,6 +295,11 @@ removed <- indirect_CO2_countries %>%
 indirect_CO2_countries <- indirect_CO2_countries %>% 
   select(country,ISO=alpha.3,region_ar6_6,region_ar6_10,region_ar6_22,region_ar6_dev,region_ar6_6_short,year,everything()) %>% 
   select(-name)
+
+
+### add in other regions
+
+indirect_CO2_regions <- left_join(indirect_CO2_regions,ipcc_regions %>% select(region_ar6_10,region_ar6_10_short,region_ar6_6_short) %>% distinct(),by="region_ar6_10")
 
 ```
 

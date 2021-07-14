@@ -92,8 +92,8 @@ edgar_raw_essd <- edgar_raw_essd %>%
 
 ## save
 
-#edgar_raw <- edgar_raw_essd
-#save(edgar_raw,file='Data/edgar_essd_data_raw.RData')
+edgar_raw <- edgar_raw_essd
+save(edgar_raw,file='Data/edgar_essd_data_raw.RData')
 
 edgar_ghg <- edgar_ghg_essd
 save(edgar_ghg,file='Data/edgar_essd_data_ghg_gwp_ar6.RData')

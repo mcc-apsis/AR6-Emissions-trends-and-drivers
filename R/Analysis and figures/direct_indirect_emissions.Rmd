@@ -16,7 +16,8 @@ library(ggpubr)
 library(ggplot2); theme_set(theme_bw())
 library(RColorBrewer)
 
-load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+#load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
 load('../../Data/indirect_CO2.RData')
 
 data <- edgar_ghg %>% 
@@ -134,7 +135,10 @@ p1 <- scope1_sectors %>% ggplot(.,aes(x=1,y=GHG,fill=chapter_title)) +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        panel.background = element_blank())
 p1
 
 scope2_sectors$var <- as.factor(scope2_sectors$var)
@@ -162,7 +166,10 @@ p2 <- scope2_sectors %>% ggplot(.,aes(x=1,y=GHG,fill=chapter_title)) +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        panel.background = element_blank())
 p2
 
 
@@ -198,16 +205,18 @@ p3 <- scope2_subsectors %>% ggplot(.,aes(x=1,y=GHG,fill=chapter_title)) +
         axis.text = element_blank(),
         axis.ticks = element_blank(),
         panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        panel.background = element_blank(),)
 p3
-
 
 ```
 
 
 ```{r direct_indirect_emissions,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
-ggarrange(p1,p2,p3,nrow=1,ncol=3,widths=c(0.2,0.2,0.6))
+#ggarrange(p1,p2,p3,nrow=1,ncol=3,widths=c(0.2,0.2,0.6))
 
 
 # save data for soapbox
@@ -227,5 +236,6 @@ openxlsx::writeData(wb,"indirect emissions - subsectors",scope2_subsectors, colN
 openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_plot_indirect_emissions",".xlsx"),overwrite=T)
 
 
+p1 + p2 + p3 + plot_layout(widths=c(0.2,0.2,0.6))
 
 ```

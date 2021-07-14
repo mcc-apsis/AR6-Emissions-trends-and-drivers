@@ -5,7 +5,7 @@ output:
   word_document:
     toc: yes
 knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results/knitr/") })
 ---
 
 
@@ -25,7 +25,8 @@ source("growth_rate.R")
 
 end_year = 2018
 
-load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+#load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load('../../Data/indirect_CO2.RData')
 load('../../Data/land.RData')
@@ -33,7 +34,7 @@ load('../../Data/land.RData')
 options(dplyr.summarise.inform = FALSE)
 
 
-wb <- openxlsx::createWorkbook(title = paste("ipcc_sector_data",Sys.Date()))
+wb <- openxlsx::createWorkbook(title = paste("ipcc_sector_data"))
 
 chapters = edgar_ghg %>% 
   select(chapter,chapter_title) %>% 
@@ -301,7 +302,7 @@ trend_figure <- function(trend_data,chapter) {
 ```
 
 ```{r regional_plots,echo=FALSE,warning=FALSE}
-
+ch=11
 gather_region_data <- function(edgar_ghg,ch) {
   
   ## Gather data
@@ -386,7 +387,7 @@ gather_region_data <- function(edgar_ghg,ch) {
       indirect_regions <- indirect_CO2_regions %>% 
         filter(chapter==ch) %>% 
         filter(year %in% c(1990,2000,2010,end_year)) %>% 
-        group_by(region_ar6_10,year) %>% 
+        group_by(region_ar6_10,region_ar6_10_short,year) %>% 
         summarise(value=sum(CO2_indirect,na.rm=TRUE)) %>% 
         mutate(subsector_title="Indirect CO2") %>% 
         mutate(subsector=paste0(ch,".9")) %>% 
@@ -399,7 +400,7 @@ gather_region_data <- function(edgar_ghg,ch) {
         indirect_regions <- indirect_CO2_regions %>%
           filter(chapter==ch) %>%
           filter(year %in% c(1990,2000,2010,end_year)) %>% 
-          group_by(region_ar6_10,year,subsector,subsector_title) %>%
+          group_by(region_ar6_10,region_ar6_10_short,year,subsector,subsector_title) %>%
           summarise(value=sum(CO2_indirect,na.rm=TRUE)) %>% 
           ungroup()
         
@@ -411,7 +412,6 @@ gather_region_data <- function(edgar_ghg,ch) {
         
       }
       
-      indirect_regions <- left_join(indirect_regions,regions,by = "region_ar6_10")
       indirect_regions <- indirect_regions %>% 
         select(subsector,subsector_title,region_ar6_10,region_ar6_10_short,year,value)
       
@@ -565,8 +565,8 @@ p2 <- plot_region_figure(region_data,ch)
 
 
 ############ Plot everything
-ggarrange(p1,p2,nrow=2,align = "h")
-
+sector_totals <- ggarrange(p1,p2,nrow=2,align = "h")
+sector_totals
 
 ############ Calculate growth rates
 rates <- calculate_growth_rates(trend_data)
@@ -616,8 +616,8 @@ p2 <- plot_region_figure(region_data,ch)
 
 
 ############ Plot everything
-ggarrange(p1,p2,nrow=2,align = "h")
-
+sector_energy <- ggarrange(p1,p2,nrow=2,align = "h")
+sector_energy
 
 ############ Calculate growth rates
 rates <- calculate_growth_rates(trend_data)
@@ -667,8 +667,8 @@ p2 <- plot_region_figure(region_data,ch)
 
 
 ############ Plot everything
-ggarrange(p1,p2,nrow=2,align = "h")
-
+sector_industry <- ggarrange(p1,p2,nrow=2,align = "h")
+sector_industry
 
 ############ Calculate growth rates
 rates <- calculate_growth_rates(trend_data)
@@ -718,7 +718,8 @@ p2 <- plot_region_figure(region_data,ch)
 
 
 ############ Plot everything
-ggarrange(p1,p2,nrow=2,align = "h")
+sector_transport <- ggarrange(p1,p2,nrow=2,align = "h")
+sector_transport
 
 
 ############ Calculate growth rates
@@ -774,7 +775,8 @@ p2 <- plot_region_figure(region_data,ch)
 
 
 ############ Plot everything
-ggarrange(p1,p2,nrow=2,align = "h")
+sector_buildings <- ggarrange(p1,p2,nrow=2,align = "h")
+sector_buildings
 
 
 ############ Calculate growth rates
@@ -865,7 +867,9 @@ scope3 <- scope3 %>%
   filter(year %in% c(1990,2000,2010,2018)) %>% 
   mutate(subsector=as.character(subsector))
 
-scope3 <- left_join(scope3,regions,by = "region_ar6_10")
+load('../../Data/ipcc_regions.RData')
+scope3 <- left_join(scope3,ipcc_regions %>% select(region_ar6_10,region_ar6_10_short) %>% distinct(),
+                    by = "region_ar6_10")
 
 region_data <- bind_rows(region_data,scope3)
 
@@ -877,8 +881,8 @@ p2 <- plot_region_figure(region_data,ch)
 
 
 ############ Plot everything
-ggarrange(p1,p2,nrow=2,align = "h")
-
+sector_buildings_2 <- ggarrange(p1,p2,nrow=2,align = "h")
+sector_buildings_2
 
 ############ Calculate growth rates
 rates <- calculate_growth_rates(trend_data)
@@ -938,7 +942,8 @@ p2 <- p2 + ggtitle("b. AFOLU regional trends in GHG emissions and removals")
 
 
 ############ Plot everything
-ggarrange(p1,p2,nrow=2,align = "h")
+sector_afolu <- ggarrange(p1,p2,nrow=2,align = "h")
+sector_afolu
 
 
 ############ Calculate growth rates
@@ -1097,7 +1102,9 @@ p2 <- plot_data %>%
         strip.text = element_blank()) +
   ggtitle("Growth \nsince 2010",)
 
-p2 + p + plot_layout(widths=c(1,5))
+sector_subsectors <- p2 + p + plot_layout(widths=c(1,5))
+sector_subsectors
+
 
 ```
 
@@ -1108,7 +1115,7 @@ p2 + p + plot_layout(widths=c(1,5))
 
 openxlsx::saveWorkbook(wb,"../../Results/Data/ipcc_ar6_plot_sectors.xlsx",overwrite=T)
 
-
+save(sector_totals,sector_subsectors,sector_afolu,sector_buildings,sector_buildings_2,sector_energy,sector_transport,sector_industry,file="../../Results/Plots/R plots/sectors.RData")
 
 
 

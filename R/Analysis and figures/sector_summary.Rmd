@@ -7,7 +7,7 @@ knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE,echo=FALSE,warning=FALSE}
 
 rm(list = ls())
 library(tidyverse)
@@ -17,12 +17,14 @@ library(RColorBrewer)
 
 end_year = 2019
 
-load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
+#load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load('../../Data/indirect_CO2.RData')
 load('../../Data/land.RData')
 load('../../Data/ipcc_regions.RData')
 load('../../Data/WDI_gdp_pop.RData')
+load('../../Data/kaya.RData')
 
 options(dplyr.summarise.inform = FALSE)
 
@@ -30,8 +32,6 @@ options(dplyr.summarise.inform = FALSE)
 ## join datasets
 
 data <- edgar_ghg %>% 
-  filter(region_ar6_10_short!="AIR") %>% 
-  filter(region_ar6_10_short!="SEA") %>% 
   group_by(ISO,country,region_ar6_10,region_ar6_10_short,year,chapter_title,subsector_title) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE))
 
@@ -40,9 +40,8 @@ data <- edgar_ghg %>%
 land <- land %>%
   filter(year>1969) %>% 
   filter(year<=end_year) %>% 
-  mutate(subsector_title="Land-use (CO2)") %>% 
   mutate(chapter_title="AFOLU") %>% 
-  select(region_ar6_10,region_ar6_10_short,year,chapter_title,subsector_title,value=mean)
+  select(region_ar6_10,region_ar6_10_short,year,chapter_title,CO2_land=mean)
 
 # population data
 
@@ -60,140 +59,470 @@ indirect_CO2_countries <- indirect_CO2_countries %>%
 ```
 
 
-```{r totals,fig.width=7,fig.height=8}
+```{r sector_totals,echo=FALSE,warning=FALSE}
 
 sector_totals <- left_join(data,indirect_CO2_countries,by = c("ISO", "country", "region_ar6_10", "year", "chapter_title", "subsector_title"))
 
-world_totals <- sector_totals %>% 
-  filter(year==2018) %>% 
+# for each region and sector, calculate the total emissions
+
+region_sectors <- sector_totals %>% 
+  filter(region_ar6_10_short!="AIR") %>% 
+  filter(region_ar6_10_short!="SEA") %>% 
+  filter(year %in% c(2010,2018)) %>% 
+  group_by(region_ar6_10,region_ar6_10_short,chapter_title,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
+  mutate(GHG_total=ifelse(chapter_title!="Energy systems",GHG+CO2_indirect,GHG))
+
+# add land use for AFOLU
+region_sectors <- left_join(region_sectors,land)
+region_sectors <- region_sectors %>% 
+  mutate(GHG_total=ifelse(chapter_title=="AFOLU",GHG+CO2_land,GHG_total))
+
+
+# calculate the total emissions by each sector, to estimate the regional fraction
+
+region_sectors_totals <- sector_totals %>% 
+  filter(region_ar6_10_short!="AIR") %>% 
+  filter(region_ar6_10_short!="SEA") %>% 
+  filter(year %in% c(2010,2018)) %>% 
   group_by(chapter_title,year) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
-  mutate(GHG_indirect=sum(GHG,CO2_indirect))
+  mutate(sector_total=ifelse(chapter_title!="Energy systems",GHG+CO2_indirect,GHG))
 
-world_totals_totals <- sector_totals %>% 
-  filter(year==2018) %>% 
-  group_by(year) %>% 
-  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
-  mutate(GHG_indirect=sum(GHG)) %>% 
-  mutate(chapter_title="Total")
+# add land use for AFOLU
+land_total <- land %>% 
+  group_by(year,chapter_title) %>% summarise(CO2_land=sum(CO2_land,na.rm = TRUE))
+region_sectors_totals <- left_join(region_sectors_totals,land_total, by = c("chapter_title", "year"))
+region_sectors_totals <- region_sectors_totals %>% 
+  mutate(sector_total=ifelse(chapter_title=="AFOLU",sector_total+CO2_land,sector_total))
 
-world_totals <- rbind(world_totals,world_totals_totals)
-
-sector_totals_totals <- sector_totals %>% 
-  filter(year==2018) %>% 
-  group_by(region_ar6_10,region_ar6_10_short,year) %>% 
-  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
-  mutate(chapter_title="Total") %>% 
-  mutate(GHG_indirect=sum(GHG))
-
-sector_totals <- sector_totals %>% 
-  filter(year==2018) %>% 
-  group_by(region_ar6_10,region_ar6_10_short,chapter_title,year) %>% 
-  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE))
-
-sector_totals <- sector_totals %>% 
-  mutate(GHG_indirect=sum(GHG,CO2_indirect))
-
-sector_totals <- rbind(sector_totals,sector_totals_totals)
-
-sector_totals <- left_join(sector_totals,world_totals %>% select(chapter_title,year,world_total=GHG_indirect),by = c("chapter_title", "year"))
+region_sectors <- left_join(region_sectors,region_sectors_totals %>% select(chapter_title,year,sector_total),
+                            by = c("chapter_title", "year"))
 
 
-sector_totals <- sector_totals %>% 
-  mutate(fraction=GHG_indirect/world_total)
+# sum up all sectors by region to get the "total" sector
+
+# total_sector <- sector_totals %>% 
+#   filter(year %in% c(2010,2018)) %>% 
+#   group_by(region_ar6_10,region_ar6_10_short,year) %>% 
+#   summarise(GHG=sum(GHG,na.rm=TRUE)) %>% 
+#   mutate(CO2_indirect=NA) %>% 
+#   mutate(GHG_total=GHG) %>% 
+#   mutate(chapter_title="Total")
+# 
+# world_total <- sector_totals %>% 
+#   filter(year %in% c(2010,2018)) %>% 
+#   group_by(year) %>% 
+#   summarise(sector_total=sum(GHG,na.rm=TRUE))
+# 
+# total_sector <- left_join(total_sector,world_total,by = "year")
+# 
+# # join everything and calculate fraction of emissions in each region and sector relative to the total global for that sector
+# 
+# region_sectors <- rbind(region_sectors,total_sector)
 
 
-p1<- sector_totals %>% ggplot(.,aes(x=region_ar6_10_short,y=fraction*100,fill=region_ar6_10_short)) +
-  geom_bar(stat="identity",color="#737373") +
-  facet_grid(factor(chapter_title,levels=c("AFOLU","Buildings","Energy systems","Industry","Transport","Total"))~.,scales="free",switch = "both") +
-  scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(10)) +
-  scale_y_continuous(position = "right") +
-  theme(legend.position="none",
-        legend.title=element_blank(),
-        axis.title.y = element_blank(),
-        axis.title.x=element_blank(),
-        axis.text.x = element_text(angle=45,hjust=1),
-        title = element_text(size=9)) +
-  ggtitle('a. Regional contributions to sector emissions (%)')
+region_sectors <- region_sectors %>% 
+  mutate(sector_fraction=(GHG_total/sector_total)*100)
 
+
+# calculate growth rate since 2010
+
+region_sectors <- region_sectors %>% 
+  group_by(region_ar6_10,chapter_title) %>% 
+  mutate(rate=(last(GHG_total)/first(GHG_total))^(1/(last(year)-first(year)))-1) %>% 
+  mutate(rate=rate*100)
 
 ```
 
 
-```{r sector_emissions_per_capita,fig.width=7,fig.height=8}
+```{r sector_emissions_per_capita,echo=FALSE,warning=FALSE}
 
 per_capita <- left_join(data,indirect_CO2_countries,by = c("ISO", "country", "region_ar6_10", "year", "chapter_title", "subsector_title"))
+
+### get average world values for each sector
+# add indirect CO2 to the sector if its not Energy systems
+# add land use CO2 to the sector if its AFOLU
 
 per_capita_world <- per_capita %>% 
   group_by(year,chapter_title) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
-  mutate(GHG_indirect=GHG+CO2_indirect) %>% 
+  mutate(GHG_total=ifelse(chapter_title!="Energy systems",GHG+CO2_indirect,GHG)) %>% 
   mutate(ISO="WLD")
 
 per_capita_world <- left_join(per_capita_world,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population), by = c("year", "ISO"))
 
+per_capita_world <- left_join(per_capita_world,land_total,by = c("year", "chapter_title"))
 per_capita_world <- per_capita_world %>% 
-  mutate(GHG_indirect_pc=GHG_indirect/population) %>% 
+  mutate(GHG_total=ifelse(chapter_title=="AFOLU",GHG+CO2_land,GHG_total))
+
+per_capita_world <- per_capita_world %>% 
+  mutate(GHG_total_pc=GHG_total/population) %>% 
   filter(year==2018) %>% 
   mutate(label="World average")
 
 total_world <- per_capita_world %>% 
   group_by(year,label) %>% 
-  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=sum(CO2_indirect,na.rm=TRUE),population=nth(population,1)) %>%
-  mutate(GHG_indirect_pc=GHG/population) %>% 
-  mutate(chapter_title="Total")
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_indirect=NA,CO2_land=sum(CO2_land,na.rm=TRUE),population=nth(population,1)) %>%
+  mutate(GHG_total=GHG+CO2_land) %>% 
+  mutate(GHG_total_pc=GHG/population) %>% 
+  mutate(chapter_title="Total") %>% 
+  mutate(ISO="WLD")
 
 per_capita_world <- rbind(per_capita_world,total_world)
 
-totals <- per_capita %>% 
-  filter(year %in% c(2010,2018)) %>% 
-  group_by(ISO,country,region_ar6_10,region_ar6_10_short,year) %>% 
-  summarise(GHG=sum(GHG),population=nth(population,1),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
-  mutate(GHG_indirect=GHG+CO2_indirect) %>% 
-  mutate(GHG_pc=GHG/population) %>% 
-  mutate(GHG_indirect_pc=GHG_indirect/population) %>% 
-  mutate(year=as.factor(year)) %>% 
-  filter(population>1e6) %>% 
-  mutate(chapter_title="Total")
+
+#### calculate per capita values for each country
+# add indirect CO2 to the sector if its not Energy systems
+
+# totals <- per_capita %>% 
+#   filter(year %in% c(2018)) %>% 
+#   group_by(ISO,country,region_ar6_10,region_ar6_10_short,year) %>% 
+#   summarise(GHG=sum(GHG),population=nth(population,1),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
+#   mutate(GHG_total=GHG+CO2_indirect) %>% 
+#   mutate(GHG_pc=GHG/population) %>% 
+#   mutate(year=as.factor(year)) %>% 
+#   filter(population>1e6) %>% 
+#   mutate(chapter_title="Total")
 
 per_capita <- per_capita %>% 
-  filter(year %in% c(2010,2018)) %>% 
+  filter(region_ar6_10_short!="AIR") %>% 
+  filter(region_ar6_10_short!="SEA") %>% 
+  filter(year %in% c(2018)) %>% 
   group_by(ISO,country,region_ar6_10,region_ar6_10_short,chapter_title,year) %>% 
   summarise(GHG=sum(GHG),population=nth(population,1),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
-  mutate(GHG_indirect=GHG+CO2_indirect) %>% 
-  mutate(GHG_pc=GHG/population) %>% 
-  mutate(GHG_indirect_pc=GHG_indirect/population) %>% 
-  mutate(year=as.factor(year)) %>% 
-  filter(population>1e6)
+  mutate(GHG_total=ifelse(chapter_title!="Energy systems",GHG+CO2_indirect,GHG)) %>% 
+  mutate(GHG_pc=GHG_total/population) %>% 
+  mutate(year=as.factor(year))
 
-per_capita <- rbind(per_capita,totals)
+#per_capita <- rbind(per_capita,totals)
 
-p2 <- per_capita %>% 
+# for AFOLU, get the regional averages only
+
+per_capita_afolu <- data %>% 
+  filter(chapter_title=="AFOLU") %>% 
+  filter(year %in% c(2018)) %>% 
+  group_by(chapter_title,region_ar6_10,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+per_capita_afolu <- left_join(per_capita_afolu,land,by = c("region_ar6_10","chapter_title", "year"))
+
+region_pop <- left_join(ipcc_regions,wdi_data_gdp_pop %>% filter(year==2018),by=c("ISO"="iso3c"))
+region_pop <- region_pop %>% 
+  group_by(region_ar6_10,region_ar6_10_short) %>% 
+  summarise(population=sum(population,na.rm=TRUE))
+
+per_capita_afolu <- left_join(per_capita_afolu,region_pop,by = c("region_ar6_10", "region_ar6_10_short"))
+
+per_capita_afolu <- per_capita_afolu %>% 
+  mutate(GHG_total=GHG+CO2_land) %>% 
+  mutate(GHG_pc=GHG_total/population)
+
+
+```
+
+```{r kaya_rates,echo=FALSE,warning=FALSE}
+
+kaya_rates <- gather(kaya_data %>% select(-GDP,-POP,-GDP_POP),var,value,CO2,energy,energy_GDP,CO2_energy) %>% 
+  filter(sector!="AFOLU") %>% 
+  filter(region_ar6_10!="World") %>% 
+  filter(year %in% c(2010,2018)) %>% 
+  select(chapter_title=sector,everything())
+
+kaya_rates <- kaya_rates %>% 
+  group_by(region_ar6_10,chapter_title,var) %>%
+  mutate(rate=(last(value)/first(value))^(1/(last(year)-first(year)))-1) %>% 
+  mutate(rate=rate*100) %>% 
   filter(year==2018) %>% 
-  ggplot(aes(x=region_ar6_10_short,y=GHG_indirect_pc,fill=region_ar6_10_short)) +
-  geom_boxplot(outlier.alpha = 0.5,color="#737373",show.legend=FALSE) +
-  geom_hline(data=per_capita_world,aes(yintercept=GHG_indirect_pc,color=label),alpha=0.8,linetype="dashed") +
-  facet_grid(factor(chapter_title,levels=c("AFOLU","Buildings","Energy systems","Industry","Transport","Total"))~.,scales="free") +
-  scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(10)) +
-  ylab("GHG emissions per capita (tCO2eq/capita)") +
-  scale_y_continuous(position = "right") +
-  theme(legend.position = "bottom",
-        legend.title=element_blank(),
-        legend.background = element_blank(),
-        legend.margin = margin(t = 0, unit='cm'),
-        axis.title.x=element_blank(),
-        axis.title.y=element_blank(),
-        strip.background = element_blank(),
-        strip.text = element_blank(),
-        axis.text.x = element_text(angle=45,hjust=1),
-        title = element_text(size=9)) +
-  ggtitle("b. Per capita sector emissions in 2018 (tCO2eq/capita)")
+  ungroup() %>% 
+  select(-value,-year)
+
+# join ghg data
+
+ghg_rates <- region_sectors %>% 
+  ungroup() %>% 
+  filter(year==2018) %>% 
+  filter(chapter_title!="AFOLU") %>% 
+  select(region_ar6_10,chapter_title,rate) %>% 
+  mutate(var="GHG") %>% 
+  filter(region_ar6_10!="Intl. Aviation") %>% 
+  filter(region_ar6_10!="Intl. Shipping")
+
+
+kaya_rates <- rbind(kaya_rates,ghg_rates)
+
+
+# set colour thresholds
+kaya_rates <- kaya_rates %>% 
+  mutate(rate_colour = ifelse(rate>0 & abs(rate)>1,"Growing (> +1%/yr)","Stable (~0%/yr)")) %>% 
+  mutate(rate_colour = ifelse(rate<0 & abs(rate)>1,"Declining (< -1%/yr)",rate_colour))
+
+kaya_rates$rate_colour <- as.factor(kaya_rates$rate_colour)
+kaya_rates$rate_colour <- factor(kaya_rates$rate_colour,levels=levels(kaya_rates$rate_colour)[c(2,3,1)])
+
+# facet titles
+titles <- data.frame(var=c("CO2","GHG","energy","energy_GDP","CO2_energy"),facet=c("CO2","GHG","Energy consumption","Energy efficiency","Carbon intensity"))
+
+kaya_rates <- left_join(kaya_rates,titles,by = "var")
+
+# reorder vars
+kaya_rates$facet <- as.factor(kaya_rates$facet)
+kaya_rates$facet <- factor(kaya_rates$facet,levels=levels(kaya_rates$facet)[c(5,2,1,4,3)])
+
+
+kaya_rates <- left_join(kaya_rates,ipcc_regions %>% select(region_ar6_10,region_ar6_10_short) %>% distinct(),by = "region_ar6_10")
+
+```
+
+```{r kaya_rates_afolu,echo=FALSE,warning=FALSE}
+
+
+hong_a <- openxlsx::read.xlsx('../../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Ag_production_kcal')
+names(hong_a) <- c("country","product",1961:2017)
+hong_a <- gather(hong_a,year,ag_production_kcal,`1961`:`2017`)
+hong_a <- hong_a %>% 
+  group_by(year,country) %>% 
+  summarise(ag_production_kcal=sum(ag_production_kcal))
+
+hong_b <- openxlsx::read.xlsx('../../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Land_area_hectares')
+names(hong_b) <- c("country","product",1961:2017)
+hong_b <- gather(hong_b,year,land_area_hectares,`1961`:`2017`)
+hong_b <- hong_b %>% 
+  group_by(year,country) %>% 
+  summarise(land_area_hectares=sum(land_area_hectares))
+
+hong <- left_join(hong_a,hong_b,by = c("year", "country"))
+codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
+
+hong <- left_join(hong %>% mutate(country=tolower(country)),codes,by=c("country"="alternative.name"))
+
+hong <- hong %>% 
+  mutate(alpha.3=ifelse(grepl("d ivoire",country),"CIV",alpha.3)) %>% 
+  mutate(alpha.3=ifelse(grepl("china, taiwan province of",country),"TWN",alpha.3)) %>% 
+  mutate(alpha.3=ifelse(grepl("union",country),"REU",alpha.3))  %>% 
+  mutate(alpha.3=ifelse(grepl("pacific islands trust territory",country),"PCI",alpha.3)) %>%
+  ungroup() %>% 
+  mutate(year=as.numeric(year))
+
+afolu_GHG <- edgar_ghg %>% 
+  filter(chapter_title=="AFOLU") %>% 
+  group_by(ISO,year,region_ar6_10) %>% 
+  summarise(GHG=sum(GHG,na.rm = TRUE))
+
+hong <- left_join(hong,afolu_GHG,by=c("alpha.3"="ISO","year"="year"))
+hong <- hong %>% 
+  filter(year>1989) %>% 
+  filter(!is.na(region_ar6_10)) %>% 
+  select(ISO=alpha.3,country,region_ar6_10,year,everything())
+
+hong <- left_join(hong,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population),by=c("ISO","year"))
+
+kaya_rates_afolu <- hong %>% 
+  filter(year %in% c(2010,2017)) %>% 
+  mutate(chapter_title="AFOLU") %>% 
+  group_by(region_ar6_10,chapter_title,year) %>% 
+  summarise(ag_production_kcal=sum(ag_production_kcal,na.rm=TRUE),
+            land_area_hectares=sum(land_area_hectares,na.rm=TRUE),
+            GHG=sum(GHG,na.rm=TRUE),
+            population=sum(population,na.rm=TRUE))
+  
+
+
+kaya_rates_afolu <- left_join(kaya_rates_afolu,land,by = c("region_ar6_10", "chapter_title", "year"))
+kaya_rates_afolu <- kaya_rates_afolu %>% 
+  mutate(GHG_total=GHG+CO2_land)
+
+
+# calculate kaya values
+kaya_rates_afolu <- kaya_rates_afolu %>% 
+  mutate(production_percap=ag_production_kcal/population) %>% 
+  mutate(land_production=land_area_hectares/ag_production_kcal) %>% 
+  mutate(ghg_land_area=GHG_total/land_area_hectares)
+
+kaya_rates_afolu <- gather(kaya_rates_afolu %>% 
+                             select(-ag_production_kcal,-land_area_hectares,-GHG,-population),var,value,CO2_land:ghg_land_area)
+
+
+kaya_rates_afolu <- kaya_rates_afolu %>% 
+  group_by(region_ar6_10,chapter_title,var) %>%
+  mutate(rate=(last(value)/first(value))^(1/(last(year)-first(year)))-1) %>% 
+  mutate(rate=rate*100) %>% 
+  filter(year==2017) %>% 
+  ungroup() %>% 
+  select(-value,-year)
+
+
+# set colour thresholds
+kaya_rates_afolu <- kaya_rates_afolu %>% 
+  mutate(rate_colour = ifelse(rate>0 & abs(rate)>1,"Growing (> +1%/yr)","Stable (~0%/yr)")) %>% 
+  mutate(rate_colour = ifelse(rate<0 & abs(rate)>1,"Declining (< -1%/yr)",rate_colour))
+
+kaya_rates_afolu$rate_colour <- as.factor(kaya_rates_afolu$rate_colour)
+kaya_rates_afolu$rate_colour <- factor(kaya_rates_afolu$rate_colour,levels=levels(kaya_rates_afolu$rate_colour)[c(2,3,1)])
+
+# facet titles
+titles <- data.frame(var=c("CO2_land","GHG_total","production_percap","land_production","ghg_land_area"),facet=c("CO2 LULUCF","GHG Total","Agricultural output","Land efficiency","GHG intensity"))
+
+kaya_rates_afolu <- left_join(kaya_rates_afolu,titles,by = "var")
+
+# reorder vars
+kaya_rates_afolu$facet <- as.factor(kaya_rates_afolu$facet)
+kaya_rates_afolu$facet <- factor(kaya_rates_afolu$facet,levels=levels(kaya_rates_afolu$facet)[c(4,2,3,5,1)])
 
 ```
 
 
-```{r sector_region_summary,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
-p1 + p2 + plot_layout(width = c(1,1.05))
+```{r sector_summary,echo=FALSE,warning=FALSE}
+
+
+sector_summary <- function(per_capita,per_capita_world,region_sectors,kaya_rates,sector) {
+  
+  
+  colors = colorRampPalette(brewer.pal(8, "Set2"))(10)
+  
+  per_capita <- per_capita %>% 
+    filter(chapter_title==sector) %>% 
+    filter(year==2018) %>% 
+    mutate(facet=paste0(sector," per capita emissions")) %>% 
+    mutate(facet=ifelse(sector=="AFOLU","AFOLU per capita \n emissions",facet))
+  
+  # filter to population >1e6
+  per_capita <- per_capita %>% 
+    filter(population>1e6)
+  
+  p1 <- per_capita %>% 
+    ggplot(aes(x=reorder(region_ar6_10_short,desc(region_ar6_10_short)),y=GHG_pc,fill=region_ar6_10_short,size=GHG_total)) +
+    #geom_boxplot(outlier.alpha = 0.5,color="#737373",show.legend=FALSE) +
+    geom_point(shape=21,color="#636363",show.legend=FALSE) +
+    geom_hline(data=per_capita_world %>% filter(chapter_title==sector),
+               aes(yintercept=GHG_total_pc,color=label),alpha=0.8,linetype="dashed") +
+    coord_flip() +
+    facet_grid(.~facet,labeller = label_wrap_gen(width=28)) +
+    scale_fill_manual(values=alpha(colors,0.5)) +
+    #scale_fill_manual(values=colors) +
+    #scale_size_continuous(range=c(1.5,8)) +
+    ylab("GHG emissions per capita (tCO2eq/capita)") +
+    theme(legend.position = "bottom",
+          legend.title=element_blank(),
+          legend.background = element_blank(),
+          legend.margin = margin(t = 0, unit='cm'),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          plot.title = element_text(size = 11)) +
+    ggtitle("Greenhouse gas (GHG) emissions levels in 2018")
+  
+  
+  region_sectors <- region_sectors %>% 
+    filter(chapter_title==sector) %>% 
+    filter(year==2018) %>% 
+    mutate(facet=paste0("% of global ", sector," emissions"))
+  
+  p2 <- region_sectors %>% 
+    ggplot(aes(x=reorder(region_ar6_10_short,desc(region_ar6_10_short)),
+               y=sector_fraction,fill=region_ar6_10_short)) +
+    geom_bar(stat='identity',color="#737373") +
+    geom_text(aes(y=sector_fraction+1.5,label=paste0(round(sector_fraction,0),"%")),hjust=0,size=3.5) +
+    expand_limits(y=c(0,max(region_sectors$sector_fraction)*1.4)) +
+    coord_flip() +
+    facet_grid(.~facet,labeller = label_wrap_gen(width=25)) +
+    scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(10)) +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title.x = element_blank(),
+          #axis.ticks.x = element_blank(),
+          #axis.text.x = element_blank(),
+          axis.text = element_text(size=11),
+          panel.grid.major.x = element_blank(),
+          plot.title = element_text(size = 11),
+          plot.background = element_blank(),
+          legend.position="none")
+  
+  kaya_rates <- kaya_rates %>% 
+    filter(chapter_title==sector)
+  
+  
+  p3 <- kaya_rates %>% 
+    ggplot(aes(x=reorder(region_ar6_10_short,desc(region_ar6_10_short)),y="a",
+             label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%"),colour=rate_colour)) +
+    geom_text(size=3.5,key_glyph = draw_key_point) +
+    coord_flip() +
+    scale_colour_manual(values = c("#d7191c", "#404040", "#2c7bb6")) +
+    facet_grid(.~facet,labeller = label_wrap_gen(width=15)) +
+    theme(axis.title.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.text = element_text(size=11),
+          panel.grid.major.x = element_blank(),
+          plot.title = element_text(size = 11),
+          legend.position = "bottom",
+          legend.title=element_blank(),
+          legend.background = element_blank(),
+          legend.margin = margin(t = 0, unit='cm')) +
+    ggtitle(str_wrap("Annual average change in emissions and kaya factors, 2010-2018"))
+  
+  
+  p <- p1 + p2 + p3 + plot_layout(widths=c(3,2,6))
+  
+  return(p)
+}
+
+```
+
+
+```{r afolu_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=4.2,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+p <- sector_summary(per_capita_afolu,per_capita_world,region_sectors,kaya_rates_afolu,"AFOLU")
+p + plot_annotation(title = '             AFOLU sector',
+                  theme = theme(plot.title = element_text(size = 13)))
+
+
+```
+
+
+
+```{r energy_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=4.2,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+p <- sector_summary(per_capita,per_capita_world,region_sectors,kaya_rates,"Energy systems")
+p + plot_annotation(title = '             Energy systems sector',
+                  theme = theme(plot.title = element_text(size = 13)))
+
+
+```
+
+```{r industry_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=4.2,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+p <- sector_summary(per_capita,per_capita_world,region_sectors,kaya_rates,"Industry")
+p + plot_annotation(title = '             Industry sector',
+                  theme = theme(plot.title = element_text(size = 13)))
+
+
+```
+
+```{r buildings_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=4.2,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+p <- sector_summary(per_capita,per_capita_world,region_sectors,kaya_rates,"Buildings")
+p + plot_annotation(title = '             Buildings sector',
+                  theme = theme(plot.title = element_text(size = 13)))
+
+
+```
+
+
+```{r transport_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=4.2,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+p <- sector_summary(per_capita,per_capita_world,region_sectors,kaya_rates,"Transport")
+p + plot_annotation(title = '             Transport sector',
+                  theme = theme(plot.title = element_text(size = 13)))
+
 
 ```

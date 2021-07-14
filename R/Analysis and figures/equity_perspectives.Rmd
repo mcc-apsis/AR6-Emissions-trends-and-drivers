@@ -19,7 +19,8 @@ library(scales)
 
 end_year = 2019
 
-load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+#load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
 load('../../Data/land.RData')
 load('../../Data/ipcc_regions.RData')
 load('../../Data/WDI_gdp_pop.RData')
@@ -64,7 +65,25 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
     mutate(fraction=(value/total)) %>% 
     mutate(label=paste0(round(total/1e9)," Gt CO2"))
   
-  # cumulative
+  # cumulative with only countries that have life expectancy data
+  
+  edgar_co2 <- edgar_ghg %>%
+    rename_all(gsub, pattern = paste0(region,'$'), replacement = 'region_select') %>% 
+    filter(ISO!="AIR") %>%
+    filter(ISO!="SEA")
+  
+  edgar_co2 <- left_join(edgar_co2,sdgs %>% 
+                          filter(indicatorID=="Life_expectancy") %>% 
+                          select(ISO=iso3c,year=date,life_expectancy=value) %>% 
+                          mutate(year=as.numeric(year)),by=c("year","ISO"))
+  
+  # filter only countries that have life expectancy values
+  edgar_co2 <- edgar_co2 %>% 
+    filter(!is.na(life_expectancy))
+  
+  edgar_co2 <- edgar_co2 %>%
+    group_by(region_select,year) %>%
+    summarise(value=sum(CO2,na.rm=TRUE)) 
   
   edgar_co2 <- edgar_co2 %>% 
     filter(year<2019) %>% 
@@ -91,7 +110,7 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
   land_co2_2019 <- land_co2 %>% 
     filter(year==2019) %>% 
     summarise(value=sum(value,na.rm=TRUE)) %>% 
-    mutate(var="Land-use CO2 (2019)") %>% 
+    mutate(var="LULUCF CO2 (2019)") %>% 
     mutate(category="Current population and emissions")
   
   land_co2_2019 <- land_co2_2019 %>% 
@@ -104,7 +123,7 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
   land_co2 <- land_co2 %>% 
     group_by(region_select) %>% 
     summarise(value=sum(value,na.rm=TRUE)) %>% 
-    mutate(var="Land-use CO2, all countries (1850-2019)") %>%
+    mutate(var="LULUCF CO2, all countries (1850-2019)") %>%
     mutate(category="Historical cumulative emissions")
   
   land_co2 <- land_co2 %>% 
@@ -162,7 +181,7 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
     mutate(label=paste0(round(total/1e9)," Gt CO2"))
   
   
-  ### ghg emissions
+  ### ghg excl lulucf emissions 2019
   
   ghg <- edgar_ghg %>%
     rename_all(gsub, pattern = paste0(region,'$'), replacement = 'region_select') %>% 
@@ -170,15 +189,33 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
     filter(ISO!="AIR") %>%
     filter(ISO!="SEA") %>%
     group_by(region_select) %>%
-    summarise(ghg=sum(GHG,na.rm=TRUE))
+    summarise(value=sum(GHG,na.rm=TRUE))
   
-  ghg <- left_join(ghg,land_co2_2019 %>% select(region_select,co2_land=value),by = "region_select")
-  ghg <- ghg %>% 
-    mutate(value = ghg+co2_land)
   ghg$total <- sum(ghg$value)
   ghg <- ghg %>% 
     mutate(fraction = value/total) %>% 
-    mutate(var="Territorial GHG (2019)") %>% 
+    mutate(var="Territorial GHG, excl. LULUCF (2019)") %>% 
+    mutate(category="Current population and emissions") %>%  
+    mutate(label=paste0(round(total/1e9)," Gt CO2eq"))
+  
+  
+  ### ghg incl lulucf emissions 2019
+  
+  ghg_lulucf <- edgar_ghg %>%
+    rename_all(gsub, pattern = paste0(region,'$'), replacement = 'region_select') %>% 
+    filter(year==2019) %>% 
+    filter(ISO!="AIR") %>%
+    filter(ISO!="SEA") %>%
+    group_by(region_select) %>%
+    summarise(ghg=sum(GHG,na.rm=TRUE))
+  
+  ghg_lulucf <- left_join(ghg_lulucf,land_co2_2019 %>% select(region_select,co2_land=value),by = "region_select")
+  ghg_lulucf <- ghg_lulucf %>% 
+    mutate(value = ghg+co2_land)
+  ghg_lulucf$total <- sum(ghg_lulucf$value)
+  ghg_lulucf <- ghg_lulucf %>% 
+    mutate(fraction = value/total) %>% 
+    mutate(var="Territorial GHG, incl. LULUCF (2019)") %>% 
     mutate(category="Current population and emissions") %>%  
     mutate(label=paste0(round(total/1e9)," Gt CO2eq")) %>% 
     select(-ghg,-co2_land)
@@ -199,6 +236,10 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
                           filter(indicatorID=="Life_expectancy") %>% 
                           select(ISO=iso3c,year=date,life_expectancy=value) %>% 
                           mutate(year=as.numeric(year)),by=c("year","ISO"))
+  
+  # filter only countries that have life expectancy values
+  co2_sdgs <- co2_sdgs %>% 
+    filter(!is.na(life_expectancy))
   
   sdgs_high <- co2_sdgs %>% 
     filter(life_expectancy>=75) %>% 
@@ -246,13 +287,12 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
   data <- rbind(data,sdgs_med)
   data <- rbind(data,sdgs_low)
   data <- rbind(data,ghg)
+  data <- rbind(data,ghg_lulucf)
   
   
   data$var <- as.factor(data$var)
   data$category <- as.factor(data$category)
-  
-  #data$category <- factor(data$category,levels=levels(data$category)[c(4,2,3,5,1)])
-  data$var <- factor(data$var,levels=levels(data$var)[c(7,8,1,10,5,9,3,4,2,6)])
+  data$var <- fct_relevel(data$var,"Population (2019)","Consumption CO2, fossil only (2018)","Territorial GHG, excl. LULUCF (2019)","LULUCF CO2 (2019)","Territorial GHG, incl. LULUCF (2019)","Cumulative CO2 of countries above 75yrs life expectancy (1970-2018)","Cumulative CO2 of countries between 65 and 75yrs life expectancy (1970-2018)","Cumulative CO2 of countries below 65yrs life expectancy (1970-2018)")
   
   return(data)
 }
@@ -266,13 +306,57 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
 
 data <- gather_data("region_ar6_6",ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop)
 
+# p1 <- data %>%
+#   filter(category=="Current population and emissions") %>% 
+#   filter(var!="Territorial CO2, fossil and proccess (2019)") %>% 
+#   ggplot(.,aes(x=var,y=fraction,fill=region_select)) +
+#   geom_bar(stat='identity',color="#737373") +
+#   geom_text(data=data %>% 
+#               filter(var!="Territorial CO2, fossil and proccess (2019)") %>% 
+#               filter(category=="Current population and emissions") %>% 
+#               filter(region_select=="Africa"),aes(x=var,y=1.08,label=label)) +
+#   scale_fill_brewer(palette="Set2") +
+#   scale_x_discrete(labels=label_wrap_gen(width=18,multi_line = TRUE)) +
+#   scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1)) +
+#   #facet_wrap(.~category,scales="free",nrow=2) +
+#   ggtitle("a. Current population, CO2 and GHG emissions") +
+#   theme(legend.title=element_blank(),
+#         axis.title = element_blank(),
+#         title = element_text(face="plain"),
+#         axis.text = element_text(size=10),
+#         legend.text = element_text(size=10))
+#   
+# p2 <- data %>% 
+#   filter(category=="Historical cumulative emissions") %>% 
+#   ggplot(.,aes(x=var,y=fraction,fill=region_select)) +
+#   geom_bar(stat='identity',color="#737373") +
+#   geom_text(data=data %>% 
+#               filter(category=="Historical cumulative emissions") %>% 
+#               filter(region_select=="Africa"),aes(x=var,y=1.08,label=label)) +
+#   scale_fill_brewer(palette="Set2") +
+#   scale_x_discrete(labels=label_wrap_gen(width=18,multi_line = TRUE)) +
+#   scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1)) +
+#   #facet_wrap(.~category,scales="free",nrow=2) +
+#   ggtitle("b. Historical cumulative CO2 emissions, at different development stages") +
+#   theme(legend.title=element_blank(),
+#         axis.title = element_blank(),
+#         title = element_text(face="plain"),
+#         axis.text = element_text(size=10),
+#         legend.text = element_text(size=10))
+# 
+# p1 / p2
 
+```
 
-p1 <- data %>% 
+```{r equity_perspectives_regions_6a, fig.width=10,fig.height=9,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+
+p1 <- data %>%
   filter(category=="Current population and emissions") %>% 
+  filter(var!="Territorial CO2, fossil and proccess (2019)") %>% 
   ggplot(.,aes(x=var,y=fraction,fill=region_select)) +
   geom_bar(stat='identity',color="#737373") +
   geom_text(data=data %>% 
+              filter(var!="Territorial CO2, fossil and proccess (2019)") %>% 
               filter(category=="Current population and emissions") %>% 
               filter(region_select=="Africa"),aes(x=var,y=1.08,label=label)) +
   scale_fill_brewer(palette="Set2") +
@@ -287,24 +371,118 @@ p1 <- data %>%
         legend.text = element_text(size=10))
   
 p2 <- data %>% 
-  filter(category=="Historical cumulative emissions") %>% 
+  filter(var=="Territorial CO2, fossil and proccess, all countries (1970-2018)") %>% 
   ggplot(.,aes(x=var,y=fraction,fill=region_select)) +
   geom_bar(stat='identity',color="#737373") +
   geom_text(data=data %>% 
               filter(category=="Historical cumulative emissions") %>% 
+              filter(var=="Territorial CO2, fossil and proccess, all countries (1970-2018)") %>% 
               filter(region_select=="Africa"),aes(x=var,y=1.08,label=label)) +
   scale_fill_brewer(palette="Set2") +
-  scale_x_discrete(labels=label_wrap_gen(width=18,multi_line = TRUE)) +
+  scale_x_discrete(labels=label_wrap_gen(width=25,multi_line = TRUE)) +
   scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1)) +
   #facet_wrap(.~category,scales="free",nrow=2) +
-  ggtitle("b. Historical cumulative CO2 emissions, at different development stages") +
-  theme(legend.title=element_blank(),
+  ggtitle("b. The contributions of countries to historical cumulative CO2 emissions, split by development stage") +
+  theme(legend.position="none",
         axis.title = element_blank(),
         title = element_text(face="plain"),
         axis.text = element_text(size=10),
         legend.text = element_text(size=10))
 
-p1 / p2
+p3 <- data %>% 
+  filter(category=="Historical cumulative emissions") %>% 
+  filter(var!="Territorial CO2, fossil and proccess, all countries (1970-2018)") %>% 
+  filter(var!="LULUCF CO2, all countries (1850-2019)") %>% 
+  ggplot(.,aes(x=reorder(var,desc(var)),y=value,fill=region_select)) +
+  geom_bar(stat='identity',color="#737373") +
+  geom_text(data=data %>% 
+              filter(category=="Historical cumulative emissions") %>% 
+              filter(var!="Territorial CO2, fossil and proccess, all countries (1970-2018)") %>% 
+              filter(var!="LULUCF CO2, all countries (1850-2019)") %>% 
+              filter(region_select=="Africa"),aes(x=var,y=6.2e11,label=label),hjust=0) +
+  scale_fill_brewer(palette="Set2") +
+  coord_flip() +
+  scale_x_discrete(labels=label_wrap_gen(width=18,multi_line = TRUE),position="top",) +
+  expand_limits(y=c(0,7e11)) +
+  ylab("GHG emissions (GtCO2eq)") +
+  theme(legend.position="none",
+        axis.title.y = element_blank(),
+        title = element_text(face="plain"),
+        axis.text = element_text(size=10),
+        legend.text = element_text(size=10),
+        plot.background = element_blank())
+
+
+wrap_elements(p1) / wrap_elements((p2 + p3 + plot_layout(widths=c(1,4))))
+
+```
+
+```{r equity_perspectives_regions_6b, fig.width=10,fig.height=9,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+
+p1 <- data %>%
+  filter(category=="Current population and emissions") %>% 
+  filter(var!="Territorial CO2, fossil and proccess (2019)") %>% 
+  ggplot(.,aes(x=var,y=fraction,fill=region_select)) +
+  geom_bar(stat='identity',color="#737373") +
+  geom_text(data=data %>% 
+              filter(var!="Territorial CO2, fossil and proccess (2019)") %>% 
+              filter(category=="Current population and emissions") %>% 
+              filter(region_select=="Africa"),aes(x=var,y=1.08,label=label)) +
+  scale_fill_brewer(palette="Set2") +
+  scale_x_discrete(labels=label_wrap_gen(width=18,multi_line = TRUE)) +
+  scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1)) +
+  #facet_wrap(.~category,scales="free",nrow=2) +
+  ggtitle("a. Current population, CO2 and GHG emissions") +
+  theme(legend.title=element_blank(),
+        axis.title = element_blank(),
+        title = element_text(face="plain"),
+        axis.text = element_text(size=10),
+        legend.text = element_text(size=10))
+  
+p2 <- data %>% 
+  filter(var=="Territorial CO2, fossil and proccess, all countries (1970-2018)") %>% 
+  ggplot(.,aes(x=var,y=fraction,fill=region_select)) +
+  geom_bar(stat='identity',color="#737373") +
+  geom_text(data=data %>% 
+              filter(category=="Historical cumulative emissions") %>% 
+              filter(var=="Territorial CO2, fossil and proccess, all countries (1970-2018)") %>% 
+              filter(region_select=="Africa"),aes(x=var,y=1.08,label=label)) +
+  scale_fill_brewer(palette="Set2") +
+  scale_x_discrete(labels=label_wrap_gen(width=25,multi_line = TRUE)) +
+  scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1)) +
+  #facet_wrap(.~category,scales="free",nrow=2) +
+  ggtitle("b. The contributions of countries to historical cumulative CO2 emissions, split by development stage") +
+  theme(legend.position="none",
+        axis.title = element_blank(),
+        title = element_text(face="plain"),
+        axis.text = element_text(size=10),
+        legend.text = element_text(size=10))
+
+p3 <- data %>% 
+  filter(category=="Historical cumulative emissions") %>% 
+  filter(var!="Territorial CO2, fossil and proccess, all countries (1970-2018)") %>% 
+  filter(var!="LULUCF CO2, all countries (1850-2019)") %>% 
+  ggplot(.,aes(x=reorder(var,desc(var)),y=value)) +
+  geom_bar(stat='identity',color="#969696",fill="#969696") +
+  geom_text(data=data %>% 
+              filter(category=="Historical cumulative emissions") %>% 
+              filter(var!="Territorial CO2, fossil and proccess, all countries (1970-2018)") %>% 
+              filter(var!="LULUCF CO2, all countries (1850-2019)") %>% 
+              filter(region_select=="Africa"),aes(x=var,y=6.2e11,label=label),hjust=0) +
+  scale_fill_brewer(palette="Set2") +
+  coord_flip() +
+  scale_x_discrete(labels=label_wrap_gen(width=18,multi_line = TRUE),position="top",) +
+  expand_limits(y=c(0,7e11)) +
+  ylab("GHG emissions (GtCO2eq)") +
+  theme(legend.position="none",
+        axis.title.y = element_blank(),
+        title = element_text(face="plain"),
+        axis.text = element_text(size=10),
+        legend.text = element_text(size=10),
+        plot.background = element_blank())
+
+
+equity_perspectives <- wrap_elements(p1) / wrap_elements((p2 + p3 + plot_layout(widths=c(1,4))))
 
 ```
 
@@ -321,6 +499,8 @@ p1 / p2
 #         axis.title = element_blank()) +
 #   ggtitle("Different perspectives on emissions, equity and responsibility")
 
+
+save(equity_perspectives,file="blarg.RData")
 
 ```
 
