@@ -67,10 +67,12 @@ kaya_data <- kaya_data %>%
 kaya_data <- spread(kaya_data,variable,value)
 kaya_data <- kaya_data %>% 
   filter(year<2019) %>% 
-  filter(year>1969)
+  filter(year>1989)
 
 # join IPCC regions
 kaya_data <- left_join(kaya_data,ipcc_regions %>% select(ISO,name,region_ar6_6,region_ar6_6_short,region_ar6_10),by=c("ISO"="ISO"))
+
+uhoh <- anti_join(kaya_data,ipcc_regions %>% select(ISO,name,region_ar6_6,region_ar6_6_short,region_ar6_10),by=c("ISO"="ISO"))
 
 kaya_data <- kaya_data %>% 
   select(ISO,name,region_ar6_6,region_ar6_6_short,region_ar6_10,sector,year,everything()) %>% 
@@ -133,7 +135,10 @@ kaya_data$region_ar6_10 <- as.factor(kaya_data$region_ar6_10)
 
 missing_countries <- kaya_data[!complete.cases(kaya_data),]
 missing_countries <- missing_countries %>% 
-  filter(sector!="AFOLU")
+  filter(sector!="AFOLU") %>% 
+  filter(sector!="OTH") %>% 
+  filter(sector!="NON") %>% 
+  filter(sector!="STT")
 
 kaya_data <- kaya_data %>% 
   na.omit()
@@ -172,7 +177,8 @@ sector_label ="Energy systems"
 kaya_plots_10 <- function(kaya,sector_label) {
   
   kaya_plot_data <- kaya_data %>% 
-    filter(sector==sector_label)
+    filter(sector==sector_label) %>% 
+    filter(year>1989)
   rates <- gather(kaya_plot_data,var,value,CO2:GDP_POP)
   
   rates <- rates %>% 
@@ -318,14 +324,14 @@ names(hong_a) <- c("country","product",1961:2017)
 hong_a <- gather(hong_a,year,ag_production_kcal,`1961`:`2017`)
 hong_a <- hong_a %>% 
   group_by(year,country) %>% 
-  summarise(ag_production_kcal=sum(ag_production_kcal))
+  summarise(ag_production_kcal=sum(ag_production_kcal,na.rm=TRUE))
 
 hong_b <- openxlsx::read.xlsx('../../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Land_area_hectares')
 names(hong_b) <- c("country","product",1961:2017)
 hong_b <- gather(hong_b,year,land_area_hectares,`1961`:`2017`)
 hong_b <- hong_b %>% 
   group_by(year,country) %>% 
-  summarise(land_area_hectares=sum(land_area_hectares))
+  summarise(land_area_hectares=sum(land_area_hectares,na.rm=TRUE))
 
 hong <- left_join(hong_a,hong_b,by = c("year", "country"))
 codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')

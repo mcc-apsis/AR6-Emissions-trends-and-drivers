@@ -111,7 +111,6 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 cat("<br>")
 include_graphics("Results/Figures/SPM_indirect_emissions.png")
 
-
 ```
 ```{r,results = 'asis'}
 cat("<br>")
@@ -122,6 +121,7 @@ cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>data</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/direct_indirect_emissions.Rmd'>code</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Figures/SPM_indirect_emissions.png'>download png</a>")
+
 ```
 
 
@@ -521,7 +521,7 @@ cat("Links: ")
 
 
 
-```{r,out.width="100%",fig.align = 'center',results='asis'}
+```{r,out.height="100%",fig.align = 'center',results='asis'}
 
 
 load('Data/decarbonising_countries.RData')
