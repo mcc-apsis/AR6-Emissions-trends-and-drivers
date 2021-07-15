@@ -1,0 +1,67 @@
+---
+title: "CC Fraud Distributions"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+---
+
+```{r setup, echo =FALSE, eval = TRUE}
+library(flexdashboard)
+library(tidyverse)
+library(dplyr)
+```
+```{r,fig.width=7,fig.height=12,results = 'asis'}
+
+# for (i in 1:length(1:3)) {
+#   
+#   cat("  \n-----------------------------------------------------------------------")
+#   cat("  \n")
+#   cat(paste0("\n### ",i))
+#   cat("  \n")
+#   #cat(paste0("\n![](", "Results/Plots/Decarbonising countries/countries/countries-", i, ".png)"))
+#   
+#   cat("  \n```{r,results='asis'}")
+#   cat("  \n")
+#   
+#   cat('<img src="Results/Plots/Decarbonising countries/countries/countries-1.png", width = "40%">')
+#   
+#   
+#   #cat(paste0("![](", "Results/Plots/Decarbonising countries/countries/countries-", 1, ".png)","  \n"))
+#   
+#   cat("  \n")
+#   cat("```")
+#   
+# }
+
+
+
+# a1 = knitr::knit_expand(text = "\nRow \n--------------------------------------------")
+#   a2 <- knitr::knit_expand(text = sprintf("\n### Chart %s\n```{r Chart%s}", i, i)) # start r chunk
+#   a3 <- knitr::knit_expand(text = sprintf("\n returned[[%d]]", i)) 
+#   a4 <- knitr::knit_expand(text = "\n```\n") # end r chunk
+#   #If i is not divisible by two we will create a new flexdashboard "row"
+#   if (i %% 2) { #odds
+#     paste(a1, a2, a3, a4, collapse = '\n')
+
+```
+```{r, echo = FALSE, eval = TRUE}
+
+out = (1:10) %>% map(function(i){
+  
+  link <- paste0("![](", "Results/Plots/Decarbonising countries/countries/countries-", i, ".png)")
+  
+  a1 = knitr::knit_expand(text = "\nRow \n--------------------------------------------")
+  a2 <- knitr::knit_expand(text = sprintf("\n### Chart %s\n```{r Chart%s}", i, i)) # start r chunk
+  a3 <- knitr::knit_expand(text = sprintf("\n hi")) 
+  a4 <- knitr::knit_expand(text = "\n```\n") # end r chunk
+  #If i is not divisible by two we will create a new flexdashboard "row"
+  if (i %% 2) { #odds
+    paste(a1, a2, a3, a4, collapse = '\n')
+  }else{ #evens
+    paste(a2, a3, a4, collapse = '\n')
+  }
+})
+```
+
+`r paste(knitr::knit(text = paste(out, collapse = '\n')))`

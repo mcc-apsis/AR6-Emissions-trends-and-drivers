@@ -75,7 +75,7 @@ plot_data <- gather(data,paths,value,CO2,GHG,CO2_cons,fit)
 plot_data$paths <- as.factor(plot_data$paths)
 plot_data$paths <- factor(plot_data$paths,levels=levels(plot_data$paths)[c(1,2,4,3)])
 
-plot_data %>%
+decarbonising_countries <- plot_data %>%
   ggplot(.,aes(x=year,y=value,color=paths)) +
   geom_path(size=1) +
   geom_text(data=data %>% filter(year==2015),aes(x=1970,y=0,label=cluster_name),hjust="inward",vjust="inward",size=3.5,color="#636363") +
@@ -91,7 +91,7 @@ plot_data %>%
         plot.title = element_text(size = 12),
         strip.text = element_text(size = 11)) +
   guides(color = guide_legend(override.aes = list(size = 2)))
-
+decarbonising_countries
 
 ```
 
@@ -403,7 +403,8 @@ p5 <- plot_data %>% select(cluster_name,cluster) %>% distinct() %>%
         plot.background = element_blank())
 
 
-p2 / p5 / p1 / p3 / p4 + plot_layout(heights = c(2,0.2,1,1,1))
+country_clusters <- p2 / p5 / p1 / p3 / p4 + plot_layout(heights = c(2,0.2,1,1,1))
+country_clusters
 
 ```
 
@@ -516,7 +517,8 @@ r4 <- rate_data %>%
         plot.margin = unit(c(0,0,0,0),units="cm")) +
   ggtitle("Average annual growth rate since peak (%/yr)")
 
-r1 + r2 + r3 + r4 + plot_layout(widths = c(1,1.5,1.5,6))
+country_rates <- r1 + r2 + r3 + r4 + plot_layout(widths = c(1,1.5,1.5,6))
+country_rates
 
 ```
 
@@ -669,7 +671,7 @@ plot_data$order <- 1:length(plot_data$cluster)
 plot_data$subsector_title <- fct_reorder(plot_data$subsector_title,plot_data$order)
 plot_data$cluster_name <- fct_reorder(plot_data$cluster_name,as.numeric(plot_data$cluster))
 
-plot_data %>% ggplot(.,aes(x=subsector_title,y=GHG_peak,fill=chapter_title)) + 
+cluster_subsectors <- plot_data %>% ggplot(.,aes(x=subsector_title,y=GHG_peak,fill=chapter_title)) + 
   geom_bar(stat='identity',color="#636363",width = 0.75,alpha=0.3) +
   geom_bar(aes(x=subsector_title,y=GHG_2018),stat='identity',color="#636363",width = 0.75) +
   geom_text(aes(x=subsector_title,y=ifelse(GHG_peak>GHG_2018,GHG_peak,GHG_2018),label=paste0(ifelse(rel_GHG>0,"+",""),round(rel_GHG,1),"%")),hjust = -0.15,size=3,colour="#636363",size=3.5) +
@@ -685,7 +687,7 @@ plot_data %>% ggplot(.,aes(x=subsector_title,y=GHG_peak,fill=chapter_title)) +
         panel.grid.minor.y = element_blank()) +
   ylab("Annual GHG emissions (MtCO2eq)") +
   ggtitle("Subsector GHG emissions at peak vs 2018 by cluster")
-
+cluster_subsectors
 
 ```
 
@@ -842,8 +844,8 @@ p2 <- rolling_rates %>% ggplot(.,aes(x=country,y=year,fill=threshold_CO2)) +
         plot.margin = unit(c(0,0,0,0),units="cm")) +
   ggtitle(str_wrap("c. CO2 growth rates since peak years (5 year rolling avg. thresholds)",width=38))
 
-p1 + p2 + p3 + guide_area() + plot_layout(heights=c(6,1)) + plot_layout(guides = 'collect')
-
+country_rolling_rates <- p1 + p2 + p3 + guide_area() + plot_layout(heights=c(6,1)) + plot_layout(guides = 'collect')
+country_rolling_rates
 
 ```
 
@@ -1126,6 +1128,9 @@ country_plot <- function(country_handle,edgar_GHG_ar6,data,subsector_data_countr
   return(list("p1"=p1,"p2"=p2,"p3"=p3))
 }
 
+decarbonising_country_plots_names <- data.frame(country=unique(data$country),plot=NA)
+decarbonising_country_plots <- list()
+
 
 #country_handle = "Jamaica"
 #for (i in 1:1) {
@@ -1139,7 +1144,19 @@ for (i in 1:length(unique(data$country))) {
   print(p)
   cat("  \n")
   
+  decarbonising_country_plots[[i]] = p
+  
 }
+
+
+
+```
+
+``` {r save}
+
+
+save(decarbonising_countries,decarbonising_country_plots,decarbonising_country_plots_names,country_clusters,country_rates,country_rolling_rates,cluster_subsectors,file="../../Results/Plots/R plots/decarbonising_countries.RData")
+
 
 
 
