@@ -47,6 +47,9 @@ regions <- ipcc_regions %>% select(region_ar6_10,region_ar6_6,region_ar6_10_shor
 
 uhoh <- anti_join(land,regions,by="region_ar6_10")
 
+land <- land %>% 
+  mutate(region_ar6_10=ifelse(region_ar6_10=="South-East Asia and Developing Pacific","South-East Asia and developing Pacific",region_ar6_10))
+
 land <- left_join(land,regions,by="region_ar6_10")
 
 land <- land %>% 

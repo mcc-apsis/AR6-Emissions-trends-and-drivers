@@ -58,7 +58,8 @@ GHG_data<-GHG_data %>%
   # group_by(year,region_ar6_10,chapter_title) %>%
   # summarise_at(vars(CO2:SF6),sum,na.rm=TRUE) %>% 
   # mutate_at(vars(CO2:SF6),list(~./1e9))
-  group_by(year,gas,region_ar6_10,chapter_title,gwp100_ar5) %>% 
+  group_by(year,gas,region_ar6_10,chapter_title,gwp100_ar6) %>%   #ar6 gwps
+  #group_by(year,gas,region_ar6_10,chapter_title,gwp100_ar5) %>% 
   summarise(value=sum(value,na.rm=TRUE)) %>% 
   mutate(value=value/1e9)
 
@@ -70,7 +71,8 @@ GHG_data<-GHG_data %>%
 #   select(-value)
 
 GHG_data <- GHG_data %>%
-  mutate(value=gwp100_ar5*value)
+  mutate(value=gwp100_ar6*value)    #ar6 gwps
+  #mutate(value=gwp100_ar5*value)
 
 #### recalculate methane in AR6 using biogenic / non-biogenic methane GWPs
 
@@ -340,5 +342,5 @@ openxlsx::writeData(wb, sheet = "Emissions by region", GHG_by_region, colNames =
 openxlsx::addWorksheet(wb,"Emissions by sector")
 openxlsx::writeData(wb, sheet = "Emissions by sector", GHG_by_sector, colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_10_year_averages",".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_10_year_averages_gwp_ar6",".xlsx"),overwrite=T)
 #openxlsx::saveWorkbook(wb,paste0("R/Analysis and figures for ESSD paper/Results/Data/ipcc_ar6_10_year_averages",".xlsx"),overwrite=T)

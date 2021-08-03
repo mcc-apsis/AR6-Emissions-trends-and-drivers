@@ -19,15 +19,17 @@ save(ipcc_sectors,file='Data/ipcc_sectors.RData')
 
 
 
-ipcc_regions <- read.xlsx('Data/Codes and classifications/Country categories plus alpha codes 27-04-2021.xlsx','Breakdown_list_dev_level')
+#ipcc_regions <- read.xlsx('Data/Codes and classifications/Country categories plus alpha codes 27-04-2021.xlsx','Breakdown_list_dev_level')
+ipcc_regions <- read.xlsx('Data/Codes and classifications/Classification of countries and areas plus alpha codes_APRIL_2021.xlsx','final_list_clean')
 
+# add short versions
 ipcc_regions <- ipcc_regions %>% 
   mutate(region_ar6_6_short=ifelse(region_ar6_6=="Developed Countries","DEV",NA)) %>% 
   mutate(region_ar6_6_short=ifelse(region_ar6_6=="Latin America and Caribbean","LAM",region_ar6_6_short)) %>% 
   mutate(region_ar6_6_short=ifelse(region_ar6_6=="Africa","AFR",region_ar6_6_short)) %>% 
   mutate(region_ar6_6_short=ifelse(region_ar6_6=="Middle East","MEA",region_ar6_6_short)) %>% 
   mutate(region_ar6_6_short=ifelse(region_ar6_6=="Eastern Europe and West-Central Asia","EEA",region_ar6_6_short)) %>% 
-  mutate(region_ar6_6_short=ifelse(region_ar6_6=="Asia and Developing Pacific","APC",region_ar6_6_short)) %>% 
+  mutate(region_ar6_6_short=ifelse(region_ar6_6=="Asia and developing Pacific","APC",region_ar6_6_short)) %>% 
   mutate(region_ar6_6_short=ifelse(region_ar6_6=="Intl. Shipping","SEA",region_ar6_6_short)) %>% 
   mutate(region_ar6_6_short=ifelse(region_ar6_6=="Intl. Aviation","AIR",region_ar6_6_short))
 

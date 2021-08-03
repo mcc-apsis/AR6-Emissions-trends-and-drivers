@@ -11,24 +11,40 @@ library(ggpubr)
 library(openxlsx)
 library(patchwork)
 library(zoo)
+library(pals)
+library(Polychrome)
 
 knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
 options(dplyr.summarise.inform = FALSE)
 theme_set(theme_bw())
-ggplot <- function(...) ggplot2::ggplot(...) + scale_fill_brewer(palette="Set2")
+ggplot <- function(...) ggplot2::ggplot(...)# + scale_fill_brewer(palette="Set2")
 
-load('../../Data/edgar6_data_raw.RData')
-edgar_raw_v6 <- edgar_raw
-load('../../Data/edgar5_data_raw.RData')
-edgar_raw_v5 <- edgar_raw
+load('../../../Data/edgar6_data_raw.RData')
+edgar_raw_v6_old <- edgar_raw %>%
+  filter(!is.na(value))
+load('../../../Data/edgar5_data_raw.RData')
+edgar_raw_v5 <- edgar_raw %>%
+  filter(!is.na(value))
+load('../../../Data/edgar6_v2_data_raw.RData')
+edgar_raw_v6_new <- edgar_raw %>%
+  filter(!is.na(value))
 rm(edgar_raw)
 
-load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
-edgar_ghg_v6 <- edgar_ghg
-load('../../Data/edgar5_data_ghg_gwp_ar5.RData')
-edgar_ghg_v5 <- edgar_ghg
+load('../../../Data/edgar6_data_ghg_gwp_ar6.RData')
+edgar_ghg_v6_old <- edgar_ghg %>%
+  filter(!is.na(Fgas))
+load('../../../Data/edgar5_data_ghg_gwp_ar6.RData')
+edgar_ghg_v5 <- edgar_ghg %>%
+  filter(!is.na(Fgas))
+load('../../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+edgar_ghg_v6_new <- edgar_ghg %>%
+  filter(!is.na(Fgas))
 rm(edgar_ghg)
 
+crf_data<-read_csv("../../../Data/supplemetary data/Guetschow-et-al-2021-PRIMAP-crf96_2021-v1.csv")
+annexIcountries<-unique(crf_data$`area (ISO3)`)
+annexIcountries<-annexIcountries[annexIcountries!="EU27BX" & annexIcountries!="EU28"]
+annexIcountries<-as.data.frame(cbind(countries=annexIcountries,annexI="Annex I"))
 
 ```
 
@@ -41,12 +57,12 @@ fgas_data_v5 <- edgar_raw_v5 %>%
   summarise(value=sum(value,na.rm=TRUE)) %>% 
   mutate(version="edgar_v5")
 
-fgas_data_v6 <- edgar_raw_v6 %>% 
+fgas_data_v6_new <- edgar_raw_v6_new %>% 
   group_by(year,gas,gwp100_ar5,gwp100_ar6) %>% 
   summarise(value=sum(value,na.rm=TRUE)) %>% 
-  mutate(version="edgar_v6")
+  mutate(version="edgar_v6_new")
 
-fgas_data <- rbind(fgas_data_v5,fgas_data_v6)
+fgas_data <- rbind(fgas_data_v5,fgas_data_v6_new)
 
 
 fgas_data <- fgas_data %>% 
@@ -57,7 +73,7 @@ fgas_data <- fgas_data %>%
 
 fgas_data %>% 
   ggplot(.,aes(x=year,y=value,colour=version)) +
-  geom_path() +
+  geom_path(na.rm = TRUE) +
   facet_wrap(.~gas,scales="free") + 
   ylab("t native units") +
   scale_x_continuous(breaks=c(1970,1990,2010)) +
@@ -66,25 +82,25 @@ fgas_data %>%
 
 
 ```
-```{r compile_data_no_gwp,fig.width=4,fig.height=4}
+```{r compile_data_no_gwp_1,fig.width=4,fig.height=4}
 
 
 fgas_data_v5_gwp <- edgar_ghg_v5 %>%  
   group_by(year) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-  mutate(version="edgar_v5_ar5_gwp")
+  mutate(version="edgar_v5_ar6_gwp")
 
-fgas_data_v6_gwp <- edgar_ghg_v6 %>% 
+fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
   group_by(year) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-  mutate(version="edgar_v6_ar5_gwp")
+  mutate(version="edgar_v6_new_ar6_gwp")
 
-fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_gwp)
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
 
 
 fgas_data_gwp %>% 
   ggplot(.,aes(x=year,y=value,colour=version)) +
-  geom_path() +
+  geom_path(na.rm = TRUE) +
   ylab("GtCO2eq") +
   scale_x_continuous(breaks=c(1970,1990,2010)) +
   theme(axis.title.x = element_blank(),
@@ -99,18 +115,354 @@ fgas_data_gwp <- spread(fgas_data_gwp %>% filter(year==2018),version,value)
 
 ```
 
-```{r save, echo=FALSE}
+```{r compile_data_gwp,fig.width=10,fig.height=4}
 
-fgas_data <- spread(fgas_data,version,value) %>% 
-  filter(year==2018)
+fgas_data <- fgas_data %>%
+  mutate(value=(value*gwp100_ar6)/1e9)%>% 
+  mutate(version=paste(version,"_ar6_gwp",sep=""))
+
+fgas_data %>% ggplot(.,aes(x=year,y=value,fill=gas)) +
+  geom_area(colour="#737373") +
+  scale_fill_manual(values=unname(alphabet()))+
+  #scale_fill_brewer(palette = unname(alphabet()))+
+  #geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+  #geom_text(data=totals,inherit.aes=FALSE,aes(x=year,y=60,label=round(value,1)),size=3.5,colour="#252525") +
+  facet_grid(.~version) +
+  ylab("GHG emissions (GtCO2eq)") +
+  theme(axis.title.x = element_blank(),
+          legend.title = element_blank())
+
+fgas_2018<-fgas_data %>%
+  filter(year==2018) %>%
+  group_by(version) %>%
+  mutate(total=sum(value)) %>%
+  mutate(share=(value/total)*100)
+
+fgas_2018 %>% ggplot(.,aes(y=version,x=share,fill=gas)) +
+  geom_bar(stat="identity",colour="#737373") +
+  scale_fill_manual(values=unname(alphabet()))+
+  #scale_fill_brewer(palette = unname(alphabet()))+
+  #geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+  #geom_text(data=totals,inherit.aes=FALSE,aes(x=year,y=60,label=round(value,1)),size=3.5,colour="#252525") +
+  xlab("%-share in 2018") +
+  theme(axis.title.y = element_blank(),
+          legend.title = element_blank())
+
+```
+
+```{r plots by region,fig.width=10,fig.height=4}
+
+fgas_data_v5_gwp <- edgar_ghg_v5 %>%  
+  group_by(year,region_ar6_6) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v5_ar6_gwp")
+
+fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+  group_by(year,region_ar6_6) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v6_new_ar6_gwp")
+
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+
+
+fgas_data_gwp %>% 
+  filter(region_ar6_6!="Intl. Aviation") %>%
+  filter(region_ar6_6!="Intl. Shipping") %>%
+  ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path(na.rm = TRUE) +
+  facet_grid(.~region_ar6_6) +
+  ylab("GtCO2eq") +
+  scale_x_continuous(breaks=c(1970,1990,2010)) +
+  theme(axis.title.x = element_blank(),
+        legend.position = "bottom",
+        legend.title=element_blank())
+
+fgas_data_gwp %>% 
+  filter(region_ar6_6!="Intl. Aviation") %>%
+  filter(region_ar6_6!="Intl. Shipping") %>%
+  ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path(na.rm = TRUE) +
+  facet_wrap(.~region_ar6_6,scales = "free",nrow=1) +
+  ylab("GtCO2eq") +
+  scale_x_continuous(breaks=c(1970,1990,2010)) +
+  theme(axis.title.x = element_blank(),
+        legend.position = "bottom",
+        legend.title=element_blank())
+
+```
+
+```{r annxI vs non-annexI,fig.width=10,fig.height=12}
+
+
+fgas_data_v5_gwp <- edgar_ghg_v5 %>%  
+  group_by(year,ISO) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v5_ar6_gwp")
+
+fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+  group_by(year,ISO) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v6_new_ar6_gwp")
+
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+
+fgas_data_gwp <- left_join(fgas_data_gwp,annexIcountries,by=c("ISO"="countries"))
+
+fgas_data_gwp <- fgas_data_gwp %>%
+  mutate(ISO=ifelse(is.na(annexI),"non-Annex I",ISO)) %>%
+  group_by(ISO,year,version) %>%
+  summarise(value=sum(value,na.rm = TRUE))
+
+fgas_data_gwp %>% 
+  ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path(na.rm = TRUE) +
+  facet_wrap(.~ISO,scales = "free") +
+  ylab("GtCO2eq") +
+  scale_x_continuous(breaks=c(1970,1990,2010)) +
+  theme(axis.title.x = element_blank(),
+        legend.position = "bottom",
+        legend.title=element_blank())
+
+```
+
+
+```{r compile_data_no_gwp_3,fig.width=10,fig.height=8}
+
+
+fgas_data_v6_old <- edgar_raw_v6_old %>%  
+  group_by(year,gas,gwp100_ar5,gwp100_ar6) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  mutate(version="edgar_v6_old")
+
+fgas_data_v6_new <- edgar_raw_v6_new %>% 
+  group_by(year,gas,gwp100_ar5,gwp100_ar6) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  mutate(version="edgar_v6_new")
+
+fgas_data <- rbind(fgas_data_v6_old,fgas_data_v6_new)
+
 
 fgas_data <- fgas_data %>% 
-  mutate(edgar_v5_gwp_ar5 = edgar_v5*gwp100_ar5) %>% 
-  mutate(edgar_v6_gwp_ar5 = edgar_v6*gwp100_ar5) %>% 
-  mutate(edgar_v5_gwp_ar6 = edgar_v5*gwp100_ar6) %>% 
-  mutate(edgar_v6_gwp_ar6 = edgar_v6*gwp100_ar6)
+  filter(gas != "CO2") %>%
+  filter(gas != "CH4") %>% 
+  filter(gas != "N2O")
 
-write.xlsx(fgas_data,"edgar_fgas.xlsx")
+
+fgas_data %>% 
+  ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path(na.rm = TRUE) +
+  facet_wrap(.~gas,scales="free") + 
+  ylab("t native units") +
+  scale_x_continuous(breaks=c(1970,1990,2010)) +
+  theme(axis.title.x = element_blank(),
+        legend.position = "bottom")
+
+
+```
+```{r compile_data_no_gwp_4,fig.width=4,fig.height=4}
+
+
+fgas_data_v6_old_gwp <- edgar_ghg_v6_old %>%  
+  group_by(year) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v6_old_ar6_gwp")
+
+fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+  group_by(year) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v6_new_ar6_gwp")
+
+fgas_data_gwp <- rbind(fgas_data_v6_old_gwp,fgas_data_v6_new_gwp)
+
+
+fgas_data_gwp %>% 
+  ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path(na.rm = TRUE) +
+  ylab("GtCO2eq") +
+  scale_x_continuous(breaks=c(1970,1990,2010)) +
+  theme(axis.title.x = element_blank(),
+        legend.position = "bottom",
+        legend.title=element_blank())
+
+
+#fgas_data_gwp <- spread(fgas_data_gwp %>% filter(year==2018),version,value)
+
+
+
+
+```
+
+```{r compile_data_gwp_1,fig.width=10,fig.height=4}
+
+fgas_data <- fgas_data %>%
+  mutate(value=(value*gwp100_ar6)/1e9) %>% 
+  mutate(version=paste(version,"_ar6_gwp",sep=""))
+
+fgas_data %>% ggplot(.,aes(x=year,y=value,fill=gas)) +
+  geom_area(colour="#737373") +
+  scale_fill_manual(values=unname(alphabet()))+
+  #scale_fill_brewer(palette = unname(alphabet()))+
+  #geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+  #geom_text(data=totals,inherit.aes=FALSE,aes(x=year,y=60,label=round(value,1)),size=3.5,colour="#252525") +
+  facet_grid(.~version) +
+  ylab("GHG emissions (GtCO2eq)") +
+  theme(axis.title.x = element_blank(),
+          legend.title = element_blank())
+
+fgas_2018<-fgas_data %>%
+  filter(year==2018) %>%
+  group_by(version) %>%
+  mutate(total=sum(value)) %>%
+  mutate(share=(value/total)*100)
+
+fgas_2018 %>% ggplot(.,aes(y=version,x=share,fill=gas)) +
+  geom_bar(stat="identity",colour="#737373") +
+  scale_fill_manual(values=unname(alphabet()))+
+  #scale_fill_brewer(palette = unname(alphabet()))+
+  #geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
+  #geom_text(data=totals,inherit.aes=FALSE,aes(x=year,y=60,label=round(value,1)),size=3.5,colour="#252525") +
+  xlab("%-share in 2018") +
+  theme(axis.title.y = element_blank(),
+          legend.title = element_blank())
+
+```
+
+```{r plots by region 1,fig.width=10,fig.height=4}
+
+fgas_data_v5_gwp <- edgar_ghg_v5 %>%  
+  group_by(year,region_ar6_6) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v5_ar6_gwp")
+
+fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+  group_by(year,region_ar6_6) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v6_new_ar6_gwp")
+
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+
+
+fgas_data_gwp %>% 
+  filter(region_ar6_6!="Intl. Aviation") %>%
+  filter(region_ar6_6!="Intl. Shipping") %>%
+  ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path(na.rm = TRUE) +
+  facet_grid(.~region_ar6_6) +
+  ylab("GtCO2eq") +
+  scale_x_continuous(breaks=c(1970,1990,2010)) +
+  theme(axis.title.x = element_blank(),
+        legend.position = "bottom",
+        legend.title=element_blank())
+
+fgas_data_gwp %>% 
+  filter(region_ar6_6!="Intl. Aviation") %>%
+  filter(region_ar6_6!="Intl. Shipping") %>%
+  ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path(na.rm = TRUE) +
+  facet_wrap(.~region_ar6_6,scales = "free",nrow=1) +
+  ylab("GtCO2eq") +
+  scale_x_continuous(breaks=c(1970,1990,2010)) +
+  theme(axis.title.x = element_blank(),
+        legend.position = "bottom",
+        legend.title=element_blank())
+
+```
+
+```{r annexI vs non-annexI 1,fig.width=10,fig.height=12}
+
+
+fgas_data_v5_gwp <- edgar_ghg_v5 %>%  
+  group_by(year,ISO) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v5_ar6_gwp")
+
+fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+  group_by(year,ISO) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v6_new_ar6_gwp")
+
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+
+fgas_data_gwp <- left_join(fgas_data_gwp,annexIcountries,by=c("ISO"="countries"))
+
+fgas_data_gwp <- fgas_data_gwp %>%
+  mutate(ISO=ifelse(is.na(annexI),"non-Annex I",ISO)) %>%
+  #mutate(ISO=ifelse(is.na(annexI),"non-Annex I","Annex I")) %>%
+  group_by(ISO,year,version) %>%
+  summarise(value=sum(value,na.rm = TRUE))
+
+fgas_data_gwp %>% 
+  ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path(na.rm = TRUE) +
+  facet_wrap(.~ISO,scales = "free") +
+  ylab("GtCO2eq") +
+  scale_x_continuous(breaks=c(1970,1990,2010)) +
+  theme(axis.title.x = element_blank(),
+        legend.position = "bottom",
+        legend.title=element_blank())
+
+```
+
+```{r annexI compare with primap,fig.width=10,fig.height=12}
+
+crf_fgas<-crf_data %>% filter(entity=="FGASES (AR5GWP100)")%>%
+   filter(`category (IPCC1996)`=="M.0.EL")
+
+crf_fgas<-gather(crf_fgas,key = "year", value = "value", "1986":"2019") %>%
+  filter(`area (ISO3)`!="EU27BX")%>%
+  filter(`area (ISO3)`!="EU28") %>%
+  filter(`area (ISO3)`!="LIE") %>%
+  filter(`area (ISO3)`!="MCO") %>%
+  mutate(year=as.numeric(year))
+  
+crf_fgas<-crf_fgas%>%
+  group_by(year)%>%
+  summarise(value=sum(value)/1e6)%>% 
+  mutate(version="primap_crf_ar5_gwp_annexI")
+
+load('../../../Data/edgar6_data_ghg_gwp_ar5_0721.RData')
+edgar_ghg_v6_new_ar5 <- edgar_ghg %>%
+  filter(!is.na(Fgas))
+
+# fgas_data_v5_ar5_gwp <- edgar_ghg_v5 %>%  
+#   group_by(year) %>% 
+#   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+#   mutate(version="edgar_v5_ar5_gwp")
+edgar_ghg_v6_new_ar5<-left_join(edgar_ghg_v6_new_ar5,annexIcountries,by=c("ISO"="countries")) %>%
+  filter(!is.na(annexI))
+
+fgas_data_v6_new_gwp_ar5 <- edgar_ghg_v6_new_ar5 %>%
+  group_by(year) %>%
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>%
+  mutate(version="edgar_v6_new_ar5_gwp_annexI")
+
+fgas_data_gwp <- rbind(fgas_data_v6_new_gwp_ar5,crf_fgas)
+
+
+fgas_data_gwp %>% 
+  ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path(na.rm = TRUE) +
+  ylab("GtCO2eq") +
+  scale_x_continuous(breaks=c(1970,1990,2010)) +
+  theme(axis.title.x = element_blank(),
+        legend.position = "bottom",
+        legend.title=element_blank())
+#unique(crf_data$entity)
+
+```
+
+```{r save, echo=FALSE}
+
+# fgas_data <- spread(fgas_data,version,value) %>% 
+#   filter(year==2018)
+# 
+# fgas_data <- fgas_data %>% 
+#   mutate(edgar_v5_gwp_ar5 = edgar_v5*gwp100_ar5) %>% 
+#   mutate(edgar_v6_new_gwp_ar5 = edgar_v6_new*gwp100_ar5) %>% 
+#   mutate(edgar_v5_gwp_ar6 = edgar_v5*gwp100_ar6) %>% 
+#   mutate(edgar_v6_new_gwp_ar6 = edgar_v6_new*gwp100_ar6)
+# 
+# write.xlsx(fgas_data,"edgar_fgas.xlsx")
 
 
 ```

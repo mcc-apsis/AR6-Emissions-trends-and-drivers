@@ -369,9 +369,20 @@ wld <- wld %>%
   mutate(region_ar6_10="World") %>% 
   select(year,region_ar6_10,pop_UN,GHG,ag_production_kcal,land_area_hectares)
 
+wld_land <- land %>% 
+  group_by(year) %>% 
+  summarise(CO2_land=sum(CO2))
+wld <- left_join(wld,wld_land, by = "year")
+wld <- wld %>% 
+  mutate(GHG_total =GHG+CO2_land)
+
 hong <- hong %>% 
   group_by(year,region_ar6_10) %>% 
   summarise_at(vars(pop_UN,GHG,ag_production_kcal,land_area_hectares),sum,na.rm=TRUE)
+
+hong <- left_join(hong,land %>% select(year,region_ar6_10,CO2_land=CO2), by = c("year", "region_ar6_10"))
+hong <- hong %>% 
+  mutate(GHG_total = GHG+CO2_land)
 
 hong <- hong %>% 
   bind_rows(wld)
@@ -379,10 +390,11 @@ hong <- hong %>%
 hong <- hong %>% 
   mutate(production_percap=ag_production_kcal/pop_UN) %>% 
   mutate(land_production=land_area_hectares/ag_production_kcal) %>% 
-  mutate(ghg_land=GHG/land_area_hectares)
+  mutate(ghg_land=GHG_total/land_area_hectares)
+  #mutate(ghg_land=GHG/land_area_hectares)
 
 hong <- hong %>% 
-  select(region_ar6_10,year,GHG,POP=pop_UN,production_percap,land_production,ghg_land)
+  select(region_ar6_10,year,GHG=GHG_total,POP=pop_UN,production_percap,land_production,ghg_land)
 
 ######################## rates and output data
 
@@ -442,7 +454,7 @@ openxlsx::writeData(wb, sheet = "AFOLU_normalised",spread(hong_kaya %>% select(-
 
 ``` {r write,include=TRUE,warning=FALSE}
 
-openxlsx::saveWorkbook(wb,paste0("../../Results/Data/sector_kaya_analysis_",Sys.Date(),".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_figure_data_kaya.xlsx"),overwrite=T)
 
 openxlsx::addWorksheet(wb2,"afolu_data")
 openxlsx::writeData(wb2, sheet = "afolu_data",all_data, colNames = T, rowNames = F)

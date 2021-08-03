@@ -25,8 +25,8 @@ source("growth_rate.R")
 
 end_year = 2018
 
-#load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
-load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+#load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load('../../Data/indirect_CO2.RData')
 load('../../Data/land.RData')
@@ -495,7 +495,7 @@ calculate_growth_rates <- function(trend_data) {
     
   }
   
-  label = data.frame(year=c(1990,2000,2010),rate_period=c("1990-2000","2000-2010","2010-2018"))
+  label = data.frame(year=c(1990,2000,2010),rate_period=c("1990-2000","2000-2010",paste("2010-",end_year,sep="")))
   
   rates <- left_join(rates %>% mutate(year=as.numeric(year)),label,by = "year")
   rates <- rates %>% 
@@ -754,8 +754,7 @@ trend_data <- gather_trend_data(edgar_ghg,ch)
 
 trend_data <- trend_data %>% 
   mutate(subsector_title=ifelse(subsector_title=="Residential","Residential (direct CO2)",subsector_title)) %>% 
-  mutate(subsector_title=ifelse(subsector_title=="Non-residential","Non-residential (direct CO2)",subsector_title)) %>% 
-  mutate(subsector_title=ifelse(subsector_title=="Non-CO2 (all buildings)","All buildings (non-CO2)",subsector_title))
+  mutate(subsector_title=ifelse(subsector_title=="Non-residential","Non-residential (direct CO2)",subsector_title)) %>%   mutate(subsector_title=ifelse(subsector_title=="Non-CO2 (all buildings)","All buildings (non-CO2)",subsector_title))
 
 ## align factors and labels
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
@@ -971,7 +970,7 @@ openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),reg
 
 top_sectors <- edgar_ghg  %>%
   filter(year>1989) %>%
-  filter(year<2019) %>%
+  filter(year<=end_year) %>%
   group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
   summarise(total_GHG=sum(GHG,na.rm=TRUE)/1e9) %>%
   ungroup()
@@ -979,7 +978,7 @@ top_sectors <- edgar_ghg  %>%
 ########### add land CO2
 land_totals <- land %>%
   filter(year>1989) %>%
-  filter(year<2019) %>%
+  filter(year<=end_year) %>%
   mutate(chapter=7) %>%
   mutate(chapter_title="AFOLU") %>%
   group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
@@ -988,7 +987,7 @@ land_totals <- land %>%
 top_sectors <- rbind(top_sectors,land_totals)
 
 GHG_2018 <- top_sectors %>% 
-  filter(year==2018) %>% 
+  filter(year==end_year) %>% 
   summarise(total_GHG=sum(total_GHG))
 
 ########### add indirect emissions
@@ -1010,10 +1009,10 @@ top_sectors <- top_sectors %>%
 time_start=2010
 
 top_sectors <- top_sectors %>%
-  filter(year %in% c(2010,2018)) %>% 
+  filter(year %in% c(2010,end_year)) %>% 
   group_by(subsector_title) %>%
   mutate(rate=(last(total_GHG_plus_indirect)/first(total_GHG_plus_indirect))^(1/(last(year)-time_start))-1) %>% 
-  filter(year==2018)
+  filter(year==end_year)
 
 top_sectors <- top_sectors %>% 
   mutate(fraction_indirect=total_GHG_plus_indirect/GHG_2018$total_GHG) %>% 
@@ -1023,7 +1022,7 @@ top_sectors <- top_sectors %>%
 ######### join gas data
 
 subsector_gases <- edgar_ghg %>% 
-  filter(year==2018) %>%
+  filter(year==end_year) %>%
   group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
   summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>%
   mutate_at(vars(CO2,CH4,N2O,Fgas,GHG),list(~./1e9)) %>%
@@ -1113,9 +1112,10 @@ sector_subsectors
 
 ```{r write,include=FALSE,echo=FALSE}
 
-openxlsx::saveWorkbook(wb,"../../Results/Data/ipcc_ar6_plot_sectors.xlsx",overwrite=T)
+#openxlsx::saveWorkbook(wb,"../../Results/Data/ipcc_ar6_plot_sectors.xlsx",overwrite=T)
+openxlsx::saveWorkbook(wb,"C:/Users/doen/Desktop/ipcc_ar6_figure_data_sectors.xlsx",overwrite=T)
 
-save(sector_totals,sector_subsectors,sector_afolu,sector_buildings,sector_buildings_2,sector_energy,sector_transport,sector_industry,file="../../Results/Plots/R plots/sectors.RData")
+#save(sector_totals,sector_subsectors,sector_afolu,sector_buildings,sector_buildings_2,sector_energy,sector_transport,sector_industry,file="../../Results/Plots/R plots/sectors.RData")
 
 
 

@@ -19,7 +19,7 @@ library(openxlsx)
 
 source("small_figures.R")
 
-load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 
@@ -57,13 +57,13 @@ region_trend <- region_trend %>%
 
 ## Add land use CO2
 
-region_trend <- left_join(region_trend,land %>% select(region_ar6_10,year,mean),by=c("year","region_ar6_10"))
+region_trend <- left_join(region_trend,land %>% select(region_ar6_6,region_ar6_10,year,mean),by=c("year","region_ar6_6","region_ar6_10"))
 region_trend <- region_trend %>% 
   mutate(mean=mean/1e9) %>% 
   mutate(value=ifelse(region_ar6_6_short!="AIRSEA",value+mean,value))
 
 
-## sum land use CO2 into regions and merge aviation and shipping
+## sum everything into 6 regions and merge aviation and shipping
 
 region_trend <- region_trend %>% 
   group_by(year,region_ar6_6,region_ar6_6_short) %>%
@@ -397,7 +397,6 @@ writeData(wb, sheet = "panel_a", spread(region_trend %>% select(-region_ar6_6_sh
 writeData(wb, sheet = "panel_b_rates", region_rates, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm2_regions.xlsx"),overwrite=T)
-save(regions,file="../../Results/Plots/R plots/regions.RData")
 
 
 ```
