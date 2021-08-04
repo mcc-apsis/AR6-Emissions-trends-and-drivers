@@ -5,7 +5,7 @@ output:
   word_document:
     toc: yes
 knit: (function(inputFile, encoding) {
-  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../../Results/knitr") })
 ---
 
 ```{r setup, include=FALSE}

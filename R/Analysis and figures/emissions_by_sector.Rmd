@@ -1112,8 +1112,7 @@ sector_subsectors
 
 ```{r write,include=FALSE,echo=FALSE}
 
-#openxlsx::saveWorkbook(wb,"../../Results/Data/ipcc_ar6_plot_sectors.xlsx",overwrite=T)
-openxlsx::saveWorkbook(wb,"C:/Users/doen/Desktop/ipcc_ar6_figure_data_sectors.xlsx",overwrite=T)
+openxlsx::saveWorkbook(wb,"../../Results/Plot Data/ipcc_ar6_figure_sectors.xlsx",overwrite=T)
 
 #save(sector_totals,sector_subsectors,sector_afolu,sector_buildings,sector_buildings_2,sector_energy,sector_transport,sector_industry,file="../../Results/Plots/R plots/sectors.RData")
 

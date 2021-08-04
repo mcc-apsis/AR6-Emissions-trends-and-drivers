@@ -119,7 +119,6 @@ Most of these figures and analysis have been published in the following article,
 Consolidated data files are available for the figures here:
 
 * <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_data_sectors.xlsx">Emissions by sector</a>
-* <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_data_kaya.xlsx">Kaya trends by sector</a>
 
 These figures are up to date for EDGAR v6, but we do not yet have IEA indirect emissions data for 2019, hence the 2018 cutoff date.
 
