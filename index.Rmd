@@ -59,7 +59,7 @@ See the <a href="file:///C:/Users/lamw/Documents/SpiderOak%20Hive/Work/Projects/
 
 ----------------------------------------------------------------------
 
-### Trends in total greenhouse gas emissions by gas (SPM.1)
+### Trends in total greenhouse gas emissions by gas
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
@@ -82,7 +82,7 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 
 -----------------------------------------------------------------------
 
-### Trends in total greenhouse gas emissions, by region (SPM.2)
+### Trends in total greenhouse gas emissions, by region
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
