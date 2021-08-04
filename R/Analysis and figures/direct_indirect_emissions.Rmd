@@ -17,7 +17,7 @@ library(ggplot2); theme_set(theme_bw())
 library(RColorBrewer)
 
 #load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
-load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
 load('../../Data/indirect_CO2.RData')
 
 data <- edgar_ghg %>% 

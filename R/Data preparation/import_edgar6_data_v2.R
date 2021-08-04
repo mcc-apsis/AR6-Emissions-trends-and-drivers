@@ -266,7 +266,6 @@ edgar_GHG <- edgar_GHG %>%
   mutate(year=as.numeric(year)) %>% 
   select(ISO,country=name,region_ar6_6,region_ar6_6_short,region_ar6_10,region_ar6_10_short,region_ar6_22,region_ar6_dev,year,chapter,chapter_title,sector_code,fossil_bio,description,subsector,subsector_title,gas,value)
 
-
 ############## factorise regions
 
 edgar_GHG$region_ar6_6_short <- as.factor(edgar_GHG$region_ar6_6_short)

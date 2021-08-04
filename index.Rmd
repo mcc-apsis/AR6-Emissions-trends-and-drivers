@@ -63,7 +63,7 @@ See the <a href="file:///C:/Users/lamw/Documents/SpiderOak%20Hive/Work/Projects/
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Figures/SPM_gases.png")
+include_graphics("Results/Plots/gas_trends_spm-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -76,7 +76,7 @@ cat("<br>")
 cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm1_gases.xlsx'>data</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_gas.Rmd'>code</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Figures/SPM_gases.png'>download png</a>")
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Plots/gas_trends_spm-1.png'>download png</a>")
 ```
 
 
@@ -86,7 +86,7 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Figures/SPM_regions.png")
+include_graphics("Results/Plots/region_trends_spm-2.png")
 
 
 ```
@@ -99,28 +99,7 @@ cat("<br>")
 cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>data</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_region.Rmd'>code</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Figures/SPM_regions.png'>download png</a>")
-```
-
-
-### Emissions split by sectors with direct and indirect components (SPM.3)
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Figures/SPM_indirect_emissions.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="direct_indirect"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="direct_indirect"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>data</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/direct_indirect_emissions.Rmd'>code</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Figures/SPM_indirect_emissions.png'>download png</a>")
-
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/region_trends_spm-2.png'>download png</a>")
 ```
 
 
@@ -131,7 +110,7 @@ Sector emissions trends
 
 Global greenhouse gas emissions can be attributed to five sectors: energy systems; industry; agriculture, forestry and other land use (AFOLU); buildings; and transport. Here we show the trends in each of these sectors. 
 
-In the industry and buildings sectors (and to a lesser extent transport), electricity and heat supply are an important component of emissions, but would normally be counted in the energy systems sector where the emissions are directly released. We therefore show the indirect CO2 emissions from electricity and heat as an additional item in each of these final sectors, highlighting the important role of energy demand.
+For the industry, buildings and transport sectors, we show the indirect CO2 emissions associated with electricity and heat supply. 
 
 Most of these figures and analysis have been published in the following article, which also includes a review of the literature on trends, sector by sector:
 
@@ -142,6 +121,7 @@ Consolidated data files are available for the figures here:
 * <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_data_sectors.xlsx">Emissions by sector</a>
 * <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_data_kaya.xlsx">Kaya trends by sector</a>
 
+These figures are up to date for EDGAR v6, but we do not yet have IEA indirect emissions data for 2019, hence the 2018 cutoff date.
 
 -----------------------------------------------------------------------
 ### All sectors - regional trends
@@ -162,25 +142,6 @@ cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/totals-1.png'>download png</a>")
 ```
 
------------------------------------------------------------------------
-### Largest and fastest growing subsectors
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Figures/subsectors_indirect_emissions.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_subsectors"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_subsectors"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/subsectors_indirect_emissions.png.png'>download png</a>")
-```
-
-
 
 -----------------------------------------------------------------------
 ### Energy sector - regional trends
@@ -199,44 +160,6 @@ cat(captions$caption[captions$plot=="sectors_energy"])
 cat("<br>")
 cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/energy-1.png'>download png</a>")
-```
-
------------------------------------------------------------------------
-### Energy sector - per capita levels and kaya trends
-
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/Sectors/energy_summary-1.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_energy_summary"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_energy_summary"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/energy_summary-1.png'>download png</a>")
-```
-
------------------------------------------------------------------------
-### Energy sector - kaya trends
-
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/Kaya/energy_systems_10-1.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_energy_kaya"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_energy_kaya"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Kaya/energy_systems_10-1.png'>download png</a>")
 ```
 
 
@@ -261,46 +184,6 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
-### Industry sector - per capita levels and kaya trends
-
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/Sectors/industry_summary-1.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_industry_summary"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_industry_summary"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/industry_summary-1.png'>download png</a>")
-```
-
-
------------------------------------------------------------------------
-### Industry sector - kaya trends
-
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/Kaya/industry_10-1.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_industry_kaya"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_industry_kaya"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Kaya/industry_10-1.png'>download png</a>")
-```
-
-
------------------------------------------------------------------------
 ### Building sector - regional trends
 
 
@@ -319,43 +202,6 @@ cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/buildings-1.png'>download png</a>")
 ```
 
------------------------------------------------------------------------
-### Buildings sector - per capita levels and kaya trends
-
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/Sectors/buildings_summary-1.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_buildings_summary"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_buildings_summary"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/buildings_summary-1.png'>download png</a>")
-```
-
------------------------------------------------------------------------
-### Buildings sector - kaya trends
-
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/Kaya/buildings_10-1.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_buildings_kaya"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_buildings_kaya"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Kaya/buildings_10-1.png'>download png</a>")
-```
 
 -----------------------------------------------------------------------
 ### Transport sector - regional trends
@@ -375,46 +221,6 @@ cat("<br>")
 cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/transport-1.png'>download png</a>")
 ```
-
------------------------------------------------------------------------
-### Transport sector - per capita levels and kaya trends
-
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/Sectors/transport_summary-1.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_transport_summary"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_transport_summary"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/transport_summary-1.png'>download png</a>")
-```
-
-
------------------------------------------------------------------------
-### Transport sector - kaya trends
-
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/Kaya/transport_10-1.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_transport_kaya"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_transport_kaya"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Kaya/transport_10-1.png'>download png</a>")
-```
-
 
 
 -----------------------------------------------------------------------
@@ -436,45 +242,6 @@ cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/AFOLU-1.png'>download png</a>")
 ```
 
------------------------------------------------------------------------
-### AFOLU sector - per capita levels and kaya trends
-
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/Sectors/afolu_summary-1.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_afolu_summary"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_afolu_summary"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/afolu_summary-1.png'>download png</a>")
-```
-
-
------------------------------------------------------------------------
-### AFOLU sector - kaya trends
-
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/Kaya/AFOLU_hong-1.png")
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_afolu_kaya"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="sectors_afolu_kaya"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Kaya/AFOLU_hong-1.png'>download png</a>")
-```
-
 
 Decarbonising countries
 =====================================
@@ -484,10 +251,9 @@ Decarbonising countries
 
 Some countries have sustained greenhouse gas (GHG) emissions reductions for at least 10 years. This is true for multiple metrics, including territorial GHG emissions, territorial CO2 emissions, consumption-based CO2 emissions, and territorial GHG emissions including LULUCF CO2.
 
-The average annual rates of change differ by country (and metric). As does the length of transition - some countries already started reducing in the 1970s (such as the UK, Sweden), while others only in the past 10 years.
+As shown in the individual plots by country, most reductions were made in the electricity and heat sub-sector. Some countries have been reducing for several decades, others in the past 10 years only.
 
-As shown in the individual plots by country, most reductions were made in the electricity and heat sub-sector.
-
+Please note: this analysis is based on EDGAR v5 and is not currently up to date.
 
 -----------------------------------------------------------------------
 ### 24 countries have reduced CO2 and GHG emissions for longer than a decade

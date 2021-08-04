@@ -219,7 +219,7 @@ for (i in 1:length(unique(sector_total_v6$chapter_title))) {
           legend.title = element_blank(),
           legend.spacing = unit(0, 'cm'),
           legend.margin = margin(l=0,unit="pt"))
-    
+                       
     
     
     p2 <- countries %>%

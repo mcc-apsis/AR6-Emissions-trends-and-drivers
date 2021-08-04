@@ -24,8 +24,8 @@ library(zoo)
 knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
 options(dplyr.summarise.inform = FALSE)
 
-load('../../Data/edgar_essd_data_raw.RData')
-load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+load('../../Data/edgar6_v2_data_raw.RData')
+load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
 load('../../Data/land.RData')
 
 
@@ -81,17 +81,17 @@ gases <- rbind(gases,gases_land)
 gases$gas <- fct_relevel(gases$gas,c("CO2","CO2 (Land-use)","CH4","N2O"))
 gases <- spread(gases,year,value)
 
-gases_gwps_ar5 <- gather(gases,year,value,`1970`:`2019`) 
-gases_gwps_ar5 <- gases_gwps_ar5 %>% 
-  mutate(value=value*gwp100_ar5)
-gases_gwps_ar5 <- spread(gases_gwps_ar5,year,value) 
+gases_gwps_ar6 <- gather(gases,year,value,`1970`:`2019`) 
+gases_gwps_ar6 <- gases_gwps_ar6 %>% 
+  mutate(value=value*gwp100_ar6)
+gases_gwps_ar6 <- spread(gases_gwps_ar6,year,value) 
 
 
 addWorksheet(wb,"gases")
-addWorksheet(wb,"gases_gwp_ar5")
+addWorksheet(wb,"gases_gwp_ar6")
 
 writeData(wb, sheet = "gases", gases, colNames = T)
-writeData(wb, sheet = "gases_gwp_ar5", gases_gwps_ar5 %>% select(-gwp100_ar6), colNames = T)
+writeData(wb, sheet = "gases_gwp_ar6", gases_gwps_ar6 %>% select(-gwp100_ar5), colNames = T)
 
 
 ```
@@ -99,7 +99,7 @@ writeData(wb, sheet = "gases_gwp_ar5", gases_gwps_ar5 %>% select(-gwp100_ar6), c
 ```{r sector_sheets}
 
 sectors <- edgar_raw %>% 
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   group_by(sector_code,fossil_bio,description,chapter_title,subsector_title,gas) %>% 
   summarise(value=sum(value,na.rm=TRUE)/1e9) %>% 
   ungroup()
@@ -107,45 +107,45 @@ sectors <- edgar_raw %>%
 sectors <- spread(sectors,gas,value)
 
 
-sector_gwps_ar5 <- edgar_ghg %>% 
-  filter(year==2018) %>% 
+sector_gwps_ar6 <- edgar_ghg %>% 
+  filter(year==2019) %>% 
   group_by(sector_code,fossil_bio,description,chapter_title,subsector_title) %>% 
   summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
   ungroup()
 
-sector_gwps_ar5 <- gather(sector_gwps_ar5,gas,value,CO2:Fgas) %>% 
+sector_gwps_ar6 <- gather(sector_gwps_ar6,gas,value,CO2:Fgas) %>% 
   mutate(value=value/1e9)
-sector_gwps_ar5$gas <- as.factor(sector_gwps_ar5$gas)
-sector_gwps_ar5$gas <- fct_relevel(sector_gwps_ar5$gas,"CO2","CH4","N2O")
-sector_gwps_ar5 <- spread(sector_gwps_ar5,gas,value)
+sector_gwps_ar6$gas <- as.factor(sector_gwps_ar6$gas)
+sector_gwps_ar6$gas <- fct_relevel(sector_gwps_ar6$gas,"CO2","CH4","N2O")
+sector_gwps_ar6 <- spread(sector_gwps_ar6,gas,value)
 
-addWorksheet(wb,"sectors_2018")
-addWorksheet(wb,"sectors_2018_gwp_ar5")
+addWorksheet(wb,"sectors_2019")
+addWorksheet(wb,"sectors_2019_gwp_ar6")
 
 
-writeData(wb, sheet = "sectors_2018", sectors, colNames = T)
-writeData(wb, sheet = "sectors_2018_gwp_ar5", sector_gwps_ar5, colNames = T)
+writeData(wb, sheet = "sectors_2019", sectors, colNames = T)
+writeData(wb, sheet = "sectors_2019_gwp_ar6", sector_gwps_ar6, colNames = T)
 
 
 ```
 
 ```{r region_sheets}
 
-regions_ar5 <- edgar_ghg %>% 
-  filter(year==2018) %>% 
+regions_ar6 <- edgar_ghg %>% 
+  filter(year==2019) %>% 
   group_by(region_ar6_6,chapter_title) %>% 
   summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
   ungroup()
 
-regions_ar5 <- gather(regions_ar5,gas,value,CO2:Fgas) %>% 
+regions_ar6 <- gather(regions_ar6,gas,value,CO2:Fgas) %>% 
   mutate(value=value/1e9)
-regions_ar5$gas <- as.factor(regions_ar5$gas)
-regions_ar5$gas <- fct_relevel(regions_ar5$gas,"CO2","CH4","N2O")
-regions_ar5 <- spread(regions_ar5,gas,value)
+regions_ar6$gas <- as.factor(regions_ar6$gas)
+regions_ar6$gas <- fct_relevel(regions_ar6$gas,"CO2","CH4","N2O")
+regions_ar6 <- spread(regions_ar6,gas,value)
 
-addWorksheet(wb,"regions_2018_gwp_ar5")
+addWorksheet(wb,"regions_2019_gwp_ar6")
 
-writeData(wb, sheet = "regions_2018_gwp_ar5", regions_ar5, colNames = T)
+writeData(wb, sheet = "regions_2019_gwp_ar6", regions_ar6, colNames = T)
 
 ```
 
