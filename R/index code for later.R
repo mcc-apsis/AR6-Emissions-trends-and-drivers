@@ -241,10 +241,3 @@ cat("<br>")
 cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Kaya/AFOLU_hong-1.png'>download png</a>")
 ```
-
-
-
-### Differences to EDGARv5
-
-Several changes occurred between EDGAR v5 and EDGAR v6. Methane emissions were revised down prior to 1990. Fgas emissions were substantially revised downwards. Savannah fire emissions are no longer available. The following file provides some detailed analysis on these changes in terms of totals, regions, sectors and countries: <a href=
-  

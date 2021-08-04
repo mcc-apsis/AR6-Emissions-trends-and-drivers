@@ -341,3 +341,7 @@ The data is published in an open access preprint, with the full detail on our so
 
 [Note: a separate file with AR6 GWP100 values is available for IPCC authors on DM]
 
+### Differences to EDGARv5
+
+Several changes occurred between EDGAR v5 and EDGAR v6. Methane emissions were revised down prior to 1990. Fgas emissions were substantially revised downwards. Savannah fire emissions are no longer available. The following file provides some detailed analysis on these changes in terms of totals, regions, sectors and countries: <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/knitr/edgar6_check.docx">Link</a>
+  
