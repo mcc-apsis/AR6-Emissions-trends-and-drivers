@@ -8,6 +8,7 @@ knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results/knitr/") })
 ---
 
+# Setup
 
 ```{r setup, include=FALSE}
 
@@ -26,7 +27,6 @@ source("growth_rate.R")
 end_year = 2018
 
 load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
-#load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load('../../Data/indirect_CO2.RData')
 load('../../Data/land.RData')
@@ -84,9 +84,13 @@ sum(blarg$CO2)
 # 
 # openxlsx::write.xlsx(blarg,"Europe_buildings.xlsx")
 
+indirect_CO2_world <- gather(indirect_CO2_world,year,CO2_indirect,`1990`:`2018`) %>% 
+  mutate(year=as.numeric(year))
 
 ```
 
+# Data
+## Gather trend data
 
 ```{r trend_plots,echo=FALSE,warning=FALSE}
 
@@ -144,7 +148,7 @@ gather_trend_data <- function(edgar_ghg,ch) {
   if (ch!=1) {
     if (ch!=6) {
       
-      indirect_totals <- indirect_CO2_regions %>%
+      indirect_totals <- indirect_CO2_world %>%
         filter(chapter==ch) %>%
         group_by(year) %>%
         summarise(value=sum(CO2_indirect,na.rm=TRUE)) %>%
@@ -157,7 +161,7 @@ gather_trend_data <- function(edgar_ghg,ch) {
       # SPLIT RESIDENTIAL AND COMMERCIAL IF BUILDINGS
       if (ch==9) {
         
-        indirect_totals <- indirect_CO2_regions %>%
+        indirect_totals <- indirect_CO2_world %>%
           filter(chapter==ch) %>%
           group_by(year,subsector,subsector_title) %>%
           summarise(value=sum(CO2_indirect,na.rm=TRUE)) %>% 
@@ -300,6 +304,8 @@ trend_figure <- function(trend_data,chapter) {
 
 
 ```
+
+## Gather region data
 
 ```{r regional_plots,echo=FALSE,warning=FALSE}
 ch=11

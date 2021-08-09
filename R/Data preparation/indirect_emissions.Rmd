@@ -12,18 +12,14 @@ library(tidyverse)
 library(openxlsx)
 
 
-```
-
-
-```{r fix_classification_sheet}
 
 
 
-
-
+#load("../../Data/edgar6_data_ghg_gwp_ar6.RData")
+#load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
+load("../../Data/edgar6_v2_data_ghg_gwp_ar6.RData")
 
 ```
-
 
 
 
@@ -189,8 +185,6 @@ iea <- iea %>%
 
 ######### join EDGAR world ELECHEAT
 
-#load("../../Data/edgar6_data_ghg_gwp_ar6.RData")
-load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
 edgar_world_elec_heat <- edgar_ghg %>% 
   filter(year>1989) %>% 
   filter(chapter==6) %>% 
@@ -211,8 +205,6 @@ iea <- left_join(iea,edgar_world_elec_heat %>% select(year,edgar_world_elec_heat
 iea <- iea %>% 
   mutate(adjusted_indirect_CO2=edgar_world_elec_heat*indirect_fraction) %>% 
   filter(!is.na(adjusted_indirect_CO2))
-
-
 
 totals <- iea %>% 
   filter(country=="World") %>% 
@@ -307,13 +299,13 @@ indirect_CO2_regions <- left_join(indirect_CO2_regions,ipcc_regions %>% select(r
 
 # do region emissions add up to world?
 
-# check <- indirect_CO2_regions %>% 
-#   group_by(year) %>% 
+# check <- indirect_CO2_regions %>%
+#   group_by(year) %>%
 #   summarise(total=sum(CO2_indirect))
 # 
 # world <- gather(indirect_CO2_world,year,value,`1990`:`2018`)
-# world <- world %>% 
-#   group_by(year) %>% 
+# world <- world %>%
+#   group_by(year) %>%
 #   summarise(total=sum(value))
 
 # what about countries?

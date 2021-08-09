@@ -36,7 +36,7 @@ crf_methane_adjustment<-crf_data %>%
   filter(entity=="CH4") %>%
   filter(`category (IPCC1996)` %in% c("1.B.2","2.C.2","2.B.5"))
 
-match<-openxlsx::read.xlsx("../../Data/PRIMAP_gases_matching.xlsx") %>%
+match<-openxlsx::read.xlsx("../../Data/Codes and classifications/PRIMAP_gases_matching.xlsx") %>%
   select(-Description.PRIMAP)
 
 match$Code.PRIMAP<-gsub(" ","",match$Code.PRIMAP)
@@ -44,7 +44,7 @@ match$Code.PRIMAP<-gsub(" ","",match$Code.PRIMAP)
 gwps<-left_join(match,gwps,by=c("Code.gwps"="gas")) %>%
   select(Code.PRIMAP,Code.gwps,gwp_ar5,gwp_ar6)
 
-gwps[1,4]<-28 #we first use the factor 27.2 for all CH4 and adjust in a second step
+gwps[1,4]<-27.2 #we first use the factor 27.2 for all CH4 and adjust in a second step
 
 crf_total_sector<-left_join(crf_total_sector,gwps,by=c("entity"="Code.PRIMAP"))
 
@@ -61,7 +61,8 @@ crf_total_sector<-gather(crf_total_sector,key = "year", value = "value", "1986":
 
 crf_total_sector<-crf_total_sector %>% 
   #mutate(GHG_crf=value*gwp_ar6) %>%
-  mutate(gwp_crf=value*gwp_ar5) %>%
+  mutate(gwp_crf_ar5=value*gwp_ar5) %>%
+  mutate(gwp_crf_ar6=value*gwp_ar6) %>%
   rename("gas"="Code.gwps") %>%
   select(-gwp_ar5,-gwp_ar6)
 
@@ -70,22 +71,28 @@ crf_methane_adjustment<-gather(crf_methane_adjustment,key = "year", value = "val
   mutate(value=value/1e6) %>%   #transforming kt to Gt
   mutate(unit="Gt") %>%
   mutate(year=as.numeric(year)) %>%
-  #mutate(GHG_crf=value*(29.8-27.2))          #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
-  mutate(gwp_crf=value*(30-28)) %>%
+  mutate(gwp_crf_ar6=value*(29.8-27.2)) %>%         #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
+  mutate(gwp_crf_ar5=value*(30-28)) %>%
   mutate(gas="CH4")
   
 crf_total_sector<-rbind(crf_total_sector,crf_methane_adjustment) 
 
 crf_total_sector<-crf_total_sector %>%
+  filter(!is.na(gwp_crf_ar5)) %>%
   group_by(`area (ISO3)`,year,gas) %>%
-  summarise(gwp_crf=sum(gwp_crf,na.rm = TRUE))
+  summarise_at(c("gwp_crf_ar5","gwp_crf_ar6"),sum,na.rm = TRUE)
 
 crf_GHG<-crf_total_sector %>%
   group_by(`area (ISO3)`,year) %>%
-  summarise(gwp_crf=sum(gwp_crf,na.rm = TRUE)) %>%
+  summarise_at(c("gwp_crf_ar5","gwp_crf_ar6"),sum,na.rm = TRUE) %>%
   mutate(gas="GHG")
 
-crf_total_sector<-rbind(crf_total_sector,crf_GHG)
+crf_total_sector<-rbind(crf_total_sector,crf_GHG) %>%
+  rename("ISO"="area (ISO3)") %>%
+  ungroup()
+
+crf_ghg<-crf_total_sector
+save(crf_ghg,file='../../Data/primap_crf_data_ghg_gwp.RData')
 
 ####################
 
@@ -167,7 +174,7 @@ edgar_data <- gather(edgar_data,gas,value,CH4:GHG)
 ```{r comparison graphs, echo=FALSE,warning=FALSE,include=FALSE}
 
 
-combined_crf_edgar <- left_join(crf_total_sector,edgar_data,by=c("area (ISO3)"="ISO","year"="year","gas"="gas")) %>%
+combined_crf_edgar <- left_join(crf_total_sector,edgar_data,by=c("ISO","year","gas")) %>%
   rename("EDGAR"="value","CRF"="gwp_crf") %>%
   filter(year>=1990) %>%
   filter(gas %in% c("CO2","CH4","N2O","GHG")) %>%
