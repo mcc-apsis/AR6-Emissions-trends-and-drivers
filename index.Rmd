@@ -41,10 +41,17 @@ rm(list = ls())
 library(flexdashboard)
 library(tidyverse)
 library(knitr)
+library(kableExtra)
 library(openxlsx)
 
 captions <- read.xlsx('Results/Plots/captions.xlsx')
-
+load("Data/rates.RData")
+rates <- gather(rates,blarg,values,`1990`:`1990-2019`)
+rates <- rates %>% 
+  mutate(values=round(values,1))
+rates$blarg <- as.factor(rates$blarg)
+rates$blarg <- factor(rates$blarg,levels=levels(rates$blarg)[c(1,4,6,8,2,5,7,3)])
+rates <- spread(rates,blarg,values)
 
 ```
 
@@ -239,6 +246,110 @@ cat(captions$caption[captions$plot=="sectors_afolu"])
 cat("<br>")
 cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/AFOLU-1.png'>download png</a>")
+```
+
+
+
+Growth rates
+=====================================
+
+
+### Growth rates
+
+Here we have compiled growth rate estimations for gases, regions, sectors, subsectors and countries. We use the simple compound average growth rate calculation:
+
+r = (E(t+n)/E(t))^(1/t) - 1
+
+where E is the emissions value in a given year t. Following the Global Carbon Project convention (Friedlingstein et al. 2019), we apply an adjustment for leap years, where E = E*(365/366) in leap years. This is why the totals here for 2000 (a leap year) are slightly different from the raw data.
+
+The code for producing these tables is here: <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/growth_rates.Rmd">link</a>
+
+A spreadsheet is also available: <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/tree/master/Results/Public%20data/ipcc_ar6_data_growth_rates.xlsx">link</a>
+
+
+
+-----------------------------------------------------------------------
+### Gases
+
+
+```{r,out.width="100%"}
+
+
+rates %>% 
+  filter(category=="Gases") %>%
+  select(Gas=var,-category,-subcategory,`1990`:`1990-2019`) %>% 
+  kbl() %>% 
+  add_header_above(c("","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  kable_styling(bootstrap_options = c("striped"))
+
+```
+
+-----------------------------------------------------------------------
+### Regions
+
+
+```{r}
+
+
+rates %>% 
+  filter(category=="Regions") %>%
+  select(-category,`Region category`=subcategory,Region=var,`1990`:`1990-2019`) %>% 
+  kbl() %>% 
+  add_header_above(c("","","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  kable_styling(bootstrap_options = c("striped")) %>%
+  scroll_box(width = "100%", height = "400px")
+
+
+```
+
+-----------------------------------------------------------------------
+### Sectors
+
+```{r}
+
+
+rates %>% 
+  filter(category=="Sectors") %>%
+  select(-category,-subcategory,Sector=var,`1990`:`1990-2019`) %>% 
+  kbl() %>% 
+  add_header_above(c("","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  kable_styling(bootstrap_options = c("striped"))
+
+
+```
+
+-----------------------------------------------------------------------
+### Subsectors
+
+```{r}
+
+
+rates %>% 
+  filter(category=="Subsectors") %>%
+  select(-category,Sector=subcategory,Subsector=var,`1990`:`1990-2019`) %>% 
+  kbl() %>% 
+  add_header_above(c("","","Emissions (MtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  kable_styling(bootstrap_options = c("striped")) %>%
+  scroll_box(width = "100%", height = "400px")
+
+
+```
+
+-----------------------------------------------------------------------
+### Countries
+
+```{r}
+
+
+rates %>% 
+  filter(category=="Countries") %>%
+  select(-category,Region=subcategory,Country=var,`1990`:`1990-2019`) %>% 
+  kbl() %>% 
+  add_header_above(c("","","Emissions (MtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  kable_styling(bootstrap_options = c("striped")) %>%
+  scroll_box(width = "100%", height = "400px")
+
+
 ```
 
 

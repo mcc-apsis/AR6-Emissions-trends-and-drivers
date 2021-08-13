@@ -1,7 +1,6 @@
 ---
 title: "sector_summary"
 author: "William F. Lamb"
-date: "14 6 2021"
 output: word_document
 knit: (function(inputFile, encoding) {
   rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
@@ -73,6 +72,25 @@ data <- left_join(data,pop,by = c("region_ar6_10", "region_ar6_10_short", "year"
 indirect_CO2_countries <- indirect_CO2_countries %>% 
   group_by(ISO,country,region_ar6_10,year,chapter_title,subsector_title) %>% 
   summarise(CO2_indirect=sum(CO2_indirect,na.rm=TRUE)*1e9)
+
+
+blarg <- edgar_ghg %>% 
+  filter(year==2018) %>% 
+  group_by(region_ar6_10_short,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+blarg <- left_join(blarg,land)
+blarg <- blarg %>% 
+  mutate(GHG_total=GHG+CO2_land) %>% 
+  mutate(GHG_total=ifelse(region_ar6_10_short=="AIR",GHG,GHG_total)) %>%
+  mutate(GHG_total=ifelse(region_ar6_10_short=="SEA",GHG,GHG_total)) 
+
+blarg <- blarg %>% 
+  mutate(world_total=sum(blarg$GHG_total)) %>% 
+  mutate(fraction=(GHG_total/world_total)*100)
+
+blarg <- left_join(blarg,pop_regions)
+blarg <- blarg %>% 
+  mutate(per_capita=GHG_total/population)
 
 ```
 
@@ -385,12 +403,11 @@ kaya_rates_afolu <- left_join(kaya_rates_afolu,ipcc_regions %>% select(region_ar
 
 ```{r trend_figure,echo=FALSE,warning=FALSE}
 
-trend_figure <- function(trend_data) {
+trend_figure <- function(trend_data,sector) {
   
   trend_data <- trend_data %>% 
     mutate(value=GHG) %>% 
     filter(year<=end_year)
-  
   
   ## align labels
   labels <- trend_data %>%
@@ -443,6 +460,15 @@ trend_figure <- function(trend_data) {
     colours <- c("#bdbdbd","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#e5c494")
   }
   
+  title = paste0("a. ",shares$chapter_title[1], " global GHG emission trends by subsectors")
+  if (sector=="Total") {
+    
+    title = paste0("a. Total global GHG emission trends by sectors")
+    
+  }
+  
+  
+  
   p <- trend_data %>%
     ggplot(.,aes(x=year,y=value,fill=subsector_title)) +
     geom_area(color='#737373') +
@@ -476,7 +502,7 @@ trend_figure <- function(trend_data) {
     scale_color_manual(values=colours) +
     
     big_trend_theme +
-    ggtitle(paste0("a. ",shares$chapter_title[1], " global GHG emissions trends by subsectors")) +
+    ggtitle(title) +
     theme(legend.position="right",
           axis.title.x = element_blank(),
           legend.title=element_blank(),
@@ -506,7 +532,8 @@ fraction_figure <- function(sector_ghgs_regions,sector) {
   
    title <- data.frame(title=ifelse(sector=="AFOLU","Emissions by region in 2018\n(all GHGs, incl. LULUCF CO2)","Emissions by region in 2018\n(all GHGs, incl. Indirect CO2)"))
   title <- title %>% 
-    mutate(title=ifelse(sector=="Energy systems","Emissions by region in 2018\n(all GHGs)",title))
+    mutate(title=ifelse(sector=="Energy systems","Emissions by region in 2018\n(all GHGs)",title)) %>% 
+    mutate(title=ifelse(sector=="Total","Emissions by region in 2018\n(all GHGs, incl. LULUCF CO2, excl. Indirect CO2",title))
   
   
     p <- fraction_data %>% 
@@ -553,8 +580,6 @@ per_capita_figure <- function(per_capita,per_capita_world,sector_ghgs_regions,se
     filter(year==2018) %>% 
     mutate(facet="Per capita GHG emissions (tCO2eq/capita)")
   
-  
-  
   # mean by region
   mean = sector_ghgs_regions %>%
     ungroup() %>% 
@@ -567,6 +592,10 @@ per_capita_figure <- function(per_capita,per_capita_world,sector_ghgs_regions,se
   # solution is to hide them behind the regional means
   if (sector=="AFOLU") {
     per_capita_data <- left_join(per_capita_data %>% select(-GHG_pc),mean,by = c("region_ar6_10_short", "chapter_title"))}
+  if (sector=="Total") {
+    per_capita_data <- left_join(per_capita_data %>% select(-GHG_pc),mean,by = c("region_ar6_10_short", "chapter_title"))}
+  
+  
   
   p <- per_capita_data %>% 
     ggplot(aes(x=reorder(region_ar6_10_short,desc(region_ar6_10_short)),y=GHG_pc,fill=region_ar6_10_short)) +
@@ -616,7 +645,8 @@ kaya_figure <- function(kaya_rates,sector) {
   
    title <- data.frame(title=ifelse(sector=="AFOLU","c. Avg. annual change in kaya factors 2010-2018\n(GHG incl. LULUCF CO2)","c. Avg. annual change in kaya factors, 2010-2018\n(CO2 only, excl. indirect CO2)"))
   title <- title %>% 
-    mutate(title=ifelse(sector=="Energy systems","c. Avg. annual change in kaya factors 2010-2018\n(CO2 only)",title))
+    mutate(title=ifelse(sector=="Energy systems","c. Avg. annual change in kaya factors 2010-2018\n(CO2 only)",title)) %>% 
+    mutate(title=ifelse(sector=="Total","c. Avg. annual change in kaya factors 2010-2018\n(CO2 only, excl. LULUCF CO2, excl. indirect CO2)",title))
    
    
   p <- kaya_rates %>% 
@@ -661,7 +691,7 @@ trend_data$subsector_title <- as.factor(trend_data$subsector_title)
 trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,2,4,6,5,7,1)])
 
 
-p1 <- trend_figure(trend_data)
+p1 <- trend_figure(trend_data,"AFOLU")
 p2 <- fraction_figure(sector_ghgs_regions,"AFOLU")
 p2 <- p2 + ylim(0,40)
 p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"AFOLU")
@@ -685,7 +715,7 @@ trend_data <- sector_ghg_total %>%
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
 trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,4,5,2,6,1)])
 
-p1 <- trend_figure(trend_data)
+p1 <- trend_figure(trend_data,"Energy systems")
 p2 <- fraction_figure(sector_ghgs_regions,"Energy systems")
 p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Energy systems")
 p3 <- p3 + ylim(0,25)
@@ -707,7 +737,7 @@ trend_data <- sector_ghg_total %>%
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
 trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,5,4,2,6,1)])
 
-p1 <- trend_figure(trend_data)
+p1 <- trend_figure(trend_data,"Industry")
 p2 <- fraction_figure(sector_ghgs_regions,"Industry")
 p2 <- p2 + ylim(0,60)
 p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Industry")
@@ -728,7 +758,7 @@ trend_data <- sector_ghg_total %>%
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
 trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(5,3,4,2,1)])
 
-p1 <- trend_figure(trend_data)
+p1 <- trend_figure(trend_data,"Buildings")
 p2 <- fraction_figure(sector_ghgs_regions,"Buildings")
 p2 <- p2 + ylim(0,40)
 p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Buildings")
@@ -750,12 +780,70 @@ trend_data$subsector_title <- as.factor(trend_data$subsector_title)
 trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(2,8,5,4,1,6,3,7)])
 
 
-p1 <- trend_figure(trend_data)
+p1 <- trend_figure(trend_data,"Transport")
 p2 <- fraction_figure(sector_ghgs_regions,"Transport")
 p2 <- p2 + ylim(0,40)
 p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Transport")
 p3 <- p3 + ylim(0,7.5)
 p4 <- kaya_figure(kaya_rates,"Transport")
+
+(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.25))
+
+
+```
+
+## Total
+
+```{r total_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+# Re-build data for all sectors together
+# Remove indirect components
+overall_ghg_totals <- sector_ghg_total %>% 
+  filter(grepl("Indirect CO2",subsector_title)!=1) %>% 
+  filter(grepl("indirect CO2",subsector_title)!=1)
+
+overall_ghg_totals <- overall_ghg_totals %>% 
+  group_by(chapter_title,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE)) %>% 
+  mutate(subsector_title=chapter_title) %>% 
+  mutate(chapter_title="Total")
+
+overall_ghg_totals$subsector_title <- as.factor(overall_ghg_totals$subsector_title)
+overall_ghg_totals$subsector_title <- factor(overall_ghg_totals$subsector_title,levels=levels(overall_ghg_totals$subsector_title)[c(3,4,1,5,2)])
+
+# Re-build data for the fractions
+overall_ghg_regions <- sector_ghgs_regions %>% 
+  select(-CO2_indirect) %>% 
+  mutate(GHG_total=sum(GHG,CO2_land,na.rm=TRUE))
+
+overall_ghg_regions <- overall_ghg_regions %>% 
+  group_by(region_ar6_10,region_ar6_10_short,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2_land=sum(CO2_land,na.rm=TRUE),GHG_total=sum(GHG_total,na.rm=TRUE),population=first(population))
+
+# calculate overall totals and per capita
+per_capita_world <- rbind(per_capita_world,data.frame(
+  chapter_title="Total",
+  sector_GHG_total=sum(overall_ghg_regions$GHG_total),
+  population=per_capita_world$population[1],
+  GHG_total_pc=NA,
+  label="World average"))
+
+per_capita_world <- per_capita_world %>% 
+  mutate(GHG_total_pc = sector_GHG_total*1e9/population)
+
+overall_ghg_regions <- overall_ghg_regions %>% 
+  mutate(sector_GHG_total=per_capita_world$sector_GHG_total[per_capita_world$chapter_title=="Total"]) %>% 
+  mutate(region_fraction_of_sector=(GHG_total/sector_GHG_total)*100) %>% 
+  mutate(region_per_capita = GHG_total*1e9/population) %>% 
+  mutate(chapter_title="Total")
+
+
+p1 <- trend_figure(overall_ghg_totals,"Total")
+p2 <- fraction_figure(overall_ghg_regions,"Total")
+p2 <- p2 + ylim(0,40)
+p3 <- per_capita_figure(per_capita %>% mutate(chapter_title="Total"),per_capita_world,overall_ghg_regions,"Total")
+#p3 <- p3 + ylim(0,7.5)
+p4 <- kaya_figure(kaya_rates,"Total")
 
 (wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.25))
 

@@ -1,0 +1,221 @@
+---
+title: "growth_rates"
+author: "William F. Lamb"
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+---
+
+# Setup
+
+```{r setup, include=FALSE}
+
+## The point of this workbook is to build a central resource for growth rate estimates to cross-check any numbers in the chapter
+## We calculate several rates: 1990-2000, 2000-2010, 2010-2019, 1990-2019
+## For the following segments:
+## Gases
+## Regions (total GHG)
+## Sectors (total GHG)
+## Sub-sectors (total GHG)
+## Countries (total GHG)
+
+rm(list = ls())
+library(tidyverse)
+library(ggplot2); theme_set(theme_bw())
+library(patchwork)
+library(RColorBrewer)
+library(lubridate)
+library(openxlsx)
+
+load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v2_data_raw.RData')
+load('../../Data/land.RData')
+load('../../Data/indirect_CO2.RData')
+
+options(dplyr.summarise.inform = FALSE)
+
+```
+
+## Growth rate calculation
+
+
+```{r growth_rate, echo=FALSE}
+
+growth_rates <- function(data) {
+  
+  # leap year adjustment
+  rates <- data %>%
+    mutate(leap_years = leap_year(year)) %>% 
+    mutate(value = ifelse(leap_years==TRUE,value*365/366,value)) %>% 
+    select(-leap_years)
+  
+  rates <- rates %>% 
+    filter(year %in% c(1990,2000,2010,2019))
+  rates <- spread(rates,year,value)
+  
+  # calculate rates (note that 1990:2000 etc. is 11 years of data, not 10)
+  rates <- rates %>% 
+    group_by(var) %>% 
+    mutate(`1990-2000`=((((`2000`/`1990`)^(1/length(1990:2000)))-1))*100) %>% 
+    mutate(`2000-2010`=((((`2010`/`2000`)^(1/length(2000:2010)))-1))*100) %>% 
+    mutate(`2010-2019`=((((`2000`/`1990`)^(1/length(2010:2019)))-1))*100) %>% 
+    mutate(`1990-2019`=((((`2000`/`1990`)^(1/length(1990:2019)))-1))*100) %>% 
+    ungroup()
+  
+  return(rates)
+             
+}
+
+```
+
+## Gases
+
+
+```{r gases, echo=FALSE}
+
+gases <- edgar_ghg %>% 
+  group_by(year) %>% 
+  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>%
+  filter(year>=1990) %>% 
+  mutate(category="Gases") %>% 
+  mutate(subcategory=NA)
+
+gases <- gather(gases,var,value,CO2:GHG)
+gases <- gases %>% 
+  mutate(value=value/1e9)
+
+gases <- growth_rates(gases)
+
+```
+
+## Regions (incl. LULUCF CO2)
+
+```{r regions, echo=FALSE}
+
+regions <- edgar_ghg %>% 
+  group_by(region_ar6_6,year) %>% 
+  summarise(ghg=sum(GHG,na.rm=TRUE))
+
+regions_land <- land %>% 
+  group_by(region_ar6_6,year) %>% 
+  summarise(land=sum(mean))
+
+regions <- left_join(regions,regions_land,by = c("region_ar6_6", "year"))
+regions <- regions %>% 
+  mutate(value=ghg+land) %>% 
+  mutate(value=ifelse(region_ar6_6=="Intl. Aviation",ghg,value)) %>% 
+  mutate(value=ifelse(region_ar6_6=="Intl. Shipping",ghg,value)) %>% 
+  mutate(value=value/1e9) %>% 
+  mutate(category="Regions") %>% 
+  mutate(subcategory="IPCC 6 regions")
+
+regions <- regions %>% 
+  select(category,subcategory,year,var=region_ar6_6,value)
+
+regions <- growth_rates(regions)
+
+```
+## Sectors (incl. LULUCF CO2 and Indirect CO2)
+
+
+```{r sectors, echo=FALSE}
+
+sectors <- edgar_ghg %>% 
+  group_by(chapter_title,year) %>% 
+  summarise(ghg=sum(GHG,na.rm=TRUE))
+
+## add LULUCF CO2
+
+sectors_land <- land %>%
+  group_by(year) %>% 
+  summarise(land=sum(mean)) %>% 
+  mutate(chapter_title="AFOLU")
+
+sectors <- left_join(sectors,sectors_land,by = c("chapter_title", "year"))
+
+## add indirect CO2
+sectors_indirect <- gather(indirect_CO2_world,year,value,`1990`:`2018`) %>% 
+  group_by(year,chapter_title) %>% 
+  summarise(indirect_CO2=sum(value,na.rm=TRUE)*1e9) %>% 
+  mutate(year=as.numeric(year))
+
+sectors <- left_join(sectors,sectors_indirect,by = c("chapter_title", "year"))
+
+sectors <- sectors %>% 
+  mutate(ghg=ifelse(chapter_title=="AFOLU",ghg+land,ghg)) %>% 
+  mutate(ghg=ifelse(chapter_title=="Industry",ghg+indirect_CO2,ghg)) %>% 
+  mutate(ghg=ifelse(chapter_title=="Buildings",ghg+indirect_CO2,ghg)) %>% 
+  mutate(ghg=ifelse(chapter_title=="Transport",ghg+indirect_CO2,ghg)) %>% 
+  mutate(value=ghg/1e9) %>% 
+  mutate(category="Sectors") %>% 
+  mutate(subcategory=NA) %>% 
+  select(category,subcategory,year,var=chapter_title,value)
+
+sectors <- growth_rates(sectors)
+
+```
+
+## Subsectors (excl. indirect CO2)
+
+```{r subsectors, echo=FALSE}
+
+subsectors <- edgar_ghg %>% 
+  group_by(year,chapter_title,subsector_title) %>% 
+  summarise(value=sum(GHG,na.rm=TRUE)) %>% 
+  mutate(value=value/1e6) %>% 
+  mutate(category="Subsectors") %>% 
+  select(year,category,subcategory=chapter_title,var=subsector_title,value)
+
+subsectors <- growth_rates(subsectors)
+
+```
+
+## Countries
+
+
+```{r countries, echo=FALSE}
+
+countries <- edgar_ghg %>% 
+  group_by(year,region_ar6_6,country) %>% 
+  summarise(value=sum(GHG,na.rm=TRUE)) %>%
+  mutate(value=value/1e6) %>% 
+  mutate(category="Countries") %>% 
+  select(year,category,subcategory=region_ar6_6,var=country,value)
+
+countries <- growth_rates(countries)
+
+```
+
+## Save
+
+```{r save, echo=FALSE}
+
+rates <- rbind(gases,regions)
+rates <- rbind(rates,sectors)
+rates <- rbind(rates,subsectors)
+rates <- rbind(rates,countries)
+
+wb <- createWorkbook(title = paste("ipcc_ar6_data_growth_rates"))
+
+addWorksheet(wb,"info")
+addWorksheet(wb,"gases")
+addWorksheet(wb,"regions")
+addWorksheet(wb,"sectors")
+addWorksheet(wb,"subsectors")
+addWorksheet(wb,"countries")
+
+info = data.frame(x=c("Author","Last update","Code","","gases","regions","sectors","subsectors","countries","","method","important note"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/growth_rates.Rmd","","growth rates by gas (totals in GWP100 AR6)","growth rates by region (totals in GWP100 AR6, includes LULUCF CO2)","growth rates by sector (totals in GWP100 AR6, includes indirect CO2 and LULUCF CO2","growth rates by subsector (totals in GWP100 AR6)","growth rates by country (totals in GWP100 AR6, excludes LULUCF CO2)","","We use the simple compound annual growth rate calculation, with a leap year adjustment (see Annex B)","Growth rates include the first and last year. For example, the estimate for 1990-2000 has 11 years of data. Also, some years (e.g. 2000) have a leap year adjustment applied to them, so will show slightly different totals."))
+
+writeData(wb, sheet="info",info,colNames=F,rowNames=F)
+writeData(wb, sheet = "gases", gases, colNames = T, rowNames = F)
+writeData(wb, sheet = "regions", regions, colNames = T, rowNames = F)
+writeData(wb, sheet = "sectors", sectors, colNames = T, rowNames = F)
+writeData(wb, sheet = "subsectors", regions, colNames = T, rowNames = F)
+writeData(wb, sheet = "countries", sectors, colNames = T, rowNames = F)
+
+
+saveWorkbook(wb,paste0("../../Results/Public data/ipcc_ar6_data_growth_rates.xlsx"),overwrite=T)
+
+save(rates,file = "../../Data/rates.RData")
+
+
+```

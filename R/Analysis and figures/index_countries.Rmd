@@ -63,12 +63,24 @@ crf_ghg<-crf_ghg %>%
 
 ```{r countries,echo=FALSE,warning=FALSE,fig.width=7,fig.height=8,fig.path="../../Results/Plots/Countries/",dev=c('png','pdf')}
 
-country_plot <- function(country_handle,edgar_ghg,data,subsector_data_countries,kaya_data_countries) {
+#country_plot <- function(country_handle,edgar_ghg,data,subsector_data_countries,kaya_data_countries) {
+country_plot <- function(country_handle) {
   
   sectors <- edgar_ghg %>% 
     filter(country==country_handle) %>% 
     group_by(year,chapter_title,ISO) %>% 
     summarise(GHG=sum(GHG,na.rm=TRUE)/1e6,.groups = )
+  
+  p1 <- sectors %>% 
+    ggplot(.,aes(x=year)) +
+    geom_area(aes(y=GHG,fill=chapter_title),colour="#737373") +
+    scale_fill_brewer(palette="Set2") +
+    ylab("GHG Emissions (MtCO2eq)") +
+    theme(axis.title.x = element_blank(),
+          legend.position = "right",
+          legend.title=element_blank(),
+          plot.title = element_text(size = 11)) +
+    ggtitle(paste0("a. ",country_handle))
   
   ISO_handle<-sectors$ISO[1]
   
@@ -78,32 +90,32 @@ country_plot <- function(country_handle,edgar_ghg,data,subsector_data_countries,
   
   if(nrow(crf)>0){
     sectors<-left_join(sectors,crf,by="year")
-  }else{
-    mutate(sectors,GHG_crf=NA)
+    
+    p1 <- p1 + geom_line(aes(y=sectors$GHG_crf),size=1,colour="blue")
+    
   }
+  # }else{
+  #   sectors<-mutate(sectors,GHG_crf=NA)
+  # }
   
   # info <- data %>% 
   #   filter(country==country_handle) %>% 
   #   select(peak_year,rate_GHG_peak) %>% 
   #   distinct()
   
-  p1 <- sectors %>% 
-    ggplot(.,aes(x=year)) +
-    geom_area(aes(y=GHG,fill=chapter_title),colour="#737373") +
-    #geom_text(data = data %>% filter(year==2018),
-    #          aes(x=year+1,y=location,colour=chapter_title,label=paste0(chapter_title," [",ifelse(rate>0,"+",""),round(rate,1),"%]")),hjust=0,) +
-    #geom_vline(xintercept=c(info$peak_year,2018),alpha=0.3,linetype="dashed") +
-    #scale_x_continuous(limits = c(1990,2026)) +
-    scale_fill_brewer(palette="Set2") +
-    geom_line(aes(y=GHG_crf),size=1,colour="blue")+
-    ylab("GHG Emissions (MtCO2eq)") +
-    theme(axis.title.x = element_blank(),
-          legend.position = "right",
-          legend.title=element_blank(),
-          plot.title = element_text(size = 11)) +
-    ggtitle(paste0("a. ",country_handle))#,": ",round(info$rate_GHG_peak,2),"%/yr decline since ",info$peak_year))
-  
-  
+  # p1 <- sectors %>% 
+  #   ggplot(.,aes(x=year)) +
+  #   geom_area(aes(y=GHG,fill=chapter_title),colour="#737373") +
+  #   scale_fill_brewer(palette="Set2") +
+  #   geom_line(aes(y=GHG_crf),size=1,colour="blue")+
+  #   ylab("GHG Emissions (MtCO2eq)") +
+  #   theme(axis.title.x = element_blank(),
+  #         legend.position = "right",
+  #         legend.title=element_blank(),
+  #         plot.title = element_text(size = 11)) +
+  #   ggtitle(paste0("a. ",country_handle))#,": ",round(info$rate_GHG_peak,2),"%/yr decline since ",info$peak_year))
+  # 
+  # 
   # subsectors <- subsector_data_countries %>% 
   #   group_by(cluster,chapter_title,subsector_title) %>% 
   #   mutate(rel_GHG = (abs_GHG/GHG_peak)*100)
@@ -114,7 +126,8 @@ country_plot <- function(country_handle,edgar_ghg,data,subsector_data_countries,
     group_by(year,subsector_title,chapter_title) %>% 
     summarise(GHG=sum(GHG,na.rm=TRUE)/1e6,.groups = )
   
-  subsectors<-spread(subsectors,year,GHG)
+  subsectors<-spread(subsectors,year,GHG) %>%
+    rename("y_2018"="2018","y_1990"="1990")
   
   subsectors <- subsectors %>% 
     #filter(country==country_handle) %>% 
@@ -129,8 +142,13 @@ country_plot <- function(country_handle,edgar_ghg,data,subsector_data_countries,
     #arrange(chapter_title)
   
   subsectors <- subsectors %>% 
-    filter("2018">0) %>% 
-    arrange("2018")
+    #filter(y_2018>0) %>% 
+    arrange(y_2018) %>%
+    mutate(growth=((y_2018/y_1990)-1)*100)%>%
+    mutate(growth_position=ifelse(y_2018>y_1990,y_2018,y_1990)*1.05) %>%
+    ungroup()%>%
+    mutate(id=1:nrow(.))
+  
   
   
   #subsectors$order <- 1:length(subsectors$cluster)
@@ -138,11 +156,17 @@ country_plot <- function(country_handle,edgar_ghg,data,subsector_data_countries,
   
   
   p2 <- subsectors %>%
-    ggplot(.,aes(x=subsector_title,fill=chapter_title)) + 
-    geom_bar(aes(y="2018"),stat='identity',color="#636363",width = 0.75,alpha=0.3,position = -.5) +  ####continue
+    ggplot(.,aes(x=reorder(subsector_title,y_2018),fill=chapter_title)) + 
+    geom_bar(aes(y=y_2018),stat='identity',color="#636363",width = 0.75,alpha=0.6) +  ####continue
     #geom_bar(aes(x=subsector_title,y=GHG_2018),stat='identity',color="#636363",width = 0.75) +
-    #geom_text(aes(x=subsector_title,y=ifelse(GHG_peak>GHG_2018,GHG_peak,GHG_2018),label=paste0(ifelse(rel_GHG>0,"+",""),round(rel_GHG,1),"%")),hjust = -0.15,size=3,colour="#636363",size=3.5) +
+    geom_text(aes(x=subsector_title,y=growth_position,label=paste0(ifelse(growth>0,"+",""),round(growth,1),"%")),hjust = -0.15,size=3,colour="#636363",size=4.5) +
    # scale_y_continuous(expand=expand_scale(mult = c(0.1, 0.5))) +
+    geom_rect(aes(
+    xmin = id - 0.35,
+    xmax = id + 0.35,
+    ymin = y_1990,
+    ymax = y_1990
+  ),colour = "#252525",size=1) +
     scale_fill_brewer(palette="Set2") +
     #scale_x_continuous(limits = c(1990,2026)) +
     coord_flip() +
@@ -152,50 +176,51 @@ country_plot <- function(country_handle,edgar_ghg,data,subsector_data_countries,
           plot.title = element_text(size = 11),
           plot.background = element_blank(),
           panel.grid.minor.y = element_blank()) +
+    ylim(c(0,max(subsectors$growth_position)*1.1)) +
     ylab("Annual GHG emissions (MtCO2eq)") +
     ggtitle("b. GHG emissions by subsector developments: 1990 to 2018")
   
   
   
-  kaya_data <- kaya_data_countries %>% 
-    filter(name==country_handle)
+  # kaya_data <- kaya_data_countries %>% 
+  #   filter(name==country_handle)
+  # 
+  # p3 <- kaya_data %>% ggplot(.,aes(x=year,y=value,color=factor)) +
+  #   geom_hline(yintercept=1) +
+  #   geom_vline(xintercept=1990,alpha=0.3,linetype="dashed") +
+  #   geom_path(size = 1.5) +
+  #   geom_point(size = 0.75,colour="white") +
+  #   theme_bw() +
+  #   scale_colour_brewer(type = "qual",palette="Set2",labels=c("CO2 Emissions","CO2/Energy","Energy","Energy/GDP","GDP/Population","Population")) +
+  #   theme(axis.title = element_blank(),
+  #         legend.position="right",
+  #         legend.title=element_blank(),
+  #         plot.title = element_text(size = 11),
+  #         plot.background = element_blank(),
+  #         panel.grid.minor = element_blank()) +
+  #   ggtitle("c. Trends in kaya factors")
   
-  p3 <- kaya_data %>% ggplot(.,aes(x=year,y=value,color=factor)) +
-    geom_hline(yintercept=1) +
-    geom_vline(xintercept=1990,alpha=0.3,linetype="dashed") +
-    geom_path(size = 1.5) +
-    geom_point(size = 0.75,colour="white") +
-    theme_bw() +
-    scale_colour_brewer(type = "qual",palette="Set2",labels=c("CO2 Emissions","CO2/Energy","Energy","Energy/GDP","GDP/Population","Population")) +
-    theme(axis.title = element_blank(),
-          legend.position="right",
-          legend.title=element_blank(),
-          plot.title = element_text(size = 11),
-          plot.background = element_blank(),
-          panel.grid.minor = element_blank()) +
-    ggtitle("c. Trends in kaya factors")
   
-  
-  return(list("p1"=p1,"p2"=p2,"p3"=p3))
+  return(list("p1"=p1,"p2"=p2))
 }
 
-decarbonising_country_plots_names <- data.frame(country=unique(data$country),plot=NA)
-decarbonising_country_plots <- list()
+countries <- data.frame(country=unique(edgar_ghg$country),plot=NA)
+country_plots <- list()
 
 
 #country_handle = "Jamaica"
 #for (i in 1:1) {
-for (i in 1:length(unique(data$country))) {
+for (i in 1:nrow(countries)) {
   
   
-  country_handle <- unique(data$country)[i]
-  plots <- country_plot(country_handle,edgar_ghg,data,subsector_data_countries,kaya_data_countries) 
-  p <- wrap_elements(plots$p1) / wrap_elements(plots$p2) / wrap_elements(plots$p3) +  plot_layout(heights = c(1.5,2,1.5))
+  country_handle <- countries$country[i]
+  plots <- country_plot(country_handle) 
+  p <- wrap_elements(plots$p1) / wrap_elements(plots$p2) +  plot_layout(heights = c(1.5,2))
   
   print(p)
   cat("  \n")
   
-  decarbonising_country_plots[[i]] = p
+  country_plots[[i]] = p
   
 }
 
@@ -206,7 +231,7 @@ for (i in 1:length(unique(data$country))) {
 ``` {r save}
 
 
-save(decarbonising_countries,decarbonising_country_plots,decarbonising_country_plots_names,country_clusters,country_rates,country_rolling_rates,cluster_subsectors,file="../../Results/Plots/R plots/decarbonising_countries.RData")
+save(countries,country_plots,file="../../Results/Plots/Countries/countries.RData")
 
 
 
