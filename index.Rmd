@@ -48,7 +48,7 @@ captions <- read.xlsx('Results/Plots/captions.xlsx')
 load("Data/rates.RData")
 rates <- gather(rates,blarg,values,`1990`:`1990-2019`)
 rates <- rates %>% 
-  mutate(values=round(values,1))
+  mutate(values=round(values,2))
 rates$blarg <- as.factor(rates$blarg)
 rates$blarg <- factor(rates$blarg,levels=levels(rates$blarg)[c(1,4,6,8,2,5,7,3)])
 rates <- spread(rates,blarg,values)
@@ -264,7 +264,7 @@ where E is the emissions value in a given year t. Following the Global Carbon Pr
 
 The code for producing these tables is here: <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/growth_rates.Rmd">link</a>
 
-A spreadsheet is also available: <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/tree/master/Results/Public%20data/ipcc_ar6_data_growth_rates.xlsx">link</a>
+A spreadsheet is also available: <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Public%20data/ipcc_ar6_data_growth_rates.xlsx">link</a>
 
 
 
@@ -285,7 +285,7 @@ rates %>%
 ```
 
 -----------------------------------------------------------------------
-### Regions
+### Regions (IPCC 6 Regions)
 
 
 ```{r}
@@ -293,9 +293,9 @@ rates %>%
 
 rates %>% 
   filter(category=="Regions") %>%
-  select(-category,`Region category`=subcategory,Region=var,`1990`:`1990-2019`) %>% 
+  select(-category,-subcategory,Region=var,`1990`:`1990-2019`) %>% 
   kbl() %>% 
-  add_header_above(c("","","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  add_header_above(c("","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
   kable_styling(bootstrap_options = c("striped")) %>%
   scroll_box(width = "100%", height = "400px")
 
@@ -327,6 +327,7 @@ rates %>%
 rates %>% 
   filter(category=="Subsectors") %>%
   select(-category,Sector=subcategory,Subsector=var,`1990`:`1990-2019`) %>% 
+  arrange(Sector,desc(`2019`)) %>% 
   kbl() %>% 
   add_header_above(c("","","Emissions (MtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
   kable_styling(bootstrap_options = c("striped")) %>%
@@ -343,9 +344,10 @@ rates %>%
 
 rates %>% 
   filter(category=="Countries") %>%
-  select(-category,Region=subcategory,Country=var,`1990`:`1990-2019`) %>% 
+  select(-category,-subcategory,Country=var,`1990`:`1990-2019`) %>%
+  arrange(Country) %>% 
   kbl() %>% 
-  add_header_above(c("","","Emissions (MtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  add_header_above(c("","Emissions (MtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
   kable_styling(bootstrap_options = c("striped")) %>%
   scroll_box(width = "100%", height = "400px")
 
