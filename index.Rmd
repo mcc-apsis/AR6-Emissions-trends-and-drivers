@@ -260,7 +260,7 @@ Here we have compiled growth rate estimations for gases, regions, sectors, subse
 
 r = (E(t+n)/E(t))^(1/t) - 1
 
-where E is the emissions value in a given year t. Following the Global Carbon Project convention (Friedlingstein et al. 2019), we apply an adjustment for leap years, where E = E*(365/366) in leap years. This is why the totals here for 2000 (a leap year) are slightly different from the raw data.
+where E is the emissions value in a given year t.
 
 The code for producing these tables is here: <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/growth_rates.Rmd">link</a>
 

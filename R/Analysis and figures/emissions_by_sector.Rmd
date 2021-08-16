@@ -22,7 +22,6 @@ library(patchwork)
 library(zoo)
 
 source("small_figures.R")
-source("growth_rate.R")
 
 end_year = 2018
 
@@ -87,6 +86,40 @@ sum(blarg$CO2)
 indirect_CO2_world <- gather(indirect_CO2_world,year,CO2_indirect,`1990`:`2018`) %>% 
   mutate(year=as.numeric(year))
 
+
+
+
+```
+
+## Growth rate calculation
+
+```{r growth_rate,echo=FALSE,warning=FALSE}
+
+growth_rates <- function(data) {
+  
+  # leap year adjustment
+  # rates <- data %>%
+  #   mutate(leap_years = leap_year(year)) %>% 
+  #   mutate(value = ifelse(leap_years==TRUE,value*365/366,value)) %>% 
+  #   select(-leap_years)
+  
+  rates <- data %>% 
+    filter(year %in% c(1990,2000,2010,end_year)) %>% 
+    mutate(total_rate=NA)
+  
+  rates$total_rate[rates$year==1990] = ((rates$value[rates$year==2000]/rates$value[rates$year==1990])^(1/length(1990:2000))-1)*100
+  
+  rates$total_rate[rates$year==2000] = ((rates$value[rates$year==2010]/rates$value[rates$year==2000])^(1/length(2000:2010))-1)*100
+  
+  rates$total_rate[rates$year==2010] = ((rates$value[rates$year==end_year]/rates$value[rates$year==2010])^(1/length(end_year:2010))-1)*100
+  
+  
+  return(rates)
+             
+}
+
+
+
 ```
 
 # Data
@@ -94,7 +127,7 @@ indirect_CO2_world <- gather(indirect_CO2_world,year,CO2_indirect,`1990`:`2018`)
 
 ```{r trend_plots,echo=FALSE,warning=FALSE}
 
-ch = 11
+ch = 6
 gather_trend_data <- function(edgar_ghg,ch) {
   
   ## sum emissions for the sector
@@ -218,15 +251,10 @@ trend_figure <- function(trend_data,chapter) {
   
   # # calculate overall growth between years (time 1 time 2)
   growth_data <- trend_data %>%
-    filter(year %in% c(1990,2000,2010,end_year)) %>%
     group_by(year) %>%
-    summarise(value=sum(value)) %>%
-    mutate(total_rate = NA)
-
-  for (j in 1:length(growth_data$year)-1) {
-    rate = (((growth_data$value[j+1]/growth_data$value[j])^(1/(growth_data$year[j+1]-growth_data$year[j])))-1)*100
-    growth_data$total_rate[j] <- rate
-  }
+    summarise(value=sum(value))
+  
+  growth_data <- growth_rates(growth_data)
   
   ### GCP method
   
@@ -467,66 +495,66 @@ plot_region_figure <- function(region_data,chapter) {
 
 ```{r growth_rates,echo=FALSE,warning=FALSE}
 
-
-calculate_growth_rates <- function(trend_data) {
-  
-  
-  ## World, subsector, 1990-2000,2000-2010, 2010-2018, 1990-2018
-  
-  trend_data <- trend_data %>% 
-    ungroup() %>% 
-    mutate(year=as.numeric(year))
-  
-  rates <- trend_data %>% filter(subsector_title=="none")
-  
-  for (i in 1:length(unique(trend_data$subsector_title))) {
-    
-    temp_data <- trend_data %>% 
-      filter(subsector_title==unique(trend_data$subsector_title)[i]) %>% 
-      mutate(rate=NA)
-    
-    years = temp_data$year[temp_data$year<2000]
-    ghg = temp_data$value[temp_data$year<2000]
-    temp_data$rate[temp_data$year<2000] = growth_rate(years,ghg)$rate*100
-    
-    years = temp_data$year[temp_data$year>=2000 & temp_data$year<=2010]
-    ghg = temp_data$value[temp_data$year>=2000 & temp_data$year<=2010]
-    temp_data$rate[temp_data$year>=2000 & temp_data$year<2010] = growth_rate(years,ghg)$rate*100
-    
-    years = temp_data$year[temp_data$year>=2010 & temp_data$year<=end_year]
-    ghg = temp_data$value[temp_data$year>=2010 & temp_data$year<=end_year]
-    temp_data$rate[temp_data$year>=2010 & temp_data$year<=end_year] = growth_rate(years,ghg)$rate*100
-    
-    rates <- rbind(rates,temp_data)
-    
-  }
-  
-  label = data.frame(year=c(1990,2000,2010),rate_period=c("1990-2000","2000-2010",paste("2010-",end_year,sep="")))
-  
-  rates <- left_join(rates %>% mutate(year=as.numeric(year)),label,by = "year")
-  rates <- rates %>% 
-    filter(!is.na(rate_period)) %>%
-    mutate(region="World") %>% 
-    select(region,subsector,subsector_title,rate_period,rate)
-  
-  ## World, subsector, 1990-2018
-  for (i in 1:length(unique(trend_data$subsector_title))) {
-    
-    temp_data <- trend_data %>% 
-      filter(subsector_title==unique(trend_data$subsector_title)[i]) %>% 
-      mutate(rate=NA)
-    
-    years = temp_data$year[temp_data$year>=1990 & temp_data$year<=end_year]
-    ghg = temp_data$value[temp_data$year>=1990 & temp_data$year<=end_year]
-    rates <- add_row(rates,region="World",
-                     subsector=unique(trend_data$subsector)[i],
-                     subsector_title=unique(trend_data$subsector_title)[i],
-                     rate_period="1990-2018",
-                     rate=(growth_rate(years,ghg)$rate*100))
-  }
-  
-  return(rates)
-}
+# 
+# calculate_growth_rates <- function(trend_data) {
+#   
+#   
+#   ## World, subsector, 1990-2000,2000-2010, 2010-2018, 1990-2018
+#   
+#   trend_data <- trend_data %>% 
+#     ungroup() %>% 
+#     mutate(year=as.numeric(year))
+#   
+#   rates <- trend_data %>% filter(subsector_title=="none")
+#   
+#   for (i in 1:length(unique(trend_data$subsector_title))) {
+#     
+#     temp_data <- trend_data %>% 
+#       filter(subsector_title==unique(trend_data$subsector_title)[i]) %>% 
+#       mutate(rate=NA)
+#     
+#     years = temp_data$year[temp_data$year<2000]
+#     ghg = temp_data$value[temp_data$year<2000]
+#     temp_data$rate[temp_data$year<2000] = growth_rate(years,ghg)$rate*100
+#     
+#     years = temp_data$year[temp_data$year>=2000 & temp_data$year<=2010]
+#     ghg = temp_data$value[temp_data$year>=2000 & temp_data$year<=2010]
+#     temp_data$rate[temp_data$year>=2000 & temp_data$year<2010] = growth_rate(years,ghg)$rate*100
+#     
+#     years = temp_data$year[temp_data$year>=2010 & temp_data$year<=end_year]
+#     ghg = temp_data$value[temp_data$year>=2010 & temp_data$year<=end_year]
+#     temp_data$rate[temp_data$year>=2010 & temp_data$year<=end_year] = growth_rate(years,ghg)$rate*100
+#     
+#     rates <- rbind(rates,temp_data)
+#     
+#   }
+#   
+#   label = data.frame(year=c(1990,2000,2010),rate_period=c("1990-2000","2000-2010",paste("2010-",end_year,sep="")))
+#   
+#   rates <- left_join(rates %>% mutate(year=as.numeric(year)),label,by = "year")
+#   rates <- rates %>% 
+#     filter(!is.na(rate_period)) %>%
+#     mutate(region="World") %>% 
+#     select(region,subsector,subsector_title,rate_period,rate)
+#   
+#   ## World, subsector, 1990-2018
+#   for (i in 1:length(unique(trend_data$subsector_title))) {
+#     
+#     temp_data <- trend_data %>% 
+#       filter(subsector_title==unique(trend_data$subsector_title)[i]) %>% 
+#       mutate(rate=NA)
+#     
+#     years = temp_data$year[temp_data$year>=1990 & temp_data$year<=end_year]
+#     ghg = temp_data$value[temp_data$year>=1990 & temp_data$year<=end_year]
+#     rates <- add_row(rates,region="World",
+#                      subsector=unique(trend_data$subsector)[i],
+#                      subsector_title=unique(trend_data$subsector_title)[i],
+#                      rate_period="1990-2018",
+#                      rate=(growth_rate(years,ghg)$rate*100))
+#   }
+#   
+#   return(rates)
+# }
 
 ```
 
@@ -574,9 +602,6 @@ p2 <- plot_region_figure(region_data,ch)
 sector_totals <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_totals
 
-############ Calculate growth rates
-rates <- calculate_growth_rates(trend_data)
-rates <- rates %>% mutate(subsector=1)
 
 ############ Save data
 trend_data <- spread(trend_data,year,value)
@@ -585,7 +610,6 @@ region_data <- spread(region_data,year,value)
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),rates, colNames = T, rowNames = F,startRow = 10)
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
 
 
@@ -625,9 +649,6 @@ p2 <- plot_region_figure(region_data,ch)
 sector_energy <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_energy
 
-############ Calculate growth rates
-rates <- calculate_growth_rates(trend_data)
-
 
 ############ Save data
 trend_data <- spread(trend_data,year,value)
@@ -636,8 +657,8 @@ region_data <- spread(region_data,year,value)
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),rates, colNames = T, rowNames = F,startRow = 10)
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+
 
 
 ```
@@ -676,10 +697,6 @@ p2 <- plot_region_figure(region_data,ch)
 sector_industry <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_industry
 
-############ Calculate growth rates
-rates <- calculate_growth_rates(trend_data)
-
-
 ############ Save data
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
@@ -687,7 +704,6 @@ region_data <- spread(region_data,year,value)
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),rates, colNames = T, rowNames = F,startRow = 10)
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
 
 
@@ -727,11 +743,6 @@ p2 <- plot_region_figure(region_data,ch)
 sector_transport <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_transport
 
-
-############ Calculate growth rates
-rates <- calculate_growth_rates(trend_data)
-
-
 ############ Save data
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
@@ -739,7 +750,6 @@ region_data <- spread(region_data,year,value)
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),rates, colNames = T, rowNames = F,startRow = 12)
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
 
 
@@ -783,11 +793,6 @@ p2 <- plot_region_figure(region_data,ch)
 sector_buildings <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_buildings
 
-
-############ Calculate growth rates
-rates <- calculate_growth_rates(trend_data)
-
-
 ############ Save data
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
@@ -795,7 +800,6 @@ region_data <- spread(region_data,year,value)
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),rates, colNames = T, rowNames = F,startRow = 10)
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
 
 
@@ -889,9 +893,6 @@ p2 <- plot_region_figure(region_data,ch)
 sector_buildings_2 <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_buildings_2
 
-############ Calculate growth rates
-rates <- calculate_growth_rates(trend_data)
-
 
 ############ Save data
 trend_data <- spread(trend_data,year,value)
@@ -900,7 +901,6 @@ region_data <- spread(region_data,year,value)
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," scope3 trend"))
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," scope3 regions"))
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," scope3 trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," scope3 trend"),rates, colNames = T, rowNames = F,startRow = 10)
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," scope3 regions"),region_data, colNames = T, rowNames = F)
 
 
@@ -950,11 +950,6 @@ p2 <- p2 + ggtitle("b. AFOLU regional trends in GHG emissions and removals")
 sector_afolu <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_afolu
 
-
-############ Calculate growth rates
-rates <- calculate_growth_rates(trend_data)
-
-
 ############ Save data
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
@@ -962,7 +957,6 @@ region_data <- spread(region_data,year,value)
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),rates, colNames = T, rowNames = F,startRow = 10)
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
 
 
@@ -1017,7 +1011,7 @@ time_start=2010
 top_sectors <- top_sectors %>%
   filter(year %in% c(2010,end_year)) %>% 
   group_by(subsector_title) %>%
-  mutate(rate=(last(total_GHG_plus_indirect)/first(total_GHG_plus_indirect))^(1/(last(year)-time_start))-1) %>% 
+  mutate(rate=(last(total_GHG_plus_indirect)/first(total_GHG_plus_indirect))^(1/(length(time_start:last(year))))-1) %>% 
   filter(year==end_year)
 
 top_sectors <- top_sectors %>% 
