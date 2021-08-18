@@ -24,7 +24,8 @@ source("small_figures.R")
 
 options(dplyr.summarise.inform = FALSE)
 
-load('../../Data/edgar_data_gwp_ar6.RData')
+#load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 #load('../../Data/basic.RData')
@@ -33,8 +34,8 @@ load('../../Data/WDI_gdp_pop.RData')
 # set palette
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
 
-uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
-                            uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
+# uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
+#                             uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
 
 
 wb <- openxlsx::createWorkbook(title = "ipcc_ar6_region_and_countries_plot")

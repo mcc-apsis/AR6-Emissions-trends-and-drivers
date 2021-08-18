@@ -25,17 +25,18 @@ source("../Analysis and figures/small_figures.R")
 options(dplyr.summarise.inform = FALSE)
 
 #load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
-load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+#load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 load('../../Data/WDI_gdp_pop.RData')
-
+load('../../Data/primap_crf_data_ghg_gwp.RData')
 
 # set palette
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
 
-uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
-                            uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
+# uncertainties <- data.frame(gas=c('CO2 FFI','CO2 Land use','CH4','N2O','Fgas','GHG'),
+#                             uncertainty=c(0.08,0.5,0.2,0.6,0.2,0.1))
 
 
 wb <- openxlsx::createWorkbook(title = "ipcc_ar6_region_and_countries_plot")
@@ -97,63 +98,63 @@ plot_data$region_ar6_6 <-  factor(plot_data$region_ar6_6,levels(plot_data$region
 ## CRF data
 #crf_data<-read_csv("../../Data/supplemetary data/Guetschow-et-al-2020-PRIMAP-crf_2020-v1.csv")
 #crf_data<-read_csv("../../Data/supplemetary data/Guetschow-et-al-2021-PRIMAP-crf_2021-v1.csv")
-crf_data<-read_csv("../../Data/supplemetary data/Guetschow-et-al-2021-PRIMAP-crf96_2021-v1.csv")
-
-
-crf_total_sector<-crf_data %>%
-  #filter(category=="IPC0")
-  #filter(category=="IPCM0EL")  #IPCM0EL excludes LULUCF
-  filter(`category (IPCC1996)`=="M.0.EL") %>%  #excludes LULUCF
-  mutate(unit1=substring(unit,1,1))
-
-crf_methane_adjustment<-crf_data %>%
-  filter(entity=="CH4") %>%
-  filter(`category (IPCC1996)` %in% c("1.B.2","2.C.2","2.B.5"))
-
-match<-openxlsx::read.xlsx("C:/Users/doen/Documents/IPCC data/PRIMAP_gases_matching.xlsx") %>%
-  select(-Description.PRIMAP)
-
-match$Code.PRIMAP<-gsub(" ","",match$Code.PRIMAP)
-
-gwps<-left_join(match,gwps,by=c("Code.gwps"="gas")) %>%
-  select(Code.PRIMAP,Code.gwps,gwp_ar5,gwp_ar6)
-
-gwps[1,4]<-27.2 #we first use the factor 27.2 for all CH4 and adjust in a second step
-
-crf_total_sector<-left_join(crf_total_sector,gwps,by=c("entity"="Code.PRIMAP"))
-
-crf_total_sector<-crf_total_sector %>%
-  #filter(unit=="kt") %>%
-  # filter(country!="EU27BX") %>%
-  # filter(country!="EU28") %>%
-  filter(`area (ISO3)`!="EU27BX") %>%
-  filter(`area (ISO3)`!="EU28") %>%
-  filter(!is.na(gwp_ar6))
-
-crf_total_sector<-gather(crf_total_sector,key = "year", value = "value", "1986":"2019") %>%
-  mutate(value=ifelse(unit1=="k",value*1e3,value)) %>%   #transforming kt to t
-  mutate(unit="t") %>%
-  select(-unit1) %>%
-  mutate(year=as.numeric(year))
-
-crf_total_sector<-crf_total_sector %>% 
-  #mutate(GHG_crf=value*gwp_ar6) %>%
-  mutate(GHG_crf=value*gwp_ar5) %>%
-  select(-gwp_ar5,-gwp_ar6,-Code.gwps)
-
-##adjusting for fugitive methane
-crf_methane_adjustment<-gather(crf_methane_adjustment,key = "year", value = "value", "1986":"2019") %>%
-  mutate(value=value*1e3) %>%   #transforming kt to t
-  mutate(unit="t") %>%
-  mutate(year=as.numeric(year)) %>%
-  # mutate(GHG_crf=value*(29.8-27.2))          #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
-  mutate(GHG_crf=value*(30-28))
-  
-crf_total_sector<-rbind(crf_total_sector,crf_methane_adjustment)
-
-crf_total_sector<-crf_total_sector %>%
-  group_by(`area (ISO3)`,year) %>%
-  summarise(GHG_crf=sum(GHG_crf,na.rm = TRUE))
+# crf_data<-read_csv("../../Data/supplemetary data/Guetschow-et-al-2021-PRIMAP-crf96_2021-v1.csv")
+# 
+# 
+# crf_total_sector<-crf_data %>%
+#   #filter(category=="IPC0")
+#   #filter(category=="IPCM0EL")  #IPCM0EL excludes LULUCF
+#   filter(`category (IPCC1996)`=="M.0.EL") %>%  #excludes LULUCF
+#   mutate(unit1=substring(unit,1,1))
+# 
+# crf_methane_adjustment<-crf_data %>%
+#   filter(entity=="CH4") %>%
+#   filter(`category (IPCC1996)` %in% c("1.B.2","2.C.2","2.B.5"))
+# 
+# match<-openxlsx::read.xlsx("C:/Users/doen/Documents/IPCC data/PRIMAP_gases_matching.xlsx") %>%
+#   select(-Description.PRIMAP)
+# 
+# match$Code.PRIMAP<-gsub(" ","",match$Code.PRIMAP)
+# 
+# gwps<-left_join(match,gwps,by=c("Code.gwps"="gas")) %>%
+#   select(Code.PRIMAP,Code.gwps,gwp_ar5,gwp_ar6)
+# 
+# gwps[1,4]<-27.2 #we first use the factor 27.2 for all CH4 and adjust in a second step
+# 
+# crf_total_sector<-left_join(crf_total_sector,gwps,by=c("entity"="Code.PRIMAP"))
+# 
+# crf_total_sector<-crf_total_sector %>%
+#   #filter(unit=="kt") %>%
+#   # filter(country!="EU27BX") %>%
+#   # filter(country!="EU28") %>%
+#   filter(`area (ISO3)`!="EU27BX") %>%
+#   filter(`area (ISO3)`!="EU28") %>%
+#   filter(!is.na(gwp_ar6))
+# 
+# crf_total_sector<-gather(crf_total_sector,key = "year", value = "value", "1986":"2019") %>%
+#   mutate(value=ifelse(unit1=="k",value*1e3,value)) %>%   #transforming kt to t
+#   mutate(unit="t") %>%
+#   select(-unit1) %>%
+#   mutate(year=as.numeric(year))
+# 
+# crf_total_sector<-crf_total_sector %>% 
+#   #mutate(GHG_crf=value*gwp_ar6) %>%
+#   mutate(GHG_crf=value*gwp_ar5) %>%
+#   select(-gwp_ar5,-gwp_ar6,-Code.gwps)
+# 
+# ##adjusting for fugitive methane
+# crf_methane_adjustment<-gather(crf_methane_adjustment,key = "year", value = "value", "1986":"2019") %>%
+#   mutate(value=value*1e3) %>%   #transforming kt to t
+#   mutate(unit="t") %>%
+#   mutate(year=as.numeric(year)) %>%
+#   mutate(GHG_crf=value*(29.8-27.2))          #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
+#   #mutate(GHG_crf=value*(30-28))
+#   
+# crf_total_sector<-rbind(crf_total_sector,crf_methane_adjustment)
+# 
+# crf_total_sector<-crf_total_sector %>%
+#   group_by(`area (ISO3)`,year) %>%
+#   summarise(GHG_crf=sum(GHG_crf,na.rm = TRUE))
 
 ```
 
@@ -231,15 +232,17 @@ countries$region_ar6_6_short <-  factor(countries$region_ar6_6_short,levels(plot
 
 countries <- left_join(countries,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
 
-countries <- left_join(countries,crf_total_sector,by=c("ISO"="area (ISO3)","year"="year"))
+countries <- left_join(countries,crf_ghg %>% filter(gas=="GHG"),by=c("ISO","year"))
 
 countries <- countries %>% 
+  select(-gas,-gwp_crf_ar5) %>%
+  rename("GHG_crf"="gwp_crf_ar6") %>%
   mutate(emissions_pc = GHG/population) %>% 
   mutate(emissions_pgdp = (GHG/gdp_ppp)*1e3) %>%
-  mutate(emissions_pc_crf = GHG_crf/population) %>% 
-  mutate(emissions_pgdp_crf = (GHG_crf/gdp_ppp)*1e3) %>%
-  mutate(GHG=GHG/1e9) %>%
-  mutate(GHG_crf=GHG_crf/1e9)
+  mutate(emissions_pc_crf = GHG_crf/population*1e9) %>% 
+  mutate(emissions_pgdp_crf = (GHG_crf/gdp_ppp)*1e12) %>%
+  mutate(GHG=GHG/1e9) #%>%
+  #mutate(GHG_crf=GHG_crf/1e9)
 
 # what is 75% of the emissions?
 threshold <- countries %>%

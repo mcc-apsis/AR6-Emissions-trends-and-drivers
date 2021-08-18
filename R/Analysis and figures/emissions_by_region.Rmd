@@ -22,6 +22,7 @@ source("small_figures.R")
 load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
+load('../../Data/primap_crf_data_ghg_gwp.RData')
 
 options(dplyr.summarise.inform = FALSE)
 

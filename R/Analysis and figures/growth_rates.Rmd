@@ -52,7 +52,7 @@ growth_rates <- function(data) {
     filter(year %in% c(1990,2000,2010,2019))
   rates <- spread(rates,year,value)
   
-  # calculate rates (note that 1990:2000 etc. is 11 years of data, not 10)
+  # calculate rates (note that 1990:2000 etc. is 10 years of data, not 11, as we assume emissions in 1990 is at the end of the year - 31.12.1990)
   rates <- rates %>% 
     group_by(var) %>% 
     mutate(`1990-2000`=((((`2000`/`1990`)^(1/(2000-1990)))-1))*100) %>% 
@@ -203,7 +203,7 @@ addWorksheet(wb,"sectors")
 addWorksheet(wb,"subsectors")
 addWorksheet(wb,"countries")
 
-info = data.frame(x=c("Author","Last update","Code","","gases","regions","sectors","subsectors","countries","","method","important note"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/growth_rates.Rmd","","growth rates by gas (totals in GWP100 AR6)","growth rates by region (totals in GWP100 AR6, includes LULUCF CO2)","growth rates by sector (totals in GWP100 AR6, includes indirect CO2 and LULUCF CO2","growth rates by subsector (totals in GWP100 AR6)","growth rates by country (totals in GWP100 AR6, excludes LULUCF CO2)","","We use the simple compound annual growth rate calculation (see Annex B)","Growth rates include the first and last year. For example, the estimate for 1990-2000 has 11 years of data. Also, some years (e.g. 2000) have a leap year adjustment applied to them, so will show slightly different totals."))
+info = data.frame(x=c("Author","Last update","Code","","gases","regions","sectors","subsectors","countries","","method","important note"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/growth_rates.Rmd","","growth rates by gas (totals in GWP100 AR6)","growth rates by region (totals in GWP100 AR6, includes LULUCF CO2)","growth rates by sector (totals in GWP100 AR6, includes indirect CO2 and LULUCF CO2","growth rates by subsector (totals in GWP100 AR6)","growth rates by country (totals in GWP100 AR6, excludes LULUCF CO2)","","We use the simple compound annual growth rate calculation (see Annex B)","Growth rates assume emissions are at the end of each year - 31.12. For example, the estimate for 1990-2000 has 10 years of data."))
 
 writeData(wb, sheet="info",info,colNames=F,rowNames=F)
 writeData(wb, sheet = "gases", gases, colNames = T, rowNames = F)
