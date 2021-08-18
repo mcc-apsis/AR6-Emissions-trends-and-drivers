@@ -235,9 +235,9 @@ regions_10 <- ipcc_regions %>%
 
 ## rename South-East Asia to match TSU codes though
 
-iea <- iea %>% 
-  mutate(country = as.character(country)) %>% 
-  mutate(country = ifelse(country=="South-East Asia and developing Pacific","South-East Asia and Developing Pacific",country))
+# iea <- iea %>% 
+#   mutate(country = as.character(country)) %>% 
+#   mutate(country = ifelse(country=="South-East Asia and developing Pacific","South-East Asia and Developing Pacific",country))
 
 indirect_CO2_regions <- left_join(iea,regions_10,by=c("country"="region_ar6_10"))
 indirect_CO2_regions <- indirect_CO2_regions %>%
