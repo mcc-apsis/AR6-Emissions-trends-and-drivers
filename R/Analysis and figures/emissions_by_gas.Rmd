@@ -328,7 +328,7 @@ p_gas_totals <- gas_trend %>%
   geom_text(data=shares,aes(x=year+0.25,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525",hjust=0)+
   
   #### text with the totals
-  geom_text(data=shares %>% filter(gas=="Fgas"),aes(x=year,y=62,label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
+  geom_text(data=shares %>% filter(gas=="Fgas"),aes(x=year,y=62,label=paste(round(totals,1),  "Gt")),size=3.5,colour="#252525")+
   
   ylab('Greenhouse gas emissions (GtCO2eq/yr)') +
   labs(fill="Gas") +
