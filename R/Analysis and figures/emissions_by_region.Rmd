@@ -195,62 +195,6 @@ region_rates <- rbind(region_rates,scenario_data)
 
 ```
 
-
-```{r bar_plot_version, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
-
-
-############# plot with data as bars showing the full range and regional mean and LULUCF CO2
-
-region_rates_bars <- region_rates %>% 
-  group_by(aggregated_category) %>% 
-  summarise(min=min(rate,na.rm=TRUE),max=max(rate,na.rm=TRUE),mean=mean(rate,na.rm=TRUE),facet=first(facet))
-
-region_averages <- region_trend %>% 
-  filter(year %in% c(time_start,2019)) %>% 
-  group_by(region_ar6_6) %>% 
-  summarise(region_mean=(last(value)/first(value))^(1/(last(year)-first(year)))-1) %>% 
-  ungroup() %>% 
-  mutate(region_mean=region_mean*100)
-
-region_rates_bars <- left_join(region_rates_bars,region_averages,by=c("aggregated_category"="region_ar6_6"))
-region_rates_bars <- region_rates_bars %>% 
-  mutate(mean=ifelse(!is.na(region_mean),region_mean,mean)) %>% 
-  select(-region_mean)
-
-# reorder levels for plotting
-region_rates_bars$aggregated_category <- as.factor(region_rates_bars$aggregated_category)
-region_rates_bars$aggregated_category <- factor(region_rates_bars$aggregated_category,levels= levels(region_rates_bars$aggregated_category)[c(4,5,6,7,8,9,2,3,1)])
-
-region_rates_bars <- region_rates_bars %>% arrange(aggregated_category)
-region_rates_bars$id <- seq_along(region_rates_bars$aggregated_category)
-region_rates_bars$id[7:9] <- c(1,2,3)
-
-# custom color palette
-colors = c("#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#cccccc","#969696","#636363")
-
-
-p3 <- region_rates_bars %>% 
-  ggplot(.,aes(fill=aggregated_category,color=aggregated_category)) +
-  geom_hline(yintercept=0,color="#636363") +
-  geom_rect(aes(x=aggregated_category,xmin=id-0.35,xmax=id+0.35,ymin=min,ymax=max),alpha=0.6) +
-  geom_rect(aes(x=aggregated_category,xmin=id-0.35,xmax=id+0.35,ymin=mean-0.08,ymax=mean+0.08)) +
-  scale_fill_manual(values=colors) +
-  scale_color_manual(values=colors) +
-  scale_x_discrete(labels = function(aggregated_category) str_wrap(aggregated_category, width = 10)) +
-  facet_grid(.~facet,scales="free",space="free") +
-  theme_bw() +
-  ylab(str_wrap("Average annual GHG emissions growth rates (%)",width=27)) +
-  theme(axis.title.x = element_blank(),
-        legend.position = "none",
-        panel.grid.minor = element_blank(),
-        title = element_text(size=10)) +
-  ggtitle("b. Recent emission change by region vs. rates compatible with warming targets")
-p3
-
-
-
-```
-
 ```{r compile_jitter_data, echo=FALSE,warning=FALSE}
 
 # calculate mean rates for the scenario categories
@@ -305,57 +249,9 @@ region_summary <- region_rates %>%
 
 ```
 
-```{r jitter_plot_version_pop, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
-
-
+```{r region_trends_scenarios, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
 p2 <- region_rates %>% 
-  ggplot(.,aes(x=aggregated_category,rate,fill=aggregated_category,color=aggregated_category,size=emissions_total_2019)) +
-  geom_hline(yintercept=0,color="#636363") +
-  geom_jitter(width=0.1,shape=21,color="#636363") +
-  stat_summary(data = region_summary, geom = "crossbar",
-                 width = .7,aes(color=aggregated_category),size=0.4) +
-  scale_fill_manual(values=alpha(colors,0.5)) +
-  scale_color_manual(values=colors) +
-  scale_size_continuous(range=c(1.5,12)) +
-  scale_x_discrete(labels = function(aggregated_category) str_wrap(aggregated_category, width = 10)) +
-  facet_grid(.~facet,scales="free",space="free") +
-  theme_bw() +
-  ylab(str_wrap("Average annual GHG emissions growth rates (%)",width=27)) +
-  theme(axis.title.x = element_blank(),
-        legend.position = "none",
-        panel.grid.minor = element_blank(),
-        title = element_text(size=10)) +
-  ggtitle("b. Recent emission change by region vs. rates compatible with warming targets")
-p2
-
-```
-
-```{r jitter_plot_version_nopop, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
-
-p3 <- region_rates %>% 
-  ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregated_category,color=aggregated_category)) +
-  geom_hline(yintercept=0,color="#636363") +
-  geom_jitter(width=0.1,shape=21,color="#636363",size=2) +
-  stat_summary(data = region_summary, geom = "crossbar",
-                 width = .7,aes(color=aggregated_category),size=0.4) +
-  scale_fill_manual(values=alpha(colors,0.5)) +
-  scale_color_manual(values=colors) +
-  scale_x_discrete(labels = function(aggregated_category) str_wrap(aggregated_category, width = 10)) +
-  facet_grid(.~facet,scales="free",space="free") +
-  theme_bw() +
-  ylab(str_wrap("Average annual GHG emissions growth rates (%)",width=27)) +
-  theme(axis.title.x = element_blank(),
-        legend.position = "none",
-        panel.grid.minor = element_blank(),
-        title = element_text(size=10)) +
-  ggtitle("b. Recent emission change by region vs. rates compatible with warming targets")
-p3
-
-```
-```{r jitter_plot_version_flat, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
-
-p4 <- region_rates %>% 
   ggplot(.,aes(x=aggregated_category,rate,fill=aggregated_category,color=aggregated_category,size=emissions_total_2019)) +
   geom_hline(yintercept=0,color="#636363") +
   geom_point(shape=21,color="#636363") +
@@ -371,24 +267,38 @@ p4 <- region_rates %>%
   theme(axis.title.x = element_blank(),
         legend.position = "none",
         panel.grid.minor = element_blank(),
-        title = element_text(size=10)) +
-  ggtitle("b. Recent emission change by region vs. rates compatible with warming targets")
-p4
+        title = element_text(size=10)) 
+p2 
+
+```
+```{r growth_analysis, echo=FALSE,warning=FALSE}
+
+
+# 1990 - 2019 abs change and growth
+# 2010 - 2019 abs change and growth
+
+region_growth <- region_trend %>% 
+  filter(year %in% c(1990,2010,2019))
+region_growth <- spread(region_growth,year,value)
+region_growth <- region_growth %>% 
+  mutate(`1990-2019 change (GtCO2eq)`=`2019`-`1990`) %>% 
+  mutate(`1990-2019 change (%)`=((`2019`-`1990`)/(`1990`))*100) %>% 
+  mutate(`2010-2019 change (GtCO2eq)`=`2019`-`2010`) %>% 
+  mutate(`2010-2019 change (%)`=((`2019`-`2010`)/(`2010`))*100)
 
 ```
 
-
 ```{r region_trends_spm, echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
-p1 / p3 + plot_layout(heights = c(2, 1))
-
-regions <- p1 / p4 + plot_layout(heights = c(2, 1))
+p2 <- p2 + ggtitle("b. Recent emission change by region vs. rates compatible with warming targets")
+regions <- p1 / p2 + plot_layout(heights = c(2, 1))
 regions
 
 
 addWorksheet(wb,"info")
 addWorksheet(wb,"panel_a")
 addWorksheet(wb,"panel_b_rates")
+addWorksheet(wb,"overall_growth")
 
 
 info = data.frame(x=c("Author","Last update","Code"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_region.Rmd"))
@@ -396,6 +306,7 @@ info = data.frame(x=c("Author","Last update","Code"),y=c("William F. Lamb",as.ch
 writeData(wb, sheet="info",info,colNames=F,rowNames=F)
 writeData(wb, sheet = "panel_a", spread(region_trend %>% select(-region_ar6_6_short),year,value), colNames = T, rowNames = F)
 writeData(wb, sheet = "panel_b_rates", region_rates, colNames = T, rowNames = F)
+writeData(wb, sheet = "overall_growth", region_growth, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm2_regions.xlsx"),overwrite=T)
 

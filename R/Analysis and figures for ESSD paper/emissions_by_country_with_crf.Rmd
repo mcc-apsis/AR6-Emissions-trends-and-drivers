@@ -246,14 +246,14 @@ countries <- countries %>%
 
 # what is 75% of the emissions?
 threshold <- countries %>%
-  filter(year==2019)
+  filter(year==2018)
 threshold <- sum(threshold$GHG,na.rm=T)*0.75
 
 
 ## calculate average annual and absolute growth
 
 countries <- countries %>% 
-  filter(year %in% c(time_start,2019)) %>% 
+  filter(year %in% c(time_start,2018)) %>% 
   group_by(country) %>% 
   mutate(avg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_growth=last(GHG)-first(GHG)) %>%
@@ -261,7 +261,7 @@ countries <- countries %>%
   mutate(abs_growth_crf=last(GHG_crf)-first(GHG_crf)) %>%
       #mutate(GHG_1990=first(GHG))%>%
       #mutate(GHG_1990_crf=first(GHG_crf))%>%
-  filter(year==2019) %>% 
+  filter(year==2018) %>% 
   mutate(avg_growth=avg_growth*100) %>%
   mutate(avg_growth_crf=avg_growth_crf*100)
 
@@ -296,7 +296,7 @@ p2 <- countries %>%
   plot_theme +
   ylab("%") +
   ggtitle(str_wrap("b. Avg. annual GHG emissions growth",width=38)) +
-  annotate(geom = 'text', label = 'Years: 1990-2019',
+  annotate(geom = 'text', label = 'Years: 1990-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
 
 #absolute
@@ -312,7 +312,7 @@ p3 <- countries %>%
   plot_theme +
   ylab("Gt CO2eq") +
   ggtitle(str_wrap("c. Absolute GHG emissions growth",width=35)) +
-    annotate(geom = 'text', label = 'Years: 1990-2019',
+    annotate(geom = 'text', label = 'Years: 1990-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
 
 #pc
@@ -328,7 +328,7 @@ p4 <- countries %>%
   plot_theme +
   ylab("tCO2eq/cap") +
   ggtitle(str_wrap("d. GHG emissions per capita",width=35)) +
-    annotate(geom = 'text', label = 'Year: 2019',
+    annotate(geom = 'text', label = 'Year: 2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#737373")
 
 #pgdp
@@ -344,13 +344,13 @@ p5 <- countries %>%
   plot_theme +
   ylab("kgCO2eq/$") +
   ggtitle(str_wrap("e. GHG emissions intensity",width=35)) +
-    annotate(geom = 'text', label = 'Year: 2019',
+    annotate(geom = 'text', label = 'Year: 2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
 
 
 
-openxlsx::addWorksheet(wb,"countries_2019")
-openxlsx::writeData(wb, sheet = "countries_2019", countries, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,"countries_2018")
+openxlsx::writeData(wb, sheet = "countries_2018", countries, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_countries_data_",Sys.Date(),".xlsx"),overwrite=T)
 

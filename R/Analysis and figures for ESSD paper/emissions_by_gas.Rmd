@@ -25,12 +25,19 @@ source("../Analysis and figures/small_figures.R")
 # load('../../Data/edgar_data_gwp_ar6.RData')
 # load("../../Data/edgar_data_all.RData")
 #load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
-load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
+#load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
 #load("../../Data/edgar6_data_raw_gwp_ar5.RData") #if changed to ar6 change line 432 and 440
 #load("../../Data/edgar6_data_raw.RData")
-load("../../Data/edgar_essd_data_raw.RData")
+#load("../../Data/edgar_essd_data_raw.RData")
+load('../../Data/edgar6_v2_data_raw.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
+load("../../Data/primap_crf_data_ghg_gwp.RData")
+
+crf_ghg<- crf_ghg%>%
+  filter(gas=="GHG")%>%
+  select(-gas)
 
 
 # set palette
@@ -451,66 +458,66 @@ p_gas_totals
 ```{r country_changes,echo=FALSE,warning=FALSE,include=FALSE,fig.width=8,fig.height=6}
 
 ## CRF data
-crf_data<-read_csv("../../Data/supplemetary data/Guetschow-et-al-2021-PRIMAP-crf96_2021-v1.csv")
-
-crf_total_sector<-crf_data %>%
-  filter(`category (IPCC1996)`=="M.0.EL") %>%  #excludes LULUCF
-  mutate(unit1=substring(unit,1,1))
-
-crf_methane_adjustment<-crf_data %>%
-  filter(entity=="CH4") %>%
-  filter(`category (IPCC1996)` %in% c("1.B.2","2.C.2","2.B.5"))
-
-match<-openxlsx::read.xlsx("../../Data/PRIMAP_gases_matching.xlsx") %>%
-  select(-Description.PRIMAP)
-
-match$Code.PRIMAP<-gsub(" ","",match$Code.PRIMAP)
-
-gwps<-left_join(match,gwps,by=c("Code.gwps"="gas")) %>%
-  select(Code.PRIMAP,Code.gwps,gwp_ar5,gwp_ar6)
-
-gwps[1,4]<-28 #we first use the factor 27.2 for all CH4 and adjust in a second step
-
-crf_total_sector<-left_join(crf_total_sector,gwps,by=c("entity"="Code.PRIMAP"))
-
-crf_total_sector<-crf_total_sector %>%
-  filter(`area (ISO3)`!="EU27BX") %>%
-  filter(`area (ISO3)`!="EU28") %>%
-  filter(!is.na(gwp_ar6))
-
-crf_total_sector<-gather(crf_total_sector,key = "year", value = "value", "1986":"2019") %>%
-  mutate(value=ifelse(unit1=="k",value/1e6,value/1e9)) %>%   #transforming kt to Gt
-  mutate(unit="Gt") %>%
-  select(-unit1) %>%
-  mutate(year=as.numeric(year))
-
-crf_total_sector<-crf_total_sector %>% 
-  #mutate(GHG_crf=value*gwp_ar6) %>%
-  mutate(GHG_crf=value*gwp_ar5) %>%
-  select(-gwp_ar5,-gwp_ar6,-Code.gwps)
-
-##adjusting for fugitive methane
-crf_methane_adjustment<-gather(crf_methane_adjustment,key = "year", value = "value", "1986":"2019") %>%
-  mutate(value=value/1e6) %>%   #transforming kt to Gt
-  mutate(unit="Gt") %>%
-  mutate(year=as.numeric(year)) %>%
-  #mutate(GHG_crf=value*(29.8-27.2))          #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
-  mutate(GHG_crf=value*(30-28))
-  
-crf_total_sector<-rbind(crf_total_sector,crf_methane_adjustment)
-
-crf_total_sector<-crf_total_sector %>%
-  group_by(`area (ISO3)`,year) %>%
-  summarise(GHG_crf=sum(GHG_crf,na.rm = TRUE))
+# crf_data<-read_csv("../../Data/supplemetary data/Guetschow-et-al-2021-PRIMAP-crf96_2021-v1.csv")
+# 
+# crf_total_sector<-crf_data %>%
+#   filter(`category (IPCC1996)`=="M.0.EL") %>%  #excludes LULUCF
+#   mutate(unit1=substring(unit,1,1))
+# 
+# crf_methane_adjustment<-crf_data %>%
+#   filter(entity=="CH4") %>%
+#   filter(`category (IPCC1996)` %in% c("1.B.2","2.C.2","2.B.5"))
+# 
+# match<-openxlsx::read.xlsx("../../Data/PRIMAP_gases_matching.xlsx") %>%
+#   select(-Description.PRIMAP)
+# 
+# match$Code.PRIMAP<-gsub(" ","",match$Code.PRIMAP)
+# 
+# gwps<-left_join(match,gwps,by=c("Code.gwps"="gas")) %>%
+#   select(Code.PRIMAP,Code.gwps,gwp_ar5,gwp_ar6)
+# 
+# gwps[1,4]<-28 #we first use the factor 27.2 for all CH4 and adjust in a second step
+# 
+# crf_total_sector<-left_join(crf_total_sector,gwps,by=c("entity"="Code.PRIMAP"))
+# 
+# crf_total_sector<-crf_total_sector %>%
+#   filter(`area (ISO3)`!="EU27BX") %>%
+#   filter(`area (ISO3)`!="EU28") %>%
+#   filter(!is.na(gwp_ar6))
+# 
+# crf_total_sector<-gather(crf_total_sector,key = "year", value = "value", "1986":"2019") %>%
+#   mutate(value=ifelse(unit1=="k",value/1e6,value/1e9)) %>%   #transforming kt to Gt
+#   mutate(unit="Gt") %>%
+#   select(-unit1) %>%
+#   mutate(year=as.numeric(year))
+# 
+# crf_total_sector<-crf_total_sector %>% 
+#   #mutate(GHG_crf=value*gwp_ar6) %>%
+#   mutate(GHG_crf=value*gwp_ar5) %>%
+#   select(-gwp_ar5,-gwp_ar6,-Code.gwps)
+# 
+# ##adjusting for fugitive methane
+# crf_methane_adjustment<-gather(crf_methane_adjustment,key = "year", value = "value", "1986":"2019") %>%
+#   mutate(value=value/1e6) %>%   #transforming kt to Gt
+#   mutate(unit="Gt") %>%
+#   mutate(year=as.numeric(year)) %>%
+#   #mutate(GHG_crf=value*(29.8-27.2))          #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
+#   mutate(GHG_crf=value*(30-28))
+#   
+# crf_total_sector<-rbind(crf_total_sector,crf_methane_adjustment)
+# 
+# crf_total_sector<-crf_total_sector %>%
+#   group_by(`area (ISO3)`,year) %>%
+#   summarise(GHG_crf=sum(GHG_crf,na.rm = TRUE))
 
 ## get country level data
 
-time_start=2010
+time_start=2009
 
 countries <- edgar_ghg %>% 
   filter(region_ar6_6_short!="AIR") %>% 
   filter(region_ar6_6_short!="SEA") %>% 
-  filter(year>=time_start & year<=2019) %>% 
+  filter(year>=time_start & year<=2018) %>% 
   group_by(country,ISO,year,region_ar6_6_short) %>% 
   summarise_at(vars(CH4:GHG),sum,na.rm=TRUE) %>% 
   mutate_at(vars(CH4:GHG),list(~./1e9)) %>%
@@ -519,11 +526,11 @@ countries <- edgar_ghg %>%
 
 # what is 75% of the emissions?
 threshold <- countries %>%
-  filter(year==2019)
+  filter(year==2018)
 threshold <- sum(threshold$GHG,na.rm=T)*0.75
 large_emitters<- countries %>% 
   ungroup() %>% 
-  filter(year==2019) %>%
+  filter(year==2018) %>%
   arrange(desc(GHG)) %>% 
   mutate(cumulative_GHG=cumsum(GHG)) %>% 
   filter(cumulative_GHG<threshold) %>%
@@ -531,10 +538,12 @@ large_emitters<- countries %>%
 
 countries<-gather(countries,value = value,key = gas,CH4:Fgas)
 
-countries<-left_join(countries,crf_total_sector,by=c("ISO"="area (ISO3)","year"="year"))
+#countries<-left_join(countries,crf_total_sector,by=c("ISO"="area (ISO3)","year"="year"))
+countries<-left_join(countries,crf_ghg,by=c("ISO","year"))%>%
+  rename("GHG_crf"="gwp_crf_ar6")
 
 countries <- countries %>% 
-  filter(year %in% c(time_start,2019)) %>% 
+  filter(year %in% c(time_start,2018)) %>% 
   group_by(country,gas) %>% 
   #mutate(avg_growth=ifelse(is.na(value),value,1))#growth_rate(years = year,y=value))) %>%
   mutate(avg_growth=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>% 
@@ -545,7 +554,7 @@ countries <- countries %>%
   #mutate(avg_ghg_growth_crf=ifelse(is.na(growth_rate(years = year,y=GHG_crf)),NA,growth_rate(years = year,y=GHG_crf))) %>%
   mutate(avg_ghg_growth_crf=(last(GHG_crf)/first(GHG_crf))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_ghg_growth_crf=last(GHG_crf)-first(GHG_crf)) %>%
-  filter(year==2019) %>% 
+  filter(year==2018) %>% 
   mutate(avg_growth=avg_growth*100)%>% 
   mutate(avg_ghg_growth=avg_ghg_growth*100)%>%
   mutate(avg_ghg_growth_crf=ifelse(is.na(avg_ghg_growth_crf),NA,avg_ghg_growth_crf*100))
@@ -576,7 +585,7 @@ p_countries_rate <- countries %>%
   plot_theme +
   ylab("%") +
   ggtitle(str_wrap("b. Avg. annual GHG emissions growth",width=38)) +
-  annotate(geom = 'text', label = 'Years: 2010-2019',
+  annotate(geom = 'text', label = 'Years: 2009-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
 
 #absolute
@@ -590,26 +599,26 @@ p_countries_abs <- countries %>%
   plot_theme +
   ylab("Gt CO2eq") +
   ggtitle(str_wrap("c. Absolute GHG emissions growth",width=35)) +
-    annotate(geom = 'text', label = 'Years: 2010-2019',
+    annotate(geom = 'text', label = 'Years: 2009-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
 
 
-openxlsx::addWorksheet(wb,"countries_2019")
-openxlsx::writeData(wb, sheet = "countries_2019", countries, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,"countries_2018")
+openxlsx::writeData(wb, sheet = "countries_2018", countries, colNames = T, rowNames = F)
 
 
 ```
 
 ```{r sector_changes,echo=FALSE,warning=FALSE,include=FALSE,fig.width=8,fig.height=6}
 
-time_start=2010
+time_start=2009
 
 ## get country level data
 
 sectors <- edgar_ghg %>% 
  # filter(region_ar6_6_short!="AIR") %>% 
 #  filter(region_ar6_6_short!="SEA") %>% 
-  filter(year>=time_start & year<=2019) %>% 
+  filter(year>=time_start & year<=2018) %>% 
   group_by(year,chapter,chapter_title,subsector,subsector_title) %>% 
   summarise_at(vars(CH4:GHG),sum,na.rm=TRUE) %>% 
   mutate_at(vars(CH4:GHG),list(~./1e9)) %>%
@@ -618,7 +627,7 @@ sectors <- edgar_ghg %>%
 
 land <- land %>%
   filter(year>=time_start) %>% 
-  filter(year<=2019) %>% 
+  filter(year<=2018) %>% 
   mutate(chapter=7) %>% 
   mutate(chapter_title="AFOLU") %>% 
   mutate(subsector=7.7) %>% 
@@ -647,11 +656,11 @@ sectors <- sectors %>%
 
 # what is 90% of the emissions?
 threshold <- sectors %>%
-  filter(year==2019)
+  filter(year==2018)
 threshold <- sum(threshold$GHG,na.rm=T)*0.9
 large_emitters<- sectors %>% 
   ungroup() %>% 
-  filter(year==2019) %>%
+  filter(year==2018) %>%
   arrange(desc(GHG)) %>% 
   mutate(cumulative_GHG=cumsum(GHG)) %>% 
   filter(cumulative_GHG<threshold) %>%
@@ -660,7 +669,7 @@ large_emitters<- sectors %>%
 sectors<-gather(sectors,value = value,key = gas,c(CO2,CH4,N2O,Fgas,CO2_land,CO2_indirect))
 
 sectors <- sectors %>% 
-  filter(year %in% c(time_start,2019)) %>% 
+  filter(year %in% c(time_start,2018)) %>% 
   group_by(subsector,subsector_title,gas) %>% 
   #mutate(avg_growth=growth_rate(years = year,y=value)) %>%
   mutate(avg_growth=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>% 
@@ -668,7 +677,7 @@ sectors <- sectors %>%
  # mutate(avg_ghg_growth=growth_rate(years = year,y=GHG)) %>%
   mutate(avg_ghg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_ghg_growth=last(GHG)-first(GHG)) %>%
-  filter(year==2019) %>% 
+  filter(year==2018) %>% 
   mutate(avg_growth=avg_growth*100) %>% 
   mutate(avg_ghg_growth=avg_ghg_growth*100)
 
@@ -697,7 +706,7 @@ p_sectors_rate <- sectors %>%
   plot_theme +
   ylab("%") +
   ggtitle(str_wrap("d. Avg. annual GHG emissions growth",width=38)) +
-  annotate(geom = 'text', label = 'Years: 2010-2019',
+  annotate(geom = 'text', label = 'Years: 2009-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
 
 #absolute
@@ -710,14 +719,14 @@ p_sectors_abs <- sectors %>%
   plot_theme +
   ylab("Gt CO2eq") +
   ggtitle(str_wrap("e. Absolute GHG emissions growth",width=35)) +
-    annotate(geom = 'text', label = 'Years: 2010-2019',
+    annotate(geom = 'text', label = 'Years: 2009-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
 
 #sectors<- sectors %>%
 #  pivot_wider(key=year,values_from)
 
-openxlsx::addWorksheet(wb,"sectors_2019")
-openxlsx::writeData(wb, sheet = "sectors_2019", sectors, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,"sectors_2018")
+openxlsx::writeData(wb, sheet = "sectors_2018", sectors, colNames = T, rowNames = F)
 
 
 ```

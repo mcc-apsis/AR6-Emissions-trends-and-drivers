@@ -119,6 +119,46 @@ regions <- growth_rates(regions)
 
 ```{r sectors, echo=FALSE}
 
+sectors_indirect <- edgar_ghg %>% 
+  group_by(chapter_title,year) %>% 
+  summarise(ghg=sum(GHG,na.rm=TRUE))
+
+## add LULUCF CO2
+
+sectors_indirect_land <- land %>%
+  group_by(year) %>% 
+  summarise(land=sum(mean)) %>% 
+  mutate(chapter_title="AFOLU")
+
+sectors_indirect <- left_join(sectors_indirect,sectors_indirect_land,by = c("chapter_title", "year"))
+
+## add indirect CO2
+sectors_indirect_indirect <- gather(indirect_CO2_world,year,value,`1990`:`2018`) %>% 
+  group_by(year,chapter_title) %>% 
+  summarise(indirect_CO2=sum(value,na.rm=TRUE)*1e9) %>% 
+  mutate(year=as.numeric(year))
+
+sectors_indirect <- left_join(sectors_indirect,sectors_indirect_indirect,by = c("chapter_title", "year"))
+
+sectors_indirect <- sectors_indirect %>% 
+  mutate(ghg=ifelse(chapter_title=="AFOLU",ghg+land,ghg)) %>% 
+  mutate(ghg=ifelse(chapter_title=="Industry",ghg+indirect_CO2,ghg)) %>% 
+  mutate(ghg=ifelse(chapter_title=="Buildings",ghg+indirect_CO2,ghg)) %>% 
+  mutate(ghg=ifelse(chapter_title=="Transport",ghg+indirect_CO2,ghg)) %>% 
+  mutate(value=ghg/1e9) %>% 
+  mutate(category="Sectors (incl. indirect CO2)") %>% 
+  mutate(subcategory=NA) %>% 
+  select(category,subcategory,year,var=chapter_title,value)
+
+sectors_indirect <- growth_rates(sectors_indirect)
+
+```
+
+## Sectors (incl. LULUCF, excl. Indirect CO2)
+
+
+```{r sectors, echo=FALSE}
+
 sectors <- edgar_ghg %>% 
   group_by(chapter_title,year) %>% 
   summarise(ghg=sum(GHG,na.rm=TRUE))
@@ -132,19 +172,8 @@ sectors_land <- land %>%
 
 sectors <- left_join(sectors,sectors_land,by = c("chapter_title", "year"))
 
-## add indirect CO2
-sectors_indirect <- gather(indirect_CO2_world,year,value,`1990`:`2018`) %>% 
-  group_by(year,chapter_title) %>% 
-  summarise(indirect_CO2=sum(value,na.rm=TRUE)*1e9) %>% 
-  mutate(year=as.numeric(year))
-
-sectors <- left_join(sectors,sectors_indirect,by = c("chapter_title", "year"))
-
 sectors <- sectors %>% 
   mutate(ghg=ifelse(chapter_title=="AFOLU",ghg+land,ghg)) %>% 
-  mutate(ghg=ifelse(chapter_title=="Industry",ghg+indirect_CO2,ghg)) %>% 
-  mutate(ghg=ifelse(chapter_title=="Buildings",ghg+indirect_CO2,ghg)) %>% 
-  mutate(ghg=ifelse(chapter_title=="Transport",ghg+indirect_CO2,ghg)) %>% 
   mutate(value=ghg/1e9) %>% 
   mutate(category="Sectors") %>% 
   mutate(subcategory=NA) %>% 
@@ -191,6 +220,7 @@ countries <- growth_rates(countries)
 
 rates <- rbind(gases,regions)
 rates <- rbind(rates,sectors)
+rates <- rbind(rates,sectors_indirect)
 rates <- rbind(rates,subsectors)
 rates <- rbind(rates,countries)
 
@@ -200,6 +230,7 @@ addWorksheet(wb,"info")
 addWorksheet(wb,"gases")
 addWorksheet(wb,"regions")
 addWorksheet(wb,"sectors")
+addWorksheet(wb,"sectors_indirect")
 addWorksheet(wb,"subsectors")
 addWorksheet(wb,"countries")
 
@@ -209,6 +240,7 @@ writeData(wb, sheet="info",info,colNames=F,rowNames=F)
 writeData(wb, sheet = "gases", gases, colNames = T, rowNames = F)
 writeData(wb, sheet = "regions", regions, colNames = T, rowNames = F)
 writeData(wb, sheet = "sectors", sectors, colNames = T, rowNames = F)
+writeData(wb, sheet = "sectors_indirect", sectors_indirect, colNames = T, rowNames = F)
 writeData(wb, sheet = "subsectors", subsectors, colNames = T, rowNames = F)
 writeData(wb, sheet = "countries", countries, colNames = T, rowNames = F)
 

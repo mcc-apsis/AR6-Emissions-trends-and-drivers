@@ -303,13 +303,29 @@ rates %>%
 ```
 
 -----------------------------------------------------------------------
-### Sectors
+### Sectors (excl. indirect CO2)
 
 ```{r}
 
 
 rates %>% 
   filter(category=="Sectors") %>%
+  select(-category,-subcategory,Sector=var,`1990`:`1990-2019`) %>% 
+  kbl() %>% 
+  add_header_above(c("","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  kable_styling(bootstrap_options = c("striped"))
+
+
+```
+
+-----------------------------------------------------------------------
+### Sectors (incl. indirect CO2)
+
+```{r}
+
+
+rates %>% 
+  filter(category=="Sectors (incl. indirect CO2)") %>%
   select(-category,-subcategory,Sector=var,`1990`:`1990-2019`) %>% 
   kbl() %>% 
   add_header_above(c("","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 

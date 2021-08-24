@@ -362,11 +362,11 @@ p5 <- countries %>%
 openxlsx::addWorksheet(wb,"countries_2019")
 openxlsx::writeData(wb, sheet = "countries_2019", countries %>% select(-cutoff), colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,"../../Results/Plot data/ipcc_ar6_figure_spm2_regions.xlsx",overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_countries_data",Sys.Date(),".xlsx"),overwrite=T)
 
 ```
 
-```{r regions_countries,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="Results/Plots/",dev=c('png','pdf')}
+```{r regions_countries,echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
 p1 / ((p2 + p3) / (p4 + p5)) + plot_layout(heights = c(1,2))
 

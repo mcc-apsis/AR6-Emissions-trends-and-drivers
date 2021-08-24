@@ -44,7 +44,7 @@ match$Code.PRIMAP<-gsub(" ","",match$Code.PRIMAP)
 gwps<-left_join(match,gwps,by=c("Code.gwps"="gas")) %>%
   select(Code.PRIMAP,Code.gwps,gwp_ar5,gwp_ar6)
 
-gwps[1,4]<-27.2 #we first use the factor 27.2 for all CH4 and adjust in a second step
+gwps[1,4]<-27 #we first use the factor 27 for all CH4 and adjust in a second step
 
 crf_total_sector<-left_join(crf_total_sector,gwps,by=c("entity"="Code.PRIMAP"))
 
@@ -71,7 +71,7 @@ crf_methane_adjustment<-gather(crf_methane_adjustment,key = "year", value = "val
   mutate(value=value/1e6) %>%   #transforming kt to Gt
   mutate(unit="Gt") %>%
   mutate(year=as.numeric(year)) %>%
-  mutate(gwp_crf_ar6=value*(29.8-27.2)) %>%         #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
+  mutate(gwp_crf_ar6=value*(29.8-27)) %>%         #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
   mutate(gwp_crf_ar5=value*(30-28)) %>%
   mutate(gas="CH4")
   
