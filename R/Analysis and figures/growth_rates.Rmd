@@ -74,15 +74,27 @@ growth_rates <- function(data) {
 
 gases <- edgar_ghg %>% 
   group_by(year) %>% 
-  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>%
+  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE)
+
+gases_land <- land %>% 
+  group_by(year) %>% 
+  summarise(CO2_LULUCF=sum(mean,na.rm=TRUE))
+
+gases <- left_join(gases,gases_land,by="year")
+
+gases <- gases %>% mutate(GHG=CO2+CH4+N2O+Fgas+CO2_LULUCF)
+
+gases <- gases %>%
   filter(year>=1990) %>% 
   mutate(category="Gases") %>% 
-  mutate(subcategory=NA)
+  mutate(subcategory=NA) %>% 
+  select(year,CO2_FFI=CO2,everything())
 
-gases <- gather(gases,var,value,CO2:GHG)
+gases <- gather(gases,var,value,CO2_FFI:CO2_LULUCF)
 gases <- gases %>% 
-  mutate(value=value/1e9)
-
+  mutate(value=value/1e9) %>% 
+  mutate(var=as.factor(var))
+gases$var <- factor(gases$var,levels=levels(gases$var)[c(2,3,1,6,4,5)])
 gases <- growth_rates(gases)
 
 ```

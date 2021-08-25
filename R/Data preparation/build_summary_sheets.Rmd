@@ -239,13 +239,19 @@ sectors_gases <- sectors_gases %>%
   filter(!is.na(gas)) %>% 
   select(-value)
 
-only_sectors <- sectors_gases %>% 
+only_ipcc_sectors <- sectors_gases %>% 
   ungroup() %>% 
   select(-gas,-sector_code) %>% 
   distinct() %>% 
   group_by(chapter_title,subsector_title) %>% 
   summarise(ipcc_2006=paste0(ipcc_2006,collapse=", "))
 
+only_edgar_sectors <- sectors_gases %>% 
+  ungroup() %>% 
+  select(-gas,-ipcc_2006) %>% 
+  distinct() %>% 
+  group_by(chapter_title,subsector_title) %>% 
+  summarise(edgar_code=paste0(sector_code,collapse=", "))
 
 only_gases <- sectors_gases %>% 
   ungroup() %>% 
@@ -255,77 +261,53 @@ only_gases <- sectors_gases %>%
   summarise(gases=paste0(gas,collapse=", "))
 
 
-sectors_gases <- left_join(only_sectors,only_gases,by = c("chapter_title", "subsector_title"))
+sectors_gases <- left_join(only_edgar_sectors,only_ipcc_sectors,by = c("chapter_title", "subsector_title"))
+sectors_gases <- left_join(sectors_gases,only_gases,by = c("chapter_title", "subsector_title"))
 
 
-addWorksheet(wb2,"sectors_gases")
-writeData(wb2, sheet = "sectors_gases",sectors_gases, colNames = T, rowNames = F)
+addWorksheet(wb2,"sector_table_small")
+writeData(wb2, sheet = "sector_table_small",sectors_gases, colNames = T, rowNames = F)
 
 ```
 
 ```{r annex_b_table}
-# 
-# 
-# ipcc_codes <- read.xlsx('../../Data/Codes and classifications/EDGAR_IPCC1996_to_IPCC2006.xlsx',sheet=3)
-# 
-# # summary of sectors and their gases
-# 
-# annex <- edgar_raw %>% 
-#   group_by(sector_code,description,gas) %>% 
-#   summarise(value=sum(value,na.rm=TRUE))
-# 
-# annex <- annex %>% 
-#   group_by(sector_code,description) %>% 
-#   summarise(gases = paste0(gas,collapse=", "))
-# 
-# annex <- left_join(annex,ipcc_codes %>% select(-description,-ipcc_1996),by="sector_code")
-# 
-# annex <- annex %>% 
-#   group_by(sector_code,description) %>% 
-#   summarise(ipcc_2006=paste0(ipcc_2006,collapse=", "))
-#   
-# 
-# sectors_gases <- edgar_raw %>% 
-#   group_by(chapter_title,subsector_title,sector_code,fossil_bio,gas) %>% 
-#   summarise(value=sum(value,na.rm=TRUE))
-# 
-# # join dodgy IPCC 2006 correspondence
-# 
-# sectors_gases <- left_join(sectors_gases,ipcc_codes %>% select(-description,-ipcc_1996),by="sector_code")
-# 
-# sectors_gases <- sectors_gases %>% 
-#   ungroup() %>% 
-#   mutate(sector_code = paste0(sector_code," (",fossil_bio,")")) %>% 
-#   mutate(ipcc_2006 = paste0(ipcc_2006," (",fossil_bio,")")) %>% 
-#   select(-fossil_bio)
-# 
-# sectors_gases <- sectors_gases %>% 
-#   mutate(gas=as.character(gas)) %>% 
-#   mutate(gas=ifelse(value==0,NA,gas)) %>% 
-#   filter(!is.na(gas)) %>% 
-#   select(-value)
-# 
-# only_sectors <- sectors_gases %>% 
-#   ungroup() %>% 
-#   select(-gas,-sector_code) %>% 
-#   distinct() %>% 
-#   group_by(chapter_title,subsector_title) %>% 
-#   summarise(ipcc_2006=paste0(ipcc_2006,collapse=", "))
-# 
-# 
-# only_gases <- sectors_gases %>% 
-#   ungroup() %>% 
-#   select(-sector_code,-ipcc_2006) %>% 
-#   distinct() %>% 
-#   group_by(chapter_title,subsector_title) %>% 
-#   summarise(gases=paste0(gas,collapse=", "))
-# 
-# 
-# sectors_gases <- left_join(only_sectors,only_gases,by = c("chapter_title", "subsector_title"))
-# 
-# 
-# addWorksheet(wb2,"sectors_gases")
-# writeData(wb2, sheet = "sectors_gases",sectors_gases, colNames = T, rowNames = F)
+
+# summary of sectors and their gases
+
+annex <- edgar_raw %>%
+  group_by(chapter_title,subsector_title,sector_code,fossil_bio,description,gas) %>%
+  summarise(value=sum(value,na.rm=TRUE))
+
+annex <- annex %>%
+  group_by(chapter_title,subsector_title,sector_code,fossil_bio,description) %>%
+  summarise(gases = paste0(gas,collapse=", "))
+
+annex <- left_join(annex,ipcc_codes %>% select(-description,-ipcc_1996),by="sector_code")
+
+annex <- annex %>% 
+  ungroup() %>% 
+  mutate(ipcc_2006=paste0(ipcc_2006," (",fossil_bio,")")) %>% 
+  mutate(sector_code=paste0(sector_code," (",fossil_bio,")")) %>% 
+  select(-fossil_bio)
+
+annex_gases <- annex %>% select(-sector_code,-ipcc_2006)
+annex_codes <- annex %>% 
+  group_by(chapter_title,subsector_title,description) %>%
+  summarise(edgar_code=paste0(sector_code,collapse=", "))
+annex_ipcc <- annex %>% 
+  group_by(chapter_title,subsector_title,description) %>%
+  summarise(ipcc_2006=paste0(ipcc_2006,collapse=", "))
+
+annex <- left_join(annex_gases,annex_codes,by = c("chapter_title", "subsector_title", "description"))
+annex <- left_join(annex,annex_ipcc,by = c("chapter_title", "subsector_title", "description"))
+
+annex <- annex %>% 
+  mutate(ipcc_2006=ifelse(ipcc_2006=="NA (fossil)",NA,ipcc_2006))%>% 
+  mutate(ipcc_2006=ifelse(ipcc_2006=="NA (bio)",NA,ipcc_2006)) %>% 
+  select(chapter_title,subsector_title,description,edgar_code,ipcc_2006,gases)
+
+addWorksheet(wb2,"sector_table_large")
+writeData(wb2, sheet = "sector_table_large",annex, colNames = T, rowNames = F)
 
 ```
 

@@ -561,7 +561,7 @@ plot_region_figure <- function(region_data,chapter) {
 
 # All 5 sectors by 10 regions
 
-```{r totals,echo=FALSE,warning=FALSE,results='asis',fig.width=10,fig.height=12,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r totals,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
 ## Which chapter?
@@ -599,118 +599,120 @@ p2 <- plot_region_figure(region_data,ch)
 
 
 ##################
-## growth by subsector
-subsector_data <- edgar_ghg %>%
-  filter(year>=1990) %>%
-  group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
-  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>% 
-  mutate_at(vars(CO2,CH4,N2O,Fgas,GHG),list(~./1e9)) %>%
-  mutate(CO2_land=NA,CO2_indirect=NA) %>% 
-  ungroup()
-
-# add land data
-land_totals <- land %>%
-  group_by(year,subsector,subsector_title) %>%
-  summarise(GHG=sum(value,na.rm=TRUE)) %>%
-  mutate(chapter=7) %>%
-  mutate(chapter_title="AFOLU") %>%
-  mutate(GHG=GHG/1e9)
-
-land_totals <- land_totals %>%
-  ungroup() %>% 
-  mutate(CO2_land=GHG) %>% 
-  mutate(CO2=NA,CH4=NA,N2O=NA,Fgas=NA,CO2_indirect=NA) %>% 
-  select(year,chapter,chapter_title,subsector,subsector_title,CO2,CH4,N2O,Fgas,GHG,CO2_land,CO2_indirect)
-
-subsector_data <- rbind(subsector_data,land_totals)
-subsector_data <- subsector_data %>%
-  group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
-  summarise_at(vars(CO2,CH4,N2O,Fgas,GHG,CO2_land,CO2_indirect),sum,na.rm=TRUE)
-
-subsector_ghg_data <- subsector_data
-subsector_data <- subsector_data %>% 
-  select(year,chapter,chapter_title,subsector,subsector_title,GHG)
-
-
-## align factors and labels
-subsector_data$chapter_title <- as.factor(subsector_data$chapter_title)
-subsector_data$chapter_title <- factor(subsector_data$chapter_title,levels=levels(subsector_data$chapter_title)[c(3,4,1,5,2)])
-
-# what is 90% of the emissions?
-threshold <- subsector_data %>%
-  filter(year==2019)
-threshold <- sum(threshold$GHG,na.rm=T)*0.9
-
-
-## calculate average annual and absolute growth
-
-subsector_data <- subsector_data %>% 
-  # filter(year>=1990) %>% 
-  # group_by(subsector,subsector_title) %>% 
-  # mutate(avg_growth_1990=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
-  # mutate(abs_growth_1990=last(GHG)-first(GHG)) %>%
-  filter(year>=2010) %>% 
-  group_by(subsector,subsector_title) %>% 
-  mutate(avg_growth_2010=(last(GHG)/first(GHG))^(1/(last(year)-2010))-1) %>% 
-  mutate(abs_growth_2010=last(GHG)-first(GHG)) %>%
-  filter(year==2019) %>% 
-  #mutate(avg_growth_1990=avg_growth_1990*100) %>% 
-  mutate(avg_growth_2010=avg_growth_2010*100)
-
-## remove subsectors below absolute emissions threshold
-
-subsector_data <- subsector_data %>% 
-  ungroup() %>% 
-  arrange(desc(GHG)) %>% 
-  mutate(cumulative_GHG=cumsum(GHG)) %>% 
-  mutate(cutoff = ifelse(cumulative_GHG<threshold,1,0)) %>% 
-  select(-cumulative_GHG)
-
-subsector_data <- gather(subsector_data,var,value,avg_growth_2010,abs_growth_2010)
-
-
-plot_theme <- theme_bw() +
-  theme(axis.title.y = element_blank(),
-        plot.title = element_text(size = 11,color="#252525"),
-        axis.title = element_text(color="#525252"),
-        panel.grid.minor.x = element_blank(),
-        legend.position="none",
-        text = element_text(size=11),
-        plot.background = element_blank())
-
-
-#rate
-p3 <- subsector_data %>% 
-  filter(cutoff==1) %>% 
-  filter(var=="avg_growth_2010") %>% 
-  ggplot(.,aes(x = reorder(subsector_title,value),y = value, fill=chapter_title)) +
-  geom_bar(stat='identity',colour="#525252") + 
-  coord_flip() +
-  plot_theme +
-  scale_fill_brewer(type = "qual",palette="Set2") +
-  ylab("%") +
-  ggtitle(str_wrap("c. Avg. annual GHG emissions growth",width=38)) +
-  annotate(geom = 'text', label = 'Years: 2010-2019',
-             x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
-
-#absolute
-p4 <- subsector_data %>% 
-  filter(cutoff==1) %>% 
-  filter(var=="abs_growth_2010") %>% 
-  ggplot(.,aes(x = reorder(subsector_title,value),y = value, fill=chapter_title)) +
-  geom_bar(stat='identity',colour="#737373") + 
-  coord_flip() +
-  plot_theme +
-  scale_fill_brewer(type = "qual",palette="Set2") +
-  ylab("Gt CO2eq") +
-  ggtitle(str_wrap("d. Absolute GHG emissions growth",width=35)) +
-    annotate(geom = 'text', label = 'Years: 2010-2019',
-             x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
+# ## growth by subsector
+# subsector_data <- edgar_ghg %>%
+#   filter(year>=1990) %>%
+#   group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
+#   summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>% 
+#   mutate_at(vars(CO2,CH4,N2O,Fgas,GHG),list(~./1e9)) %>%
+#   mutate(CO2_land=NA,CO2_indirect=NA) %>% 
+#   ungroup()
+# 
+# # add land data
+# land_totals <- land %>%
+#   group_by(year,subsector,subsector_title) %>%
+#   summarise(GHG=sum(value,na.rm=TRUE)) %>%
+#   mutate(chapter=7) %>%
+#   mutate(chapter_title="AFOLU") %>%
+#   mutate(GHG=GHG/1e9)
+# 
+# land_totals <- land_totals %>%
+#   ungroup() %>% 
+#   mutate(CO2_land=GHG) %>% 
+#   mutate(CO2=NA,CH4=NA,N2O=NA,Fgas=NA,CO2_indirect=NA) %>% 
+#   select(year,chapter,chapter_title,subsector,subsector_title,CO2,CH4,N2O,Fgas,GHG,CO2_land,CO2_indirect)
+# 
+# subsector_data <- rbind(subsector_data,land_totals)
+# subsector_data <- subsector_data %>%
+#   group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
+#   summarise_at(vars(CO2,CH4,N2O,Fgas,GHG,CO2_land,CO2_indirect),sum,na.rm=TRUE)
+# 
+# subsector_ghg_data <- subsector_data
+# subsector_data <- subsector_data %>% 
+#   select(year,chapter,chapter_title,subsector,subsector_title,GHG)
+# 
+# 
+# ## align factors and labels
+# subsector_data$chapter_title <- as.factor(subsector_data$chapter_title)
+# subsector_data$chapter_title <- factor(subsector_data$chapter_title,levels=levels(subsector_data$chapter_title)[c(3,4,1,5,2)])
+# 
+# # what is 90% of the emissions?
+# threshold <- subsector_data %>%
+#   filter(year==2019)
+# threshold <- sum(threshold$GHG,na.rm=T)*0.9
+# 
+# 
+# ## calculate average annual and absolute growth
+# 
+# subsector_data <- subsector_data %>% 
+#   # filter(year>=1990) %>% 
+#   # group_by(subsector,subsector_title) %>% 
+#   # mutate(avg_growth_1990=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
+#   # mutate(abs_growth_1990=last(GHG)-first(GHG)) %>%
+#   filter(year>=2010) %>% 
+#   group_by(subsector,subsector_title) %>% 
+#   mutate(avg_growth_2010=(last(GHG)/first(GHG))^(1/(last(year)-2010))-1) %>% 
+#   mutate(abs_growth_2010=last(GHG)-first(GHG)) %>%
+#   filter(year==2019) %>% 
+#   #mutate(avg_growth_1990=avg_growth_1990*100) %>% 
+#   mutate(avg_growth_2010=avg_growth_2010*100)
+# 
+# ## remove subsectors below absolute emissions threshold
+# 
+# subsector_data <- subsector_data %>% 
+#   ungroup() %>% 
+#   arrange(desc(GHG)) %>% 
+#   mutate(cumulative_GHG=cumsum(GHG)) %>% 
+#   mutate(cutoff = ifelse(cumulative_GHG<threshold,1,0)) %>% 
+#   select(-cumulative_GHG)
+# 
+# subsector_data <- gather(subsector_data,var,value,avg_growth_2010,abs_growth_2010)
+# 
+# 
+# plot_theme <- theme_bw() +
+#   theme(axis.title.y = element_blank(),
+#         plot.title = element_text(size = 11,color="#252525"),
+#         axis.title = element_text(color="#525252"),
+#         panel.grid.minor.x = element_blank(),
+#         legend.position="none",
+#         text = element_text(size=11),
+#         plot.background = element_blank())
+# 
+# 
+# #rate
+# p3 <- subsector_data %>% 
+#   filter(cutoff==1) %>% 
+#   filter(var=="avg_growth_2010") %>% 
+#   ggplot(.,aes(x = reorder(subsector_title,value),y = value, fill=chapter_title)) +
+#   geom_bar(stat='identity',colour="#525252") + 
+#   coord_flip() +
+#   plot_theme +
+#   scale_fill_brewer(type = "qual",palette="Set2") +
+#   ylab("%") +
+#   ggtitle(str_wrap("c. Avg. annual GHG emissions growth",width=38)) +
+#   annotate(geom = 'text', label = 'Years: 2010-2019',
+#              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
+# 
+# #absolute
+# p4 <- subsector_data %>% 
+#   filter(cutoff==1) %>% 
+#   filter(var=="abs_growth_2010") %>% 
+#   ggplot(.,aes(x = reorder(subsector_title,value),y = value, fill=chapter_title)) +
+#   geom_bar(stat='identity',colour="#737373") + 
+#   coord_flip() +
+#   plot_theme +
+#   scale_fill_brewer(type = "qual",palette="Set2") +
+#   ylab("Gt CO2eq") +
+#   ggtitle(str_wrap("d. Absolute GHG emissions growth",width=35)) +
+#     annotate(geom = 'text', label = 'Years: 2010-2019',
+#              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
 
 ##################
 
 ############ Plot everything
-sector_totals <- ggarrange(p1,p2,ggarrange(p3,p4,nrow = 1),nrow=3,align = "h")
+
+sector_totals <- ggarrange(p1,p2,nrow=2,align = "h")
+#sector_totals <- ggarrange(p1,p2,ggarrange(p3,p4,nrow = 1),nrow=3,align = "h")
 sector_totals
 
 
@@ -720,10 +722,12 @@ region_data <- spread(region_data,year,value)
 
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
 openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
-openxlsx::addWorksheet(wb,"Emissions growth by subsector")
+
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = "Emissions growth by subsector", subsector_data, colNames = T, rowNames = F)
+
+# openxlsx::addWorksheet(wb,"Emissions growth by subsector")
+# openxlsx::writeData(wb, sheet = "Emissions growth by subsector", subsector_data, colNames = T, rowNames = F)
 
 ```
 

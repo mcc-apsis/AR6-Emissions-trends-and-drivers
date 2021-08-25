@@ -22,7 +22,8 @@ source("small_figures.R")
 load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
-load('../../Data/primap_crf_data_ghg_gwp.RData')
+load('../../Data/WDI_gdp_pop.RData')
+load('../../Data/ipcc_regions.RData')
 
 options(dplyr.summarise.inform = FALSE)
 
@@ -271,7 +272,7 @@ p2 <- region_rates %>%
 p2 
 
 ```
-```{r growth_analysis, echo=FALSE,warning=FALSE}
+```{r descriptive_stats, echo=FALSE,warning=FALSE}
 
 
 # 1990 - 2019 abs change and growth
@@ -286,6 +287,25 @@ region_growth <- region_growth %>%
   mutate(`2010-2019 change (GtCO2eq)`=`2019`-`2010`) %>% 
   mutate(`2010-2019 change (%)`=((`2019`-`2010`)/(`2010`))*100)
 
+
+country_ghg <- edgar_ghg %>% 
+  filter(year %in% c(1990,2010,2019)) %>% 
+  group_by(ISO,country,region_ar6_6,region_ar6_dev,year) %>% 
+  summarise(ghg=sum(GHG,na.rm=TRUE))
+
+country_ghg <- left_join(country_ghg,wdi_data_gdp_pop %>% select(year,ISO=iso3c,population),by=c("ISO","year"))
+
+country_ghg <- country_ghg %>% 
+  mutate(per_capita=ghg/population)
+
+country_ghg <- country_ghg %>% 
+  group_by(year,region_ar6_6) %>% 
+  summarise(min=min(per_capita,na.rm=TRUE),max=max(per_capita,na.rm=TRUE),population=sum(population,na.rm=TRUE)/1e9,ghg=sum(ghg,na.rm=TRUE)/1e9,per_capita=sum(ghg,na.rm=TRUE)/sum(population,na.rm=TRUE))
+
+country_ghg <- country_ghg %>% 
+  filter(population!=0)
+  
+
 ```
 
 ```{r region_trends_spm, echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,fig.path="../../Results/Plots/",dev=c('png','pdf')}
@@ -299,6 +319,7 @@ addWorksheet(wb,"info")
 addWorksheet(wb,"panel_a")
 addWorksheet(wb,"panel_b_rates")
 addWorksheet(wb,"overall_growth")
+addWorksheet(wb,"region_per_capita")
 
 
 info = data.frame(x=c("Author","Last update","Code"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_region.Rmd"))
@@ -307,6 +328,7 @@ writeData(wb, sheet="info",info,colNames=F,rowNames=F)
 writeData(wb, sheet = "panel_a", spread(region_trend %>% select(-region_ar6_6_short),year,value), colNames = T, rowNames = F)
 writeData(wb, sheet = "panel_b_rates", region_rates, colNames = T, rowNames = F)
 writeData(wb, sheet = "overall_growth", region_growth, colNames = T, rowNames = F)
+writeData(wb, sheet = "region_per_capita", country_ghg, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm2_regions.xlsx"),overwrite=T)
 
