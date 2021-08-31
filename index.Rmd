@@ -248,8 +248,6 @@ cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/AFOLU-1.png'>download png</a>")
 ```
 
-
-
 Growth rates
 =====================================
 
@@ -258,7 +256,7 @@ Growth rates
 
 Here we have compiled growth rate estimations for gases, regions, sectors, subsectors and countries. We use the simple compound average growth rate calculation:
 
-r = (E(t+n)/E(t))^(1/t) - 1
+r = (E(t+n)/E(t))^(1/n) - 1
 
 where E is the emissions value in a given year t.
 
@@ -369,6 +367,8 @@ rates %>%
 
 
 ```
+
+
 
 
 Decarbonising countries

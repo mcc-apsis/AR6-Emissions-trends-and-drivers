@@ -266,7 +266,7 @@ GHG_growth<-GHG_by_region %>%
  select(-value) %>%
  mutate(avg_annual_growth=paste(as.character(round(avg_annual_growth,1)),"%",sep = "")) %>%
  spread(region_ar6_6,avg_annual_growth) %>%
- select("decade", "Africa", "Middle East","Asia and Developing Pacific",
+ select("decade", "Africa", "Middle East","Asia and developing Pacific",
         "Developed Countries", "Eastern Europe and West-Central Asia",
         "Latin America and Caribbean", "Intl. Aviation and Shipping", "world")
 
@@ -274,7 +274,7 @@ GHG_by_region<-GHG_by_region %>%
   select(-avg_annual_growth) %>%
   mutate(value=as.character(signif(value,2))) %>%
   spread(region_ar6_6,value) %>%
-  select("decade", "Africa", "Middle East","Asia and Developing Pacific",
+  select("decade", "Africa", "Middle East","Asia and developing Pacific",
          "Developed Countries", "Eastern Europe and West-Central Asia",
          "Latin America and Caribbean", "Intl. Aviation and Shipping", "world")
   

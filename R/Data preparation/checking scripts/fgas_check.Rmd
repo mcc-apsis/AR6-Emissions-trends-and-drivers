@@ -82,6 +82,41 @@ fgas_data %>%
 
 
 ```
+
+```{r regions,fig.width=8,fig.height=6}
+
+
+fgas_data_v5_gwp <- edgar_ghg_v5 %>%  
+  group_by(year,region_ar6_10) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v5_ar6_gwp") %>% 
+  mutate(region_ar6_10=ifelse(region_ar6_10=="South-East Asia and Developing Pacific","South-East Asia and developing Pacific",region_ar6_10))
+
+fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+  group_by(year,region_ar6_10) %>% 
+  summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
+  mutate(version="edgar_v6_new_ar6_gwp")
+
+
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+
+
+fgas_data_gwp %>% 
+  ggplot(.,aes(x=year,y=value,colour=version)) +
+  geom_path(na.rm = TRUE) +
+  facet_wrap(.~region_ar6_10,scales="free") +
+  ylab("GtCO2eq") +
+  scale_x_continuous(breaks=c(1970,1990,2010)) +
+  theme(axis.title.x = element_blank(),
+        legend.position = "bottom",
+        legend.title=element_blank())
+
+
+
+
+```
+
+
 ```{r compile_data_no_gwp_1,fig.width=4,fig.height=4}
 
 
@@ -415,33 +450,42 @@ crf_fgas<-gather(crf_fgas,key = "year", value = "value", "1986":"2019") %>%
   filter(`area (ISO3)`!="MCO") %>%
   mutate(year=as.numeric(year))
   
-crf_fgas<-crf_fgas%>%
-  group_by(year)%>%
+crf_fgas<-crf_fgas %>%
+  select(ISO=`area (ISO3)`,everything()) %>% 
+  group_by(year,ISO)%>%
   summarise(value=sum(value)/1e6)%>% 
   mutate(version="primap_crf_ar5_gwp_annexI")
 
-load('../../../Data/edgar6_data_ghg_gwp_ar5_0721.RData')
+load('../../../Data/edgar6_v2_data_ghg_gwp_ar5.RData')
 edgar_ghg_v6_new_ar5 <- edgar_ghg %>%
   filter(!is.na(Fgas))
 
-# fgas_data_v5_ar5_gwp <- edgar_ghg_v5 %>%  
-#   group_by(year) %>% 
-#   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-#   mutate(version="edgar_v5_ar5_gwp")
 edgar_ghg_v6_new_ar5<-left_join(edgar_ghg_v6_new_ar5,annexIcountries,by=c("ISO"="countries")) %>%
   filter(!is.na(annexI))
 
 fgas_data_v6_new_gwp_ar5 <- edgar_ghg_v6_new_ar5 %>%
-  group_by(year) %>%
+  group_by(year,ISO,country) %>%
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>%
   mutate(version="edgar_v6_new_ar5_gwp_annexI")
 
 fgas_data_gwp <- rbind(fgas_data_v6_new_gwp_ar5,crf_fgas)
 
+blarg <- fgas_data_gwp %>% 
+  filter(year==2018) %>% 
+  filter(version=="primap_crf_ar5_gwp_annexI") %>% 
+  arrange(desc(value)) %>% 
+  head(15) %>% 
+  mutate(include=1) %>% 
+  ungroup()
+
+fgas_data_gwp <- left_join(fgas_data_gwp,blarg %>% select(-year,-country,-value,-version))
+
 
 fgas_data_gwp %>% 
+  filter(include==1) %>% 
   ggplot(.,aes(x=year,y=value,colour=version)) +
   geom_path(na.rm = TRUE) +
+  facet_wrap(.~ISO,scales="free") +
   ylab("GtCO2eq") +
   scale_x_continuous(breaks=c(1970,1990,2010)) +
   theme(axis.title.x = element_blank(),

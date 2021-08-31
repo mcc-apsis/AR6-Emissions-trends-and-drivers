@@ -25,6 +25,9 @@ library(openxlsx)
 
 load('../../Data/WDI_gdp_pop.RData')
 load("../../Data/dump/edgar_data_gwp_ar5_late_2020.RData")
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
+  mutate(country=ifelse(country=="Macedonia, FYR","North Macedonia",country)) %>% 
+  mutate(country=ifelse(country=="Slovak Republic","Slovakia",country))
 
 source("growth_rate.R")
 source("small_figures.R")
@@ -251,7 +254,29 @@ data <- left_join(data,rates_GHG_2008,by = c("country"))
 
 ```
 
+```{r calculate_rates_1990,echo=FALSE,warning=FALSE,include=FALSE}
 
+rates_GHG_1990 <- data %>% filter(country=="nothing") # create empty dataframe
+
+for (i in 1:length(unique(data$country))) {
+  
+  temp_data <- data %>%
+    filter(country==unique(data$country)[i]) %>% 
+    filter(year>1989)
+  
+  rates <- growth_rate(temp_data$year,temp_data$GHG)
+  
+  temp_data$rate_GHG_1990 <- rates$rate*100
+  
+  rates_GHG_1990 <- rbind(rates_GHG_1990,temp_data)
+}
+
+rates_GHG_1990 <- rates_GHG_1990 %>%
+  filter(year==2018) %>% 
+  select(country,rate_GHG_1990)
+
+
+```
 
 ```{r consumption_data_and_rates,echo=FALSE,warning=FALSE,include=FALSE}
 
@@ -415,13 +440,21 @@ data <- data %>%
 ```
 
 
+```{r renaming,echo=FALSE,warning=FALSE,include=FALSE}
+
+data <- data %>% mutate(country=ifelse(country=="Swaziland","Eswatini",country))
+
+
+```
+
+
 
 ```{r exclusions,echo=FALSE,warning=FALSE}
 
 
 # exclude countries with recent major civil conflict or economic decline (Failed State Index Rank lower than 50)
 
-data <- data %>% mutate(country=ifelse(country=="Swaziland","Eswatini",country))
+
 
 fsi <- openxlsx::read.xlsx('../../Data/supplemetary data/fsi-2019.xlsx')
 isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
@@ -509,6 +542,9 @@ excluded <- left_join(excluded,annex1 %>% select(ISO=alpha.3,annex1),by="ISO")
 
 
 ```
+
+
+
 
 ```{r clustering,echo=FALSE,warning=FALSE,include=FALSE}
 
@@ -666,6 +702,20 @@ cons_excl_countries <- excluded %>% filter(cons_exclusion==1) %>% filter(year==2
 cons_excl_countries <- paste0(unique(cons_excl_countries$country),collapse=", ")
 
 ```
+```{r jamaica,echo=FALSE,warning=FALSE}
+
+jamaica <- edgar_GHG_ar6 %>% 
+  filter(country=="Jamaica") %>% 
+  filter(year %in% c(2006,2018)) %>% 
+  group_by(year,chapter_title,subsector_title,sector_code,description) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+jamaica <- jamaica %>% 
+  group_by(chapter_title,subsector_title,sector_code,description) %>% 
+  summarise(difference = first(GHG)-last(GHG))
+
+```
+
 
 ```{r save,echo=FALSE,warning=FALSE}
 
