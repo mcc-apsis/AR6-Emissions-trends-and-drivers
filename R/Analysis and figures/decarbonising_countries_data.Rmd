@@ -153,12 +153,24 @@ data <- data %>%
 
 ## find peak year CO2, excluding years after 2009
 
-peak_years <- data %>% 
+peak_years_CO2 <- data %>% 
   filter(year<2009) %>% 
   group_by(country) %>% 
-  summarise(peak_year=year[which.max(CO2)])
+  summarise(peak_year_CO2=year[which.max(CO2)])
+
+## find peak year GHG, excluding years after 2009
+
+peak_years_GHG <- data %>% 
+  filter(year<2009) %>% 
+  group_by(country) %>% 
+  summarise(peak_year_GHG=year[which.max(GHG)])
+
+peak_years <- left_join(peak_years_CO2,peak_years_GHG,by = "country")
+peak_years <- peak_years %>% 
+  select(country,peak_year=peak_year_CO2)
 
 data <- left_join(data,peak_years,by = "country")
+
 
 ## calculate CO2 growth since peak year
 
@@ -175,7 +187,7 @@ for (i in 1:length(unique(data$country))) {
   rates <- growth_rate(temp_data$year,temp_data$CO2)
   
   temp_data$rate_CO2_peak <- rates$rate
-  temp_data$fit <- rates$data$predicted_x
+  temp_data$fit_CO2 <- rates$data$predicted_x
   temp_data$st_error <- rates$data$st_error
   
   rates_CO2 <- rbind(rates_CO2,temp_data)
@@ -183,7 +195,7 @@ for (i in 1:length(unique(data$country))) {
 
 #rejoin with full data
 
-data <- left_join(data,rates_CO2 %>% select(country,year,rate_CO2_peak,fit,st_error),by = c("country", "year"))
+data <- left_join(data,rates_CO2 %>% select(country,year,rate_CO2_peak,fit_CO2),by = c("country", "year"))
 
 data <- data %>% 
   group_by(country) %>% 
@@ -194,7 +206,7 @@ data <- data %>%
 
 rates_GHG <- data %>% 
   filter(country=="nothing") %>%  # create empty dataframe 
-  select(-fit,-rate_CO2_peak,-st_error)
+  select(-fit_CO2,-rate_CO2_peak)
 
 for (i in 1:length(unique(data$country))) {
   
@@ -207,7 +219,7 @@ for (i in 1:length(unique(data$country))) {
   rates <- growth_rate(temp_data$year,temp_data$GHG)
   
   temp_data$rate_GHG_peak <- rates$rate
-  temp_data$fit <- rates$data$predicted_x
+  temp_data$fit_GHG <- rates$data$predicted_x
   temp_data$st_error <- rates$data$st_error
   
   rates_GHG <- rbind(rates_GHG,temp_data)
@@ -216,7 +228,7 @@ for (i in 1:length(unique(data$country))) {
 
 #rejoin with full data
 
-data <- left_join(data,rates_GHG %>% select(country,year,rate_GHG_peak),by = c("country", "year"))
+data <- left_join(data,rates_GHG %>% select(country,year,rate_GHG_peak,fit_GHG),by = c("country", "year"))
 
 data <- data %>% 
   group_by(country) %>% 
@@ -298,8 +310,7 @@ cons <- left_join(cons,isos,by=c("country"="alternative.name"))
 data <- left_join(data,cons %>% select(ISO=alpha.3,year,CO2_cons=value),by = c("ISO", "year"))
 
 rates_cons <- data %>% 
-  filter(country=="nothing") %>%  # create empty dataframe 
-  select(-fit,-rate_CO2_peak,-st_error)
+  filter(country=="nothing") # create empty dataframe 
 
 for (i in 1:length(unique(data$country))) {
   
@@ -325,8 +336,8 @@ for (i in 1:length(unique(data$country))) {
   ### if there is no cons data, just fill NaNs
   if (is.na(temp_data$CO2_cons[1])==1) {
     
-    temp_data$rate_GHG_peak <- NA
-    temp_data$fit <- NA
+    temp_data$rate_CO2_cons_peak <- NA
+    temp_data$fit_CO2_cons <- NA
     temp_data$st_error <- NA
     
   } else {
@@ -334,7 +345,7 @@ for (i in 1:length(unique(data$country))) {
     rates <- growth_rate(temp_data$year,temp_data$CO2_cons)
     
     temp_data$rate_CO2_cons_peak <- rates$rate
-    temp_data$fit <- rates$data$predicted_x
+    temp_data$fit_CO2_cons <- rates$data$predicted_x
     temp_data$st_error <- rates$data$st_error
     
     rates_cons <- rbind(rates_cons,temp_data)
@@ -345,7 +356,7 @@ for (i in 1:length(unique(data$country))) {
 
 #rejoin with full data
 
-data <- left_join(data,rates_cons %>% select(country,year,rate_CO2_cons_peak,fit_CO2_cons=fit),by = c("country", "year"))
+data <- left_join(data,rates_cons %>% select(country,year,rate_CO2_cons_peak,fit_CO2_cons),by = c("country", "year"))
 
 data <- data %>% 
   group_by(country) %>% 
@@ -370,8 +381,7 @@ data <- data %>% ungroup() %>% mutate(GHG_land = GHG+CO2_land)
 
 
 rates_land <- data %>% 
-  filter(country=="nothing") %>%  # create empty dataframe 
-  select(-fit,-rate_CO2_peak,-st_error)
+  filter(country=="nothing") # create empty dataframe 
 
 for (i in 1:length(unique(data$country))) {
   
@@ -408,7 +418,7 @@ for (i in 1:length(unique(data$country))) {
   if (is.na(temp_data$GHG_land[1])==1) {
     
     temp_data$rate_GHG_land_peak <- NA
-    temp_data$fit <- NA
+    temp_data$fit_GHG_land <- NA
     temp_data$st_error <- NA
     
   } else {
@@ -416,7 +426,7 @@ for (i in 1:length(unique(data$country))) {
     rates <- growth_rate(temp_data$year,temp_data$GHG_land)
     
     temp_data$rate_GHG_land_peak <- rates$rate
-    temp_data$fit <- rates$data$predicted_x
+    temp_data$fit_GHG_land <- rates$data$predicted_x
     temp_data$st_error <- rates$data$st_error
     
     rates_land <- rbind(rates_land,temp_data)
@@ -428,7 +438,7 @@ for (i in 1:length(unique(data$country))) {
 
 #rejoin with full data
 
-data <- left_join(data,rates_land %>% select(country,year,rate_GHG_land_peak,fit_GHG_land=fit),by = c("country", "year"))
+data <- left_join(data,rates_land %>% select(country,year,rate_GHG_land_peak,fit_GHG_land),by = c("country", "year"))
 
 data <- data %>% 
   group_by(country) %>% 
@@ -540,7 +550,7 @@ annex1 <- left_join(annex1 %>% mutate(country=tolower(country)),isos,by=c("count
 
 excluded <- left_join(excluded,annex1 %>% select(ISO=alpha.3,annex1),by="ISO")
 
-
+blarg <- excluded %>% filter(!is.na(annex1)) %>% filter(year==2018) %>% filter(is.na(included))
 ```
 
 

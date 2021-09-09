@@ -8,6 +8,8 @@ knit: (function(inputFile, encoding) {
   
 ---
 
+## Setup
+
 ```{r setup, include=FALSE}
 
 rm(list = ls())
@@ -17,6 +19,7 @@ library(ggplot2); theme_set(theme_bw())
 library(patchwork)
 library(zoo)
 
+load('../../Data/edgar6_v2_data_raw.RData')
 
 Sys.setlocale("LC_ALL","English")
 
@@ -29,15 +32,18 @@ wb <- openxlsx::createWorkbook(title = "ipcc_ar6_figure_covid2020")
 ```
 
 
-## Long term trend
+## Long term trend and 2020 estimates
 
-```{r long_trend, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
+### Daily emissions from GCP
 
+```{r daily_gcp, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
 
-long_trend <- read.xlsx("../../Data/COVID/COVID_data_for_figures_11June2020.xlsx",sheet="Figure 3")
-names(long_trend) <- c("year","x","date","med","low","high")
+# daily emissions long term (Global carbon project)
 
-long_trend <- long_trend %>% 
+daily_gcp <- read.xlsx("../../Data/COVID/COVID_data_for_figures_11June2020.xlsx",sheet="Figure 3")
+names(daily_gcp) <- c("year","x","date","med","low","high")
+
+daily_gcp <- daily_gcp %>% 
   filter(!is.na(date)) %>% 
   filter(year!="year") %>% 
   filter(year>1968) %>% 
@@ -49,7 +55,7 @@ long_trend <- long_trend %>%
   mutate(dataset="Global Carbon Project") %>% 
   mutate(year=as.numeric(year))
 
-p_long_trend <- long_trend %>%
+p_daily_gcp <- daily_gcp %>%
   ggplot(.,aes(x=year,y=med)) +
   geom_path(aes(group=dataset,color=dataset)) +
   geom_vline(aes(xintercept=1973),linetype = "dashed") +
@@ -63,11 +69,111 @@ p_long_trend <- long_trend %>%
   scale_x_continuous(limits=c(1970,2019),breaks=c(1970,1980,1990,2000,2010,2019)) +
   theme(legend.position="none",
         axis.title.x = element_blank())
-p_long_trend
 
 ```
 
-## Sectors (Carbon Monitor)
+### Annual emissions from Global Carbon Project and EDGAR
+
+```{r annual_gcp, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
+
+gcb <- read.csv(file="../../Data/COVID/GCB2021v29_global_MtCO2_data.csv")
+
+gcb <- gcb %>% 
+  filter(Year>1969) %>% 
+  select(year=Year,value=Total) %>% 
+  mutate(value=value/1000) %>% 
+  mutate(dataset="Global Carbon Project") %>% 
+  mutate(year=as.numeric(year))
+# 
+# edgar <- edgar_raw %>% 
+#   filter(gas=="CO2") %>% 
+#   group_by(year) %>% 
+#   summarise(value=sum(value,na.rm=TRUE)/1e9) %>% 
+#   mutate(dataset="EDGAR")
+# 
+# data <- rbind(gcb,edgar)
+
+p_annual_gcb <- gcb %>% 
+  ggplot(.,aes(x=year,y=value)) +
+  geom_path(aes(group=dataset,color=dataset)) +
+  geom_vline(aes(xintercept=1973),linetype = "dashed") +
+  geom_text(data=data.frame(x=1973.5,y=12.5),aes(x,y,label=str_wrap("1973 Oil Crisis",width=15)),vjust=0.5,hjust=0,size=3.5) +
+  geom_vline(aes(xintercept=1991),linetype = "dashed") +
+  geom_text(data=data.frame(x=1991.5,y=12.5),aes(x,y,label=str_wrap("1991 Soviet Union dissolusion",width=18)),vjust=0.5,hjust=0,size=3.5) +
+  geom_vline(aes(xintercept=2008),linetype = "dashed") +
+  geom_text(data=data.frame(x=2008.5,y=12.5),aes(x,y,label=str_wrap("2008 Global financial crisis",width=18)),vjust=0.5,hjust=0,size=3.5) +
+  geom_vline(aes(xintercept=2020),linetype = "dashed") +
+  geom_text(data=data.frame(x=2020.5,y=12.5),aes(x,y,label=str_wrap("2020 COVID-19 pandemic",width=18)),vjust=0.5,hjust=0,size=3.5) +
+  ylab("Carbon emissions (GtCO2/year)") +
+  scale_y_continuous(limits=c(10,40)) +
+  scale_x_continuous(limits=c(1970,2027),breaks=c(1970,1980,1990,2000,2010,2020))  +
+  ggtitle("a. Global carbon emissions and the impact of economic and geopolitical events") +
+  theme(legend.position="none",
+        axis.title.x = element_blank(),
+        plot.title = element_text(size=12))
+
+p_annual_gcb
+
+```
+
+## 2020 estimates
+
+```{r 2020_estimates, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
+# 
+# bp <- read.xlsx('../../Data/COVID/bp-stats-review-2021-all-data.xlsx',sheet=5,startRow = 3,cols = c(1:57)) %>% select(country=Million.tonnes.of.carbon.dioxide,everything())
+# 
+# bp <- gather(bp,year,value,-country) %>% 
+#   filter(country=="Total World") %>% 
+#   select(-country) %>% 
+#   mutate(value=as.numeric(value)) %>% 
+#   mutate(value=value/1000) %>% 
+#   mutate(dataset="BP")
+# 
+# 
+# data <- rbind(gcb,bp) %>% 
+#   mutate(year=as.numeric(year)) %>% 
+#   filter(year>=2019)
+# 
+# data <- data %>% 
+#   group_by(dataset) %>% 
+#   mutate(change=first(value)-last(value)) %>% 
+#   mutate(change_fraction=(change/first(value))*100)
+# 
+# ### RESCALE TO GCP VALUE
+# data <- data %>% 
+#   mutate(rescaled=gcb$value[gcb$year==2019]-change)
+# 
+# 
+# data %>%
+#   filter(year==2020) %>% 
+#   ggplot(.,aes(x=dataset,y=change)) +
+#   geom_bar(stat='identity')
+#   #geom_text(aes(x=year+0.5,y=change,label=dataset)) +
+#   #scale_y_continuous(limits=c(10,40)) +
+#   
+# p_2020_estimates <- data %>% 
+#   filter(year==2020) %>% 
+#   ggplot(.,aes(x=year,y=rescaled,color=reorder(dataset,desc(dataset)))) +
+#   geom_point() +
+#   geom_text(aes(x=year+0.5,y=rescaled,label=dataset),hjust=0) +
+#   scale_y_continuous(limits=c(10,40)) +
+#   scale_x_continuous(limits=c(2019,2023),breaks=c(2020)) +
+#   theme(axis.title.x = element_blank(),
+#         axis.title.y = element_blank(),
+#         axis.ticks.y = element_blank(),
+#         axis.text.y = element_blank(),
+#         panel.grid.minor.x = element_blank(),
+#         legend.position = "none")
+# 
+# p_annual_gcb + p_2020_estimates + plot_layout(widths=c(4.5,1))
+
+
+```
+
+
+
+## Daily emissions 2020
+### Carbon Monitor
 
 ```{r sectors_cm, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
 
@@ -75,17 +181,17 @@ covid_sectors_cm <- read.csv(file="../../Data/COVID/carbonmonitor-global_datas_2
 
 covid_sectors_cm <- covid_sectors_cm %>% 
   filter(country=="WORLD") %>% 
-  mutate(date=as.Date(date, "%d/%m/%Y"))
+  mutate(date=as.Date(date, "%d/%m/%Y")) %>% 
+  select(country,date,sector,medium=value,timestamp)
 
 ## total
 covid_sectors_total <- covid_sectors_cm %>% 
   group_by(date,timestamp) %>% 
-  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  summarise(medium=sum(medium,na.rm=TRUE)) %>% 
   mutate(country="WORLD") %>% 
   mutate(sector="Total") 
 
 covid_sectors_cm <- rbind(covid_sectors_cm,covid_sectors_total)
-
 
 ### sum domestic and intl. aviation
 
@@ -95,12 +201,22 @@ covid_sectors_cm <- covid_sectors_cm %>%
 
 covid_sectors_cm <- covid_sectors_cm %>% 
   group_by(sector,date,timestamp) %>% 
-  summarise(value=sum(value)) %>% 
+  summarise(medium=sum(medium)) %>% 
   ungroup()
 
 ### Match other sectors to Le Quere
 covid_sectors_cm <- covid_sectors_cm %>% 
   mutate(sector=ifelse(sector=="Ground Transport","Transport",sector))
+
+
+## add uncertainty
+covid_sectors_cm <- covid_sectors_cm %>% 
+  mutate(uncertainty=0.072*medium) %>% 
+  mutate(high=medium+uncertainty) %>% 
+  mutate(low=medium-uncertainty) %>% 
+  select(-uncertainty)
+
+covid_sectors_cm <- gather(covid_sectors_cm,var,value,medium,high,low)
 
 ### subtract daily emissions in 2020 from 2019
 
@@ -118,37 +234,31 @@ covid_sectors_cm <- covid_sectors_cm %>%
 
 ## rolling average 7 day (anomaly)
 covid_sectors_cm <- covid_sectors_cm %>% 
-  group_by(sector) %>% 
+  group_by(sector,var) %>% 
   mutate(change=change-first(change)) %>% 
-  mutate(change_smooth=rollmean(change,k=7,align="left",fill=NA))
+  mutate(change_smooth=rollmean(change,k=7,align="center",fill=NA))
 
 ## rolling average 7 day (total)
-covid_sectors_cm <- covid_sectors_cm %>% 
-  group_by(sector) %>%  
-  mutate(`2020_smooth`=rollmean(`2020`,k=7,align="left",fill=NA))
+# covid_sectors_cm <- covid_sectors_cm %>% 
+#   group_by(sector) %>%  
+#   mutate(`2020_smooth`=rollmean(`2020`,k=7,align="center",fill=NA))
 
 
-# covid_sectors_cm %>% 
-#   ggplot(.,aes(x=date,y=change_smooth,color=sector,group=sector)) +
-#   geom_line() +
-#   facet_grid(.~sector) +
-#   scale_x_date(breaks= as.Date(c("2020-01-01","2020-04-01","2020-07-01","2020-10-01")),date_labels = "%b") +
-#   theme(legend.position="none",
-#         axis.title.x = element_blank())
+covid_sectors_cm <- spread(covid_sectors_cm %>% select(sector,var,date,change_smooth),var,change_smooth)
   
 
 ```
 
-## Sectors (Global Carbon Project)
+### Global Carbon Project
 
 ```{r sectors_gcp, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
 
 
 ## load in new data from Le Quere et al. 2020
 
-sheet_names <- getSheetNames(file = "../../Data/COVID/PublicData_v15_Countries_UNFCCC-accounting.xlsx")
+sheet_names <- getSheetNames(file = "../../Data/COVID/PublicData_v15_Countries_UNFCCC-accounting-corr.xlsx")
 
-covid_sectors_gcp <- read.xlsx("../../Data/COVID/PublicData_v15_Countries_UNFCCC-accounting.xlsx",sheet="GLOBAL")
+covid_sectors_gcp <- read.xlsx("../../Data/COVID/PublicData_v15_Countries_UNFCCC-accounting-corr.xlsx",sheet="GLOBAL")
 covid_sectors_gcp <- covid_sectors_gcp %>% filter(REGION_ID!="None")
 
 covid_sectors_gcp <- gather(covid_sectors_gcp,key,value,TOTAL_CO2_MED:AVI_CO2_HIGH) %>% 
@@ -186,7 +296,7 @@ covid_sectors_gcp <- spread(covid_sectors_gcp,estimate,value)
 
 ```
 
-## Sector comparison
+### Sector comparison plot
 
 ```{r sector_comparison, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
 
@@ -194,73 +304,49 @@ covid_sectors <- rbind(covid_sectors_gcp %>%
                          select(sector,date,value=medium,high,low) %>% 
                          mutate(dataset="Global Carbon Project"),
                        covid_sectors_cm %>% 
-                         select(sector,date,value=change_smooth) %>% 
-                         mutate(dataset="Carbon Monitor") %>% 
-                         mutate(high=NA) %>% 
-                         mutate(low=NA))
+                         select(sector,date,value=medium,high,low) %>% 
+                         mutate(dataset="Carbon Monitor"))
 
 p_covid_sectors <- covid_sectors %>% 
   filter(sector!="Total") %>% 
+  filter(sector!="Public sector") %>% 
   ggplot(.,aes(x=date,y=value,color=reorder(dataset,desc(dataset)),fill=reorder(dataset,desc(dataset)))) +
   geom_line() +
   geom_ribbon(aes(ymin=low,ymax=high),alpha=0.3,) +
   scale_x_date(breaks= as.Date(c("2020-01-01","2020-04-01","2020-07-01","2020-10-01")),date_labels = "%b") +
   facet_grid(.~sector) +
-  ylab("Change in global daily fossil\n CO2 emissions (MtCO2/day)") +
+  ylab("Change in global daily \n carbon emissions (MtCO2/day)") +
+  ggtitle("b. Daily carbon emissions in 2020 versus 2019 and the impact of COVID-19 lockdown measures") +
   theme(legend.position="bottom",
         legend.title=element_blank(),
-        axis.title.x = element_blank())
-p_covid_sectors
+        axis.title.x = element_blank(),
+        plot.title=element_text(size=12),
+        panel.grid.minor = element_blank())
 
-```
-
-
-
-## Totals
-
-
-```{r totals, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
-
-year_mean <- read.xlsx("../../Data/COVID/PublicData_v15_Countries_UNFCCC-accounting.xlsx",sheet="mean") %>% 
-  filter(REGION_NAME=="Global")
-year_mean <- as.numeric(year_mean$TOTAL_CO2)
-
-
-covid_totals <- covid_sectors_gcp %>% 
+p_covid_sectors_total <- covid_sectors %>% 
   filter(sector=="Total") %>% 
-  mutate(high=high+year_mean) %>% 
-  mutate(value=medium+year_mean) %>% 
-  mutate(low=low+year_mean) %>% 
-  select(sector,date,high,value,low) %>% 
-  mutate(dataset="Global Carbon Project")
-
-covid_totals <- rbind(covid_totals,covid_sectors_cm %>% 
-                        filter(sector=="Total") %>% 
-                        select(sector,date,value=`2020_smooth`) %>% 
-                        mutate(high=NA) %>% 
-                        mutate(low=NA) %>% 
-                        mutate(dataset="Carbon Monitor"))
-
-p_covid_totals <- covid_totals %>% 
   ggplot(.,aes(x=date,y=value,color=reorder(dataset,desc(dataset)),fill=reorder(dataset,desc(dataset)))) +
   geom_line() +
-  geom_ribbon(aes(ymin=low,ymax=high),alpha=0.3) +
-  scale_y_continuous(limits=c(20,110),breaks=c(20,40,60,80,100)) +
-  scale_x_date(breaks= as.Date(c("2020-01-01","2020-04-01","2020-07-01","2020-10-01","2020-12-31")),date_labels = "%b") +
-  geom_text(data=data.frame(x=as.Date("2020-01-01"),y=25),inherit.aes=FALSE,aes(x,y,label="2020 COVID-19\nPandemic"),hjust=0,size=3.5) +
-  theme(axis.title.x = element_blank(),
+  geom_ribbon(aes(ymin=low,ymax=high),alpha=0.3,) +
+  scale_x_date(breaks= as.Date(c("2020-01-01","2020-04-01","2020-07-01","2020-10-01")),date_labels = "%b") +
+  facet_grid(.~sector) +
+  theme(legend.position="none",
+        legend.title=element_blank(),
+        axis.title.x = element_blank(),
         axis.title.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        legend.position = "none")
-p_covid_totals
+        plot.background = element_blank(),
+        panel.grid.minor = element_blank())
 
+p_covid_sectors <- (p_covid_sectors + p_covid_sectors_total + plot_layout(widths=c(5,1)))
+p_covid_sectors
 ```
+
 
 ```{r covid_emissions, echo=FALSE,warning=FALSE,fig.width=8,fig.height=5,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
-(p_long_trend + p_covid_totals + plot_layout(widths=c(0.8,0.2))) / p_covid_sectors + plot_layout(heights=c(0.6,0.4))
+p <- p_annual_gcb / p_covid_sectors + plot_layout(heights=c(0.6,0.4))
+p
+
 
 
 ```

@@ -1,0 +1,354 @@
+---
+title: "indirect emissions"
+author: "William F. Lamb"
+date: "19 10 2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(openxlsx)
+
+load("../../Data/edgar6_v2_data_ghg_gwp_ar6.RData")
+
+```
+
+
+
+
+```{r load_iea}
+
+######### read IEA data and clean empty country rows
+
+iea <- read.csv(file="../../Data/IEA/2021 update/iea_scope2_2021.csv",sep = ";")
+#iea <- read.csv(file="../../Data/IEA/2020 update/iea_scope2.csv",sep = ";")
+names <- c("country","flow","var",1990:2019)
+names(iea) <- names
+iea <- iea %>% 
+  filter(country!="COUNTRY") %>% 
+  filter(row_number()!=20631:20738)
+  #filter(row_number()!=19553:19656)         # 2020 data
+  
+
+######### tidy up variables, convert to long format, change units to Gt CO2
+
+iea <- gather(iea,year,value,`1990`:`2019`)
+iea <- iea %>% 
+  mutate(value=ifelse(grepl("x",value),NA,value)) %>% 
+  mutate(value=as.numeric(value)) %>% 
+  mutate(var=as.character(var)) %>% 
+  mutate(year=as.numeric(year))
+
+iea <- iea %>% 
+  mutate(var=ifelse(grepl("Emissions by sector",var),"CO2",var)) %>% 
+  mutate(var=ifelse(grepl("Emissions with electricity and heat",var),"CO2_plus_elec_heat",var)) %>% 
+  filter(var=="CO2" | var=="CO2_plus_elec_heat") %>% 
+  mutate(value=value*1000) %>%
+  mutate(value=value/1e9)
+
+######### save world totals for ELECHEAT sector
+
+world_totals <- iea %>% 
+  filter(country=="World") %>% 
+  filter(flow=="ELECHEAT") %>% 
+  filter(var=="CO2") %>% 
+  select(year,world_elec_heat=value)
+
+
+
+```
+
+```{r allocate_ononspec, echo=FALSE}
+
+iea <- spread(iea,var,value)
+iea <- iea %>% 
+  mutate(indirect_CO2 = CO2_plus_elec_heat-CO2)
+
+# set industry and transport totals to NA
+iea <- iea %>% 
+  mutate(indirect_CO2=ifelse(flow=="TOTIND",NA,indirect_CO2)) %>% 
+  mutate(indirect_CO2=ifelse(flow=="TOTTRANS",NA,indirect_CO2)) %>% 
+  mutate(indirect_CO2=ifelse(flow=="MANUFACT",NA,indirect_CO2))         # new aggregate sector for the 2021 version
+
+blarg <- iea %>% 
+  filter(country=="World") %>% 
+  filter(year==2018)
+
+
+###### allocate ONONSPEC indirect CO2
+
+# get the residential, commercial, agriculture/forestry and fishing CO2 for each country and year ("other_sector_CO2")
+
+other_sectors <- iea %>%
+  filter(flow %in% c("RESIDENT","COMMPUB","AGRICULT","FISHING")) %>% 
+  group_by(country,year) %>% 
+  summarise(other_sector_CO2=sum(CO2,na.rm=TRUE))
+
+# get ONONSPEC indirect CO2 for each country and year
+
+ononspec <- iea %>% 
+  filter(flow=="ONONSPEC") %>% 
+  group_by(country,year) %>% 
+  summarise(ononspec = indirect_CO2)
+
+# join to data
+
+iea <- left_join(iea,other_sectors,by = c("country", "year")) 
+iea <- left_join(iea,ononspec,by = c("country", "year")) 
+
+# for residential, commercial, agriculture/forestry and fishing, calculate their fractions of CO2 relative to the total for all 4
+
+iea <- iea %>% 
+  mutate(fraction=ifelse(flow=="RESIDENT",CO2/other_sector_CO2,NA)) %>% 
+  mutate(fraction=ifelse(flow=="COMMPUB",CO2/other_sector_CO2,fraction)) %>% 
+  mutate(fraction=ifelse(flow=="AGRICULT",CO2/other_sector_CO2,fraction)) %>% 
+  mutate(fraction=ifelse(flow=="FISHING",CO2/other_sector_CO2,fraction))
+
+# multiply this fraction by the unallocated ONONSPEC indirect CO2
+
+iea <- iea %>% 
+  mutate(reallocated_ononspec=ifelse(flow=="RESIDENT",fraction*ononspec,NA)) %>% 
+  mutate(reallocated_ononspec=ifelse(flow=="COMMPUB",fraction*ononspec,reallocated_ononspec)) %>% 
+  mutate(reallocated_ononspec=ifelse(flow=="AGRICULT",fraction*ononspec,reallocated_ononspec)) %>% 
+  mutate(reallocated_ononspec=ifelse(flow=="FISHING",fraction*ononspec,reallocated_ononspec))
+
+# add the reallocated ONONSPEC indirect CO2 emissions to totals for each of the 4 sectors
+# set ONONSPEC sector to 0
+
+iea <- iea %>% 
+  mutate(indirect_CO2=ifelse(!is.na(reallocated_ononspec),indirect_CO2+reallocated_ononspec,indirect_CO2)) %>% 
+  mutate(indirect_CO2=ifelse(flow=="ONONSPEC",NA,indirect_CO2))
+
+# remove vars
+iea <- iea %>% 
+  select(country:indirect_CO2)
+
+
+# check sums - sum of indirect CO2 should equal world elecheat with a small difference from TRNONSPE
+
+totals <- iea %>% 
+  filter(country=="World") %>% 
+  filter(year==2018)
+
+#totals2 <- totals
+
+```
+
+```{r match_EDGAR, echo=FALSE}
+
+######### match IEA sectors to (EDGAR) IPCC 2006 codes
+
+matching <- openxlsx::read.xlsx("../../Data/Codes and classifications/iea_ipcc_sector_classification.xlsx",sheet = "edgar_v6")
+matching <- matching %>% 
+  select(CODE,LEVEL,ipcc.code=sector_code_v6,fossil_bio)
+not_joined <- anti_join(iea,matching %>% select(CODE,LEVEL,ipcc.code,fossil_bio),by=c("flow"="CODE"))
+iea <- left_join(iea,matching %>% select(CODE,LEVEL,ipcc.code,fossil_bio),by=c("flow"="CODE"))
+
+
+######### use IPCC 2006 codes to merge IEA with AR6 sectors and subsectors
+
+load("../../Data/ipcc_sectors.RData")
+iea <- left_join(iea,ipcc_sectors %>% select(-IPCC.2006),by=c("ipcc.code"="code","fossil_bio"))
+
+
+######### allocate OTHEN to "Other incl. Indirect N2O"
+
+iea <- iea %>% 
+  mutate(IPCC_AR6_chapter=ifelse(flow=="OTHEN",6,IPCC_AR6_chapter)) %>% 
+  mutate(IPCC_AR6_chapter_title=ifelse(flow=="OTHEN","Energy systems",IPCC_AR6_chapter_title)) %>% 
+  mutate(subsector=ifelse(flow=="OTHEN",6.6,subsector)) %>% 
+  mutate(subsector_title=ifelse(flow=="OTHEN","Other (energy systems)",subsector_title))
+
+
+########### trim down to sectors that we match in EDGAR (ONONSPEC and OTHEN are removed)
+iea <- iea %>% 
+  filter(!is.na(IPCC_AR6_chapter))
+
+totals <- iea %>% 
+  filter(country=="World") %>% 
+  filter(year==2018) %>% 
+  group_by(IPCC_AR6_chapter_title) %>% 
+  summarise(indirect_CO2=sum(indirect_CO2))
+
+```
+
+```{r propagate_EDGAR_elecheat, echo=FALSE}
+
+# calculate fraction of world elecheat for each country and sector
+
+iea <- left_join(iea,world_totals,by="year")
+iea <- iea %>% 
+  mutate(indirect_fraction = indirect_CO2/world_elec_heat) %>% 
+  mutate(indirect_fraction = ifelse(indirect_CO2==0,NA,indirect_fraction))
+
+######### join EDGAR world ELECHEAT
+
+edgar_world_elec_heat <- edgar_ghg %>% 
+  filter(year>1989) %>% 
+  filter(chapter==6) %>% 
+  group_by(year,chapter,sector_code,description,subsector,subsector_title) %>% 
+  summarise(CO2=sum(CO2,na.rm=TRUE)/1e9) %>% 
+  ungroup()
+
+edgar_world_elec_heat <- edgar_world_elec_heat %>% 
+  filter(grepl("1A1a",sector_code)) %>% 
+  group_by(year) %>% 
+  summarise(edgar_world_elec_heat=sum(CO2,na.rm=TRUE))
+
+
+iea <- left_join(iea,edgar_world_elec_heat %>% select(year,edgar_world_elec_heat),
+                         by="year")
+
+# propagate adjusted indirect CO2
+iea <- iea %>% 
+  mutate(adjusted_indirect_CO2=edgar_world_elec_heat*indirect_fraction) %>% 
+  filter(!is.na(adjusted_indirect_CO2))
+
+totals <- iea %>% 
+  filter(country=="World") %>% 
+  filter(year==2018) %>% 
+  group_by(IPCC_AR6_chapter_title) %>% 
+  summarise(adjusted_indirect_CO2=sum(adjusted_indirect_CO2))
+
+``` 
+
+
+```{r match_countries_regions, echo=FALSE}
+
+# tidy up dataframe
+
+iea <- iea %>% 
+  select(country,year,iea_code=flow,chapter=IPCC_AR6_chapter,
+         chapter_title=IPCC_AR6_chapter_title,sector_code=ipcc.code,description,
+         subsector,subsector_title,CO2_indirect=adjusted_indirect_CO2)
+
+
+######### take the IPCC regions straight from IEA dataset
+
+load("../../Data/ipcc_regions.RData")
+regions_10 <- ipcc_regions %>%
+  select(region_ar6_10,region_ar6_6) %>%
+  distinct() %>%
+  mutate(include=1)
+
+## rename South-East Asia to match TSU codes though
+
+# iea <- iea %>% 
+#   mutate(country = as.character(country)) %>% 
+#   mutate(country = ifelse(country=="South-East Asia and developing Pacific","South-East Asia and Developing Pacific",country))
+
+indirect_CO2_regions <- left_join(iea,regions_10,by=c("country"="region_ar6_10"))
+indirect_CO2_regions <- indirect_CO2_regions %>%
+  filter(include==1) %>% 
+  select(-include) %>% 
+  select(region_ar6_10=country,region_ar6_6,everything())
+
+not_joined <- anti_join(iea,regions_10,by=c("country"="region_ar6_10"))
+
+######### world
+
+indirect_CO2_world <- iea %>% 
+  filter(country=="World")
+
+indirect_CO2_world <- spread(indirect_CO2_world,year,CO2_indirect)
+
+######### match up individual countries
+
+codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
+
+indirect_CO2_countries <- left_join(iea %>% mutate(country=tolower(country)),codes,by=c("country"="alternative.name"))
+
+notjoined <- anti_join(iea %>% mutate(country=tolower(country)),codes,by=c("country"="alternative.name")) %>% 
+  select(country) %>% 
+  distinct()
+
+indirect_CO2_countries <- indirect_CO2_countries %>% 
+  filter(!is.na(alpha.3)) %>% 
+  filter(alpha.3!="ZZZZ")
+
+edgar_countries <- edgar_ghg %>% 
+  select(country,ISO) %>% 
+  distinct()
+
+indirect_CO2_countries <- left_join(indirect_CO2_countries %>% select(name=country,everything()),edgar_countries,by=c("alpha.3"="ISO"))
+
+indirect_CO2_countries <- indirect_CO2_countries %>% 
+  filter(!is.na(country))
+
+indirect_CO2_countries <- left_join(indirect_CO2_countries,ipcc_regions %>% select(-name),by = c("alpha.3"="ISO"))
+
+removed <- indirect_CO2_countries %>% 
+  filter(is.na(country)) %>% 
+  select(name,country,alpha.3) %>% 
+  distinct()
+
+indirect_CO2_countries <- indirect_CO2_countries %>% 
+  select(country,ISO=alpha.3,region_ar6_6,region_ar6_10,region_ar6_22,region_ar6_dev,region_ar6_6_short,year,everything()) %>% 
+  select(-name)
+
+
+### add in other regions
+
+indirect_CO2_regions <- left_join(indirect_CO2_regions,ipcc_regions %>% select(region_ar6_10,region_ar6_10_short,region_ar6_6_short) %>% distinct(),by="region_ar6_10")
+
+```
+
+```{r checks, echo=FALSE}
+
+# do region emissions add up to world?
+
+check <- indirect_CO2_regions %>%
+  group_by(year) %>%
+  summarise(total=sum(CO2_indirect))
+
+world <- gather(indirect_CO2_world,year,value,`1990`:`2018`)
+world <- world %>%
+  group_by(year) %>%
+  summarise(total=sum(value))
+
+# what about countries?
+
+
+country_check <- indirect_CO2_countries %>%
+  group_by(year) %>%
+  summarise(total=sum(CO2_indirect))
+
+# what about summing countries to regions?
+
+
+region_check <- indirect_CO2_regions %>%
+  group_by(year,region_ar6_10) %>%
+  summarise(total=sum(CO2_indirect))
+
+```
+
+
+```{r save_data, echo=FALSE}
+
+save(indirect_CO2_regions,indirect_CO2_world,indirect_CO2_countries,file="../../Data/indirect_CO2.RData")
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_indirect_emissions"))
+
+openxlsx::addWorksheet(wb,"info")
+info = data.frame(x=c("Author","Units","Date","Code"),y=c("William F. Lamb","GtCO2",as.character(Sys.Date()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Data%20preparation/build_indirect_emissions.Rmd"))
+openxlsx::writeData(wb, sheet = "info",info , colNames = F, rowNames = F)
+
+
+openxlsx::addWorksheet(wb,"10 Regions")
+openxlsx::writeData(wb, sheet = "10 Regions",indirect_CO2_regions , colNames = T, rowNames = F)
+
+openxlsx::addWorksheet(wb,"World")
+openxlsx::writeData(wb, sheet = "World",indirect_CO2_world , colNames = T, rowNames = F)
+
+openxlsx::addWorksheet(wb,"Countries")
+openxlsx::writeData(wb, sheet = "Countries",indirect_CO2_countries , colNames = T, rowNames = F)
+
+openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_data_indirect_co2.xlsx"),overwrite=T)
+
+
+
+``` 
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -54,12 +54,13 @@ openxlsx::writeData(wb, sheet = "info", info, colNames = F, rowNames = F)
 ```
 
 
-```{r all_countries_trend,echo=FALSE,warning=FALSE,fig.width=12,fig.height=14,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r all_countries_trend_co2,echo=FALSE,warning=FALSE,fig.width=12,fig.height=14,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 ## set facet labels and order by cluster and growth rate
 
 data <- data %>%
-  mutate(labels=paste0(country," (",round(rate_CO2_peak,1),"%/yr)"))
+  mutate(labels=paste0(country,"\n(",round(rate_CO2_peak,1),"%/yr, -",round(absolute_reduction_CO2_peak/1e6),"MtCO2)"))
+  #mutate(labels=paste0(country," (",round(rate_CO2_peak,1),"%/yr)"))
 
 data <- data %>%
   mutate(labels=as.character(labels)) %>% 
@@ -75,7 +76,7 @@ data <- data %>%
 data$labels=fct_reorder(data$labels,data$rate_CO2_peak)
 data$labels=fct_reorder2(data$labels,data$rate_CO2_peak,desc(as.numeric(data$cluster)))
 
-plot_data <- gather(data,paths,value,CO2,GHG,CO2_cons,fit)
+plot_data <- gather(data,paths,value,CO2,GHG,CO2_cons,fit_CO2)
 plot_data$paths <- as.factor(plot_data$paths)
 plot_data$paths <- factor(plot_data$paths,levels=levels(plot_data$paths)[c(1,2,4,3)])
 
@@ -86,16 +87,63 @@ decarbonising_countries <- plot_data %>%
   scale_x_continuous(limits=c(1970,2018),breaks=c(1970,1990,2010)) +
   scale_y_continuous(expand = c(0.1, .1), limits = c(0, NA)) +
   scale_color_manual(values=c("#66c2a5","#fc8d62","#8da0cb","#525252"),labels=c("CO2 emissions\n(territorial)","CO2 emissions\n(consumption)","GHG emissions\n(territorial)","Fit since peak year\n(CO2 territorial)")) +
-  facet_wrap(.~labels,scales="free",labeller = label_wrap_gen(width=19,multi_line = TRUE)) +
+  facet_wrap(.~labels,scales="free") +
   theme(axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         legend.position = "bottom",
         legend.title = element_blank(),
         axis.title = element_blank(),
         plot.title = element_text(size = 12),
-        strip.text = element_text(size = 11)) +
+        strip.text = element_text(size = 12,margin = margin(0.4,0,0.4,0, "cm"),lineheight=1)) +
   guides(color = guide_legend(override.aes = list(size = 2)))
 decarbonising_countries
+
+```
+
+```{r all_countries_trend_ghg,echo=FALSE,warning=FALSE,fig.width=12,fig.height=14,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+
+## set facet labels and order by cluster and growth rate
+
+data <- data %>%
+  mutate(labels=paste0(country,"\n(",round(rate_GHG_peak,1),"%/yr, -",round(absolute_reduction_GHG_peak/1e6),"MtCO2eq)"))
+  #mutate(labels=paste0(country," (",round(rate_CO2_peak,1),"%/yr)"))
+
+data <- data %>%
+  mutate(labels=as.character(labels)) %>% 
+  mutate(labels=as.factor(labels)) %>%
+  mutate(cluster=as.factor(cluster))
+
+data <- data %>%
+  mutate(cluster_name = ifelse(cluster==1,"Recent peak",NA)) %>%
+  mutate(cluster_name = ifelse(cluster==2,"Long-term decline",cluster_name)) %>%
+  mutate(cluster_name = ifelse(cluster==3,"Former Eastern Bloc",cluster_name))
+
+
+data$labels=fct_reorder(data$labels,data$rate_GHG_peak)
+data$labels=fct_reorder2(data$labels,data$rate_GHG_peak,desc(as.numeric(data$cluster)))
+
+plot_data <- gather(data,paths,value,CO2,GHG,CO2_cons,fit_GHG)
+plot_data$paths <- as.factor(plot_data$paths)
+plot_data$paths <- factor(plot_data$paths,levels=levels(plot_data$paths)[c(1,2,4,3)])
+
+decarbonising_countries <- plot_data %>%
+  ggplot(.,aes(x=year,y=value,color=paths)) +
+  geom_path(size=1) +
+  geom_text(data=data %>% filter(year==2015),aes(x=1970,y=0,label=cluster_name),hjust="inward",vjust="inward",size=3.5,color="#636363") +
+  scale_x_continuous(limits=c(1970,2018),breaks=c(1970,1990,2010)) +
+  scale_y_continuous(expand = c(0.1, .1), limits = c(0, NA)) +
+  scale_color_manual(values=c("#66c2a5","#fc8d62","#8da0cb","#525252"),labels=c("CO2 emissions\n(territorial)","CO2 emissions\n(consumption)","GHG emissions\n(territorial)","Fit since peak year\n(GHG territorial)")) +
+  facet_wrap(.~labels,scales="free") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank(),
+        plot.title = element_text(size = 12),
+        strip.text = element_text(size = 12,margin = margin(0.4,0,0.4,0, "cm"),lineheight=1)) +
+  guides(color = guide_legend(override.aes = list(size = 2)))
+decarbonising_countries
+
 
 ```
 
@@ -118,10 +166,6 @@ plot_data$labels=fct_reorder(plot_data$labels,plot_data$rate_CO2_cons_peak)
 plot_data <- gather(plot_data,paths,value,CO2,GHG,CO2_cons,GHG_land,fit_CO2_cons)
 plot_data$paths <- as.factor(plot_data$paths)
 plot_data$paths <- factor(plot_data$paths,levels=levels(plot_data$paths)[c(1,2,4,5,3)])
-
-
-
-
 
 
 ## set facet labels and order by cluster and growth rate
@@ -383,7 +427,7 @@ p4 <- plot_data %>% ggplot(.,aes(x=var,y=value,fill=cluster)) +
         plot.title = element_text(size=12),
         strip.background = element_blank(),
         strip.text = element_blank()) +
-  ggtitle("d. Relative reduction in emissions since peak years (%)")
+  ggtitle("d. Relative reduction in annual emissions since peak years (%)")
 p4 
 
 ```
@@ -519,7 +563,7 @@ r4 <- rate_data %>%
         strip.background = element_blank(),
         strip.text = element_blank(),
         plot.margin = unit(c(0,0,0,0),units="cm")) +
-  ggtitle("Average annual growth rate since peak (%/yr)")
+  ggtitle("Average annual reduction rate since peak (%/yr)")
 
 country_rates <- r1 + r2 + r3 + r4 + plot_layout(widths = c(1,1.5,1.5,6))
 country_rates
@@ -680,7 +724,7 @@ cluster_subsectors <- plot_data %>% ggplot(.,aes(x=subsector_title,y=GHG_peak,fi
   geom_bar(aes(x=subsector_title,y=GHG_2018),stat='identity',color="#636363",width = 0.75) +
   geom_text(aes(x=subsector_title,y=ifelse(GHG_peak>GHG_2018,GHG_peak,GHG_2018),label=paste0(ifelse(rel_GHG>0,"+",""),round(rel_GHG,1),"%")),hjust = -0.15,size=3,colour="#636363",size=3.5) +
   scale_y_continuous(expand=expand_scale(mult = c(0.1, 0.5))) +
-  scale_x_discrete(labels = function(subsector_title) str_wrap(subsector_title, width = 30)) +
+  scale_x_discrete(labels = function(subsector_title) str_wrap(subsector_title, width = 32)) +
   scale_fill_brewer(palette="Set2") +
   coord_flip() +
   facet_grid(.~cluster_name,scales="free") +
@@ -754,7 +798,7 @@ scenario_data <- scenario_data %>%
   mutate(aggregated_category=as.character(aggregated_category))
 
 scenario_data <- scenario_data %>% 
-  mutate(aggregated_category=ifelse(aggregated_category=="1.5C","1.5oC warming",aggregated_category)) %>% 
+  mutate(aggregated_category=ifelse(aggregated_category=="1.5C","1.5oC warming (>50% probability)",aggregated_category)) %>% 
   mutate(aggregated_category=ifelse(aggregated_category=="High 2C","2oC warming (>50% probability)",aggregated_category)) %>% 
   mutate(aggregated_category=ifelse(aggregated_category=="Low 2C","2oC warming (>66% probability)",aggregated_category))
 
@@ -807,7 +851,7 @@ p1 <- rolling_rates %>% ggplot(.,aes(x=country,y=rate_rolling_CO2)) +
         strip.background = element_blank(),
         strip.text = element_blank(),
         plot.margin = unit(c(0,0,0,0),units="cm")) +
-  ggtitle(str_wrap("a. CO2 growth rates since peak years (5 year rolling avg.)",width=35))
+  ggtitle(str_wrap("a. CO2 reduction rates since peak years (5 year rolling avg.)",width=35))
 
 p3 <- scenario_data %>% ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregated_category)) +
   geom_hline(yintercept=0) +
@@ -827,7 +871,7 @@ p3 <- scenario_data %>% ggplot(.,aes(x=aggregated_category,y=rate,fill=aggregate
         plot.margin = unit(c(0,0,0,0),units="cm"),
         legend.position="none",
         panel.grid.minor = element_blank()) +
-  ggtitle(str_wrap("b. Average CO2 growth rates in scenarios compatible with warming targets",width=35))
+  ggtitle(str_wrap("b. Average CO2 reduction rates in scenarios compatible with warming targets",width=40))
 
 p2 <- rolling_rates %>% ggplot(.,aes(x=country,y=year,fill=threshold_CO2)) +
   geom_tile(color="#cccccc",size=0.2) +
@@ -847,7 +891,7 @@ p2 <- rolling_rates %>% ggplot(.,aes(x=country,y=year,fill=threshold_CO2)) +
         axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         plot.margin = unit(c(0,0,0,0),units="cm")) +
-  ggtitle(str_wrap("c. CO2 growth rates since peak years (5 year rolling avg. thresholds)",width=38))
+  ggtitle(str_wrap("c. CO2 reduction rates since peak years (5 year rolling avg. thresholds)",width=38))
 
 country_rolling_rates <- p1 + p2 + p3 + guide_area() + plot_layout(heights=c(6,1)) + plot_layout(guides = 'collect')
 country_rolling_rates
