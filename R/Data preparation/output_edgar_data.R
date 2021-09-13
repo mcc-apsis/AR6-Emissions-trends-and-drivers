@@ -9,6 +9,17 @@ load('Data/ipcc_sectors.RData')
 load('Data/gwps.RData')
 load('Data/WDI_gdp_pop.RData')
 
+#################### data for Smail
+
+smail <- edgar_ghg %>% 
+  filter(chapter_title=="Energy systems") %>% 
+  group_by(year,region_ar6_10,region_ar6_10_short) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+write.xlsx(smail,"energy_systems_10regions.xlsx",)
+
+
+
 #################### prep
 
 ipcc_sectors <- ipcc_sectors %>% 

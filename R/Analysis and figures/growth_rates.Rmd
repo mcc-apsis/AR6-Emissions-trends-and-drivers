@@ -49,14 +49,14 @@ growth_rates <- function(data) {
   #   select(-leap_years)
   
   rates <- data %>% 
-    filter(year %in% c(1990,2000,2010,2019))
+    filter(year %in% c(1990,1999,2000,2009,2010,2019))
   rates <- spread(rates,year,value)
   
   # calculate rates (note that 1990:2000 etc. is 10 years of data, not 11, as we assume emissions in 1990 is at the end of the year - 31.12.1990)
   rates <- rates %>% 
     group_by(var) %>% 
-    mutate(`1990-2000`=((((`2000`/`1990`)^(1/(2000-1990)))-1))*100) %>% 
-    mutate(`2000-2010`=((((`2010`/`2000`)^(1/(2010-2000)))-1))*100) %>% 
+    mutate(`1990-1999`=((((`1999`/`1990`)^(1/(1999-1990)))-1))*100) %>% 
+    mutate(`2000-2009`=((((`2009`/`2000`)^(1/(2009-2000)))-1))*100) %>% 
     mutate(`2010-2019`=((((`2019`/`2010`)^(1/(2019-2010)))-1))*100) %>% 
     mutate(`1990-2019`=((((`2019`/`1990`)^(1/(2019-1990)))-1))*100) %>% 
     ungroup()
@@ -145,7 +145,7 @@ sectors_indirect_land <- land %>%
 sectors_indirect <- left_join(sectors_indirect,sectors_indirect_land,by = c("chapter_title", "year"))
 
 ## add indirect CO2
-sectors_indirect_indirect <- gather(indirect_CO2_world,year,value,`1990`:`2018`) %>% 
+sectors_indirect_indirect <- gather(indirect_CO2_world,year,value,`1990`:`2019`) %>% 
   group_by(year,chapter_title) %>% 
   summarise(indirect_CO2=sum(value,na.rm=TRUE)*1e9) %>% 
   mutate(year=as.numeric(year))

@@ -48,9 +48,9 @@ captions <- read.xlsx('Results/Plots/captions.xlsx')
 load("Data/rates.RData")
 rates <- gather(rates,blarg,values,`1990`:`1990-2019`)
 rates <- rates %>% 
-  mutate(values=round(values,2))
+  mutate(values=round(values,1))
 rates$blarg <- as.factor(rates$blarg)
-rates$blarg <- factor(rates$blarg,levels=levels(rates$blarg)[c(1,4,6,8,2,5,7,3)])
+rates$blarg <- factor(rates$blarg,levels=levels(rates$blarg)[c(1,4,5,7,8,10,2,6,9,3)])
 rates <- spread(rates,blarg,values)
 
 ```
@@ -277,7 +277,7 @@ rates %>%
   filter(category=="Gases") %>%
   select(Gas=var,-category,-subcategory,`1990`:`1990-2019`) %>% 
   kbl() %>% 
-  add_header_above(c("","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  add_header_above(c("","Emissions (GtCO2eq)"=6,"Growth rate (%/yr)"=4)) %>% 
   kable_styling(bootstrap_options = c("striped"))
 
 ```
@@ -293,7 +293,7 @@ rates %>%
   filter(category=="Regions") %>%
   select(-category,-subcategory,Region=var,`1990`:`1990-2019`) %>% 
   kbl() %>% 
-  add_header_above(c("","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  add_header_above(c("","Emissions (GtCO2eq)"=6,"Growth rate (%/yr)"=4)) %>% 
   kable_styling(bootstrap_options = c("striped")) %>%
   scroll_box(width = "100%", height = "400px")
 
@@ -310,7 +310,7 @@ rates %>%
   filter(category=="Sectors") %>%
   select(-category,-subcategory,Sector=var,`1990`:`1990-2019`) %>% 
   kbl() %>% 
-  add_header_above(c("","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  add_header_above(c("","Emissions (GtCO2eq)"=6,"Growth rate (%/yr)"=4)) %>% 
   kable_styling(bootstrap_options = c("striped"))
 
 
@@ -326,7 +326,7 @@ rates %>%
   filter(category=="Sectors (incl. indirect CO2)") %>%
   select(-category,-subcategory,Sector=var,`1990`:`1990-2019`) %>% 
   kbl() %>% 
-  add_header_above(c("","Emissions (GtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  add_header_above(c("","Emissions (GtCO2eq)"=6,"Growth rate (%/yr)"=4)) %>% 
   kable_styling(bootstrap_options = c("striped"))
 
 
@@ -343,7 +343,7 @@ rates %>%
   select(-category,Sector=subcategory,Subsector=var,`1990`:`1990-2019`) %>% 
   arrange(Sector,desc(`2019`)) %>% 
   kbl() %>% 
-  add_header_above(c("","","Emissions (MtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  add_header_above(c("","","Emissions (MtCO2eq)"=6,"Growth rate (%/yr)"=4)) %>% 
   kable_styling(bootstrap_options = c("striped")) %>%
   scroll_box(width = "100%", height = "400px")
 
@@ -361,7 +361,7 @@ rates %>%
   select(-category,-subcategory,Country=var,`1990`:`1990-2019`) %>%
   arrange(Country) %>% 
   kbl() %>% 
-  add_header_above(c("","Emissions (MtCO2eq)"=4,"Growth rate (%/yr)"=4)) %>% 
+  add_header_above(c("","Emissions (MtCO2eq)"=6,"Growth rate (%/yr)"=4)) %>% 
   kable_styling(bootstrap_options = c("striped")) %>%
   scroll_box(width = "100%", height = "400px")
 

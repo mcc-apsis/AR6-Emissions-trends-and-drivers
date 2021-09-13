@@ -83,7 +83,7 @@ sum(blarg$CO2)
 # 
 # openxlsx::write.xlsx(blarg,"Europe_buildings.xlsx")
 
-indirect_CO2_world <- gather(indirect_CO2_world,year,CO2_indirect,`1990`:`2018`) %>% 
+indirect_CO2_world <- gather(indirect_CO2_world,year,CO2_indirect,`1990`:`2019`) %>% 
   mutate(year=as.numeric(year))
 
 
@@ -104,12 +104,12 @@ growth_rates <- function(data) {
   #   select(-leap_years)
   
   rates <- data %>% 
-    filter(year %in% c(1990,2000,2010,end_year)) %>% 
+    filter(year %in% c(1990,1999,2000,2009,2010,end_year)) %>% 
     mutate(total_rate=NA)
   
-  rates$total_rate[rates$year==1990] = ((rates$value[rates$year==2000]/rates$value[rates$year==1990])^(1/(2000-1990))-1)*100
+  rates$total_rate[rates$year==1990] = ((rates$value[rates$year==1999]/rates$value[rates$year==1990])^(1/(1999-1990))-1)*100
   
-  rates$total_rate[rates$year==2000] = ((rates$value[rates$year==2010]/rates$value[rates$year==2000])^(1/(2010-2000))-1)*100
+  rates$total_rate[rates$year==2000] = ((rates$value[rates$year==2009]/rates$value[rates$year==2000])^(1/(2009-2000))-1)*100
   
   rates$total_rate[rates$year==2010] = ((rates$value[rates$year==end_year]/rates$value[rates$year==2010])^(1/(end_year-2010))-1)*100
   
@@ -871,52 +871,52 @@ openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),reg
 
 ```
 
-# Buildings ->indirect CO2 only until 2018, compilation with end-year 2019 therefore failed
+# Buildings
 
 ```{r buildings,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
-# ## Which chapter?
-# i=4
-# ch = chapters$chapter[i]
-# 
-# ############  Overall trend
-# 
-# trend_data <- gather_trend_data(edgar_ghg,ch)
-# 
-# trend_data <- trend_data %>%
-#   mutate(subsector_title=ifelse(subsector_title=="Residential","Residential (direct CO2)",subsector_title)) %>%
-#   mutate(subsector_title=ifelse(subsector_title=="Non-residential","Non-residential (direct CO2)",subsector_title)) %>%   mutate(subsector_title=ifelse(subsector_title=="Non-CO2 (all buildings)","All buildings (non-CO2)",subsector_title))
-# 
-# ## align factors and labels
-# trend_data$subsector_title <- as.factor(trend_data$subsector_title)
-# trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(5,3,4,2,1)])
-# 
-# p1 <- trend_figure(trend_data,ch)
-# 
-# ############  Region plot
-# 
-# region_data <- gather_region_data(edgar_ghg,ch)
-# 
-# ## align factors and labels
-# region_data$subsector_title <- as.factor(region_data$subsector_title)
-# region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(5,3,4,2,1)])
-# 
-# p2 <- plot_region_figure(region_data,ch)
-# 
-# 
-# ############ Plot everything
-# sector_buildings <- ggarrange(p1,p2,nrow=2,align = "h")
-# sector_buildings
-# 
-# ############ Save data
-# trend_data <- spread(trend_data,year,value)
-# region_data <- spread(region_data,year,value)
-# 
-# openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
-# openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
-# openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-# openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+## Which chapter?
+i=4
+ch = chapters$chapter[i]
+
+############  Overall trend
+
+trend_data <- gather_trend_data(edgar_ghg,ch)
+
+trend_data <- trend_data %>%
+  mutate(subsector_title=ifelse(subsector_title=="Residential","Residential (direct CO2)",subsector_title)) %>%
+  mutate(subsector_title=ifelse(subsector_title=="Non-residential","Non-residential (direct CO2)",subsector_title)) %>%   mutate(subsector_title=ifelse(subsector_title=="Non-CO2 (all buildings)","All buildings (non-CO2)",subsector_title))
+
+## align factors and labels
+trend_data$subsector_title <- as.factor(trend_data$subsector_title)
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(5,3,4,2,1)])
+
+p1 <- trend_figure(trend_data,ch)
+
+############  Region plot
+
+region_data <- gather_region_data(edgar_ghg,ch)
+
+## align factors and labels
+region_data$subsector_title <- as.factor(region_data$subsector_title)
+region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(5,3,4,2,1)])
+
+p2 <- plot_region_figure(region_data,ch)
+
+
+############ Plot everything
+sector_buildings <- ggarrange(p1,p2,nrow=2,align = "h")
+sector_buildings
+
+############ Save data
+trend_data <- spread(trend_data,year,value)
+region_data <- spread(region_data,year,value)
+
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
 
 
 ```
@@ -1102,7 +1102,7 @@ land_totals <- land %>%
   ungroup()
 top_sectors <- rbind(top_sectors,land_totals)
 
-GHG_2018 <- top_sectors %>% 
+GHG_2019 <- top_sectors %>% 
   filter(year==end_year) %>% 
   summarise(total_GHG=sum(total_GHG))
 
@@ -1131,7 +1131,7 @@ top_sectors <- top_sectors %>%
   filter(year==end_year)
 
 top_sectors <- top_sectors %>% 
-  mutate(fraction_indirect=total_GHG_plus_indirect/GHG_2018$total_GHG) %>% 
+  mutate(fraction_indirect=total_GHG_plus_indirect/GHG_2019$total_GHG) %>% 
   mutate(fraction_indirect=ifelse(subsector_title=="Electricity & heat",NA,fraction_indirect))
 
 
