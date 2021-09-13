@@ -309,7 +309,7 @@ trend_figure <- function(trend_data,chapter) {
     
     # geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(round(fractions,0),"%")),hjust=0,size=3.5,colour="#252525") +
     
-    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4,year+5),y=max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste0(ifelse(total_rate>0,"+","-"),round(abs(total_rate),1),"%")),size=3.5,colour="#252525") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4.5,year+5),y=max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste0(ifelse(total_rate>0,"+","-"),round(abs(total_rate),1),"%")),size=3.5,colour="#252525") +
     
     scale_x_continuous(breaks=c(1990,2000,2010,end_year),limits = c(1990,end_year+2)) +
     scale_y_continuous() +

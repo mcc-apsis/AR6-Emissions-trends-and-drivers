@@ -62,23 +62,25 @@ world_totals <- iea %>%
 
 ```{r allocate_ononspec, echo=FALSE}
 
+### calculate indirect CO2
+
 iea <- spread(iea,var,value)
 iea <- iea %>% 
   mutate(indirect_CO2 = CO2_plus_elec_heat-CO2)
 
-# set industry and transport totals to NA
+### remove aggregate categories in order to avoid double counting
+# industry and transport totals, manufacturing sector (a new aggregate in the 2021 version)
 iea <- iea %>% 
   mutate(indirect_CO2=ifelse(flow=="TOTIND",NA,indirect_CO2)) %>% 
   mutate(indirect_CO2=ifelse(flow=="TOTTRANS",NA,indirect_CO2)) %>% 
-  mutate(indirect_CO2=ifelse(flow=="MANUFACT",NA,indirect_CO2))         # new aggregate sector for the 2021 version
+  mutate(indirect_CO2=ifelse(flow=="MANUFACT",NA,indirect_CO2))
 
 blarg <- iea %>% 
   filter(country=="World") %>% 
-  filter(year==2018)
+  filter(year==2019)
 
 
 ###### allocate ONONSPEC indirect CO2
-
 # get the residential, commercial, agriculture/forestry and fishing CO2 for each country and year ("other_sector_CO2")
 
 other_sectors <- iea %>%
@@ -130,7 +132,7 @@ iea <- iea %>%
 
 totals <- iea %>% 
   filter(country=="World") %>% 
-  filter(year==2018)
+  filter(year==2019)
 
 #totals2 <- totals
 
@@ -168,7 +170,7 @@ iea <- iea %>%
 
 totals <- iea %>% 
   filter(country=="World") %>% 
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   group_by(IPCC_AR6_chapter_title) %>% 
   summarise(indirect_CO2=sum(indirect_CO2))
 
