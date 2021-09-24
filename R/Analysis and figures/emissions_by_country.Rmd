@@ -51,7 +51,7 @@ wb <- openxlsx::createWorkbook(title = "ipcc_ar6_region_and_countries_plot")
 
 plot_data <- edgar_GHG_ar6 %>% 
   filter(year>1989) %>% 
-  filter(year<2019) %>% 
+  filter(year<2020) %>% 
   group_by(year,region_ar6_5,region_ar6_5_short,region_ar6_10) %>% 
   summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
   ungroup() %>% 
@@ -99,7 +99,7 @@ plot_data$region_ar6_5 <-  factor(plot_data$region_ar6_5,levels(plot_data$region
 
 
 shares <- plot_data %>% 
-  filter(year %in% c(1990,2000,2010,2018)) %>% 
+  filter(year %in% c(1990,2000,2010,2019)) %>% 
   group_by(year) %>% 
   mutate(totals=sum(value)) %>% 
   ungroup() %>% 
@@ -108,7 +108,7 @@ shares <- plot_data %>%
 
 shares <- locate_shares(shares,"region_ar6_5_short",4)
 
-line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2018,2018),y=c(0,60))
+line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2019,2019),y=c(0,60))
 
 p1 <- plot_data %>%
   ggplot(.,aes(x=year,y=value,fill=region_ar6_5_short)) +
@@ -126,7 +126,7 @@ p1 <- plot_data %>%
   
   
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
-  scale_x_continuous(breaks=c(1990,2000,2010,2018)) +
+  scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
   coord_cartesian(xlim = c(1990,2032), # This focuses the x-axis on the range of interest
                   clip = 'off') +
   big_trend_theme +
@@ -156,7 +156,7 @@ time_start=2010
 countries <- edgar_GHG_ar6 %>% 
   filter(region_ar6_5_short!="AIR") %>% 
   filter(region_ar6_5_short!="SEA") %>% 
-  filter(year>=time_start & year<2019) %>% 
+  filter(year>=time_start & year<2020) %>% 
   group_by(country,ISO,year,region_ar6_5_short) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE))
 
@@ -178,18 +178,18 @@ countries <- countries %>%
 
 # what is 75% of the emissions?
 threshold <- countries %>%
-  filter(year==2018)
+  filter(year==2019)
 threshold <- sum(threshold$GHG,na.rm=T)*0.75
 
 
 ## calculate average annual and absolute growth
 
 countries <- countries %>% 
-  filter(year %in% c(time_start,2018)) %>% 
+  filter(year %in% c(time_start,2019)) %>% 
   group_by(country) %>% 
   mutate(avg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_growth=last(GHG)-first(GHG)) %>%
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   mutate(avg_growth=avg_growth*100)
 
 ## remove countries below absolute emissions threshold
@@ -293,7 +293,7 @@ per_capita <- left_join(per_capita,wdi_data_gdp_pop,by=c("year"="year","ISO"="is
   select(-gdp_ppp,-gdp_real)
 
 per_capita <- per_capita %>% 
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   mutate(CO2_pc = CO2/population) %>% 
   mutate(GHG_pc = GHG/population)
 
@@ -333,11 +333,13 @@ cumulative_emissions_income <- edgar_GHG_ar6 %>%
 
 cumulative_1990 <- cumulative_emissions_income %>% 
   filter(year>1989) %>% 
+  filter(year<2020) %>% 
   group_by(region_ar6_dev) %>% 
   summarise(GHG_since_1990=sum(GHG/1e9))
 
 cumulative_2010 <- cumulative_emissions_income %>% 
   filter(year>2009) %>% 
+  filter(year<2020) %>% 
   group_by(region_ar6_dev) %>% 
   summarise(GHG_since_2010=sum(GHG/1e9))
 
@@ -361,11 +363,13 @@ cumulative_emissions_geo <- edgar_GHG_ar6 %>%
 
 cumulative_1990 <- cumulative_emissions_geo %>% 
   filter(year>1989) %>% 
+  filter(year<2020) %>% 
   group_by(region_ar6_5) %>% 
   summarise(GHG_since_1990=sum(GHG/1e9))
 
 cumulative_2010 <- cumulative_emissions_geo %>% 
   filter(year>2009) %>% 
+  filter(year<2020) %>% 
   group_by(region_ar6_5) %>% 
   summarise(GHG_since_2010=sum(GHG/1e9))
 
@@ -408,52 +412,52 @@ cumulative_emissions_geo <- cumulative_emissions_geo %>%
 ```
 
 ```{r ridgeline_plot,echo=FALSE,warning=FALSE,fig.width=9,fig.height=5}
-
-#load('../../Data/basic.RData')
-
-## get country level data
-
-countries <- edgar_GHG_ar6 %>% 
-  filter(region_ar6_5_short!="AIR") %>% 
-  filter(region_ar6_5_short!="SEA") %>% 
-  group_by(country,ISO,year,region_ar6_5_short,region_ar6_10) %>% 
-  summarise(GHG=sum(GHG,na.rm=TRUE))
-
-### join pop and gdp
-#basic <- basic %>%  
-#  select(ISO,Year,pop_UN)
-
-countries <- left_join(countries,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
-
-### select two time frames
-
-
-countries_tf1 <- countries %>% 
-  filter(year>=1990 & year<2000) %>%
-  group_by(country,ISO,region_ar6_5_short,region_ar6_10) %>% 
-  summarise(GHG=sum(GHG)/10,pop_UN=sum(population)/10) %>% 
-  mutate(year='1990_1999')
-
-countries_tf2 <- countries %>% 
-  filter(year>=2010 & year<2019) %>%
-  group_by(country,ISO,region_ar6_5_short,region_ar6_10) %>% 
-  summarise(GHG=sum(GHG)/10,population=sum(population)/10) %>% 
-  mutate(year='2000_2018')
-
-countries <- rbind(countries_tf1,countries_tf2)
-
-countries <- countries %>% 
-  mutate(emissions_pc=GHG/population)
-
-library(ggridges)
-
-countries %>% ggplot(.,aes(x=emissions_pc,y=region_ar6_10,fill=year)) +
-  geom_density_ridges() +
-  xlim(-10,100)
-
-countries %>% ggplot(.,aes(x=emissions_pc,y=region_ar6_10,fill=year)) +
-  geom_boxplot() +
-  xlim(-10,100)
+# 
+# #load('../../Data/basic.RData')
+# 
+# ## get country level data
+# 
+# countries <- edgar_GHG_ar6 %>% 
+#   filter(region_ar6_5_short!="AIR") %>% 
+#   filter(region_ar6_5_short!="SEA") %>% 
+#   group_by(country,ISO,year,region_ar6_5_short,region_ar6_10) %>% 
+#   summarise(GHG=sum(GHG,na.rm=TRUE))
+# 
+# ### join pop and gdp
+# #basic <- basic %>%  
+# #  select(ISO,Year,pop_UN)
+# 
+# countries <- left_join(countries,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
+# 
+# ### select two time frames
+# 
+# 
+# countries_tf1 <- countries %>% 
+#   filter(year>=1990 & year<2000) %>%
+#   group_by(country,ISO,region_ar6_5_short,region_ar6_10) %>% 
+#   summarise(GHG=sum(GHG)/10,pop_UN=sum(population)/10) %>% 
+#   mutate(year='1990_1999')
+# 
+# countries_tf2 <- countries %>% 
+#   filter(year>=2010 & year<2019) %>%
+#   group_by(country,ISO,region_ar6_5_short,region_ar6_10) %>% 
+#   summarise(GHG=sum(GHG)/10,population=sum(population)/10) %>% 
+#   mutate(year='2000_2018')
+# 
+# countries <- rbind(countries_tf1,countries_tf2)
+# 
+# countries <- countries %>% 
+#   mutate(emissions_pc=GHG/population)
+# 
+# library(ggridges)
+# 
+# countries %>% ggplot(.,aes(x=emissions_pc,y=region_ar6_10,fill=year)) +
+#   geom_density_ridges() +
+#   xlim(-10,100)
+# 
+# countries %>% ggplot(.,aes(x=emissions_pc,y=region_ar6_10,fill=year)) +
+#   geom_boxplot() +
+#   xlim(-10,100)
 
 ```
 
@@ -476,7 +480,7 @@ openxlsx::writeData(wb,"cumulative_GHG_emissions_geo",cumulative_emissions_geo, 
 # openxlsx::writeData(wb,"region_comparison",regions, colNames = T, rowNames = F)
 
 
-openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_data_regions_countries",".xlsx"),overwrite=T)
+#openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_data_regions_countries",".xlsx"),overwrite=T)
 
 ```
 

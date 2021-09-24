@@ -8,7 +8,7 @@ library(lubridate)
 #load('../../Data/gwps.RData')
 #load("../../Data/land.RData")
 #load('../../Data/edgar_essd_data_raw.RData')
-load('../../Data/edgar6_v2_data_raw.RData')
+load('../../Data/edgar6_v4_data_raw.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 
@@ -43,7 +43,8 @@ growth_rate <- function(years,y) {
 }
 
 
-GHG_data<-edgar_raw
+GHG_data<-edgar_raw %>%
+  filter(year<=2018)
 
 GHG_data<-GHG_data %>%
   mutate(region_ar6_10=as.character(region_ar6_10)) %>%
@@ -229,6 +230,7 @@ region_ar6_6<-edgar_raw%>%
 GHG_by_region_ext <- left_join(GHG_data,region_ar6_6,by="region_ar6_10")
 
 GHG_by_region <- GHG_by_region_ext %>%
+  filter(year<=2018)%>%
   group_by(region_ar6_6,year) %>%
   summarise(value=sum(value,na.rm=TRUE)) %>%
   mutate(decade=ifelse((year>1969 & year<1980),"1970-1979",NA)) %>%

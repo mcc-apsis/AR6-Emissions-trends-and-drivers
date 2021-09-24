@@ -156,6 +156,13 @@ p_abs<-edgar_by_gas %>%
     ggplot(.,aes(x=year,y=absolute))+
     geom_line(aes(color=gas))+
     geom_ribbon(aes(ymin=absolute_low,ymax=absolute_high,fill=gas),alpha=0.3)+
+    geom_rect(aes(
+    x = year,
+    xmin = 2018,
+    xmax = 2019,
+    ymin = absolute_low,
+    ymax = absolute_high
+  ),fill = "white",alpha=0.04) +
     scale_x_continuous(breaks=c(1970,1990,2010,2019)) +
     #scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
     scale_fill_manual(values=colours) +
@@ -170,6 +177,13 @@ p_pc<-edgar_by_gas %>%
     ggplot(.,aes(x=year,y=per_capita))+
     geom_line(aes(color=gas))+
     geom_ribbon(aes(ymin=per_capita_low,ymax=per_capita_high,fill=gas),alpha=0.3)+
+  geom_rect(aes(
+    x = year,
+    xmin = 2018,
+    xmax = 2019,
+    ymin = per_capita_low,
+    ymax = per_capita_high
+  ),fill = "white",alpha=0.04) +
     scale_x_continuous(breaks=c(1970,1990,2010,2019)) +
     #scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
     scale_fill_manual(values=colours) +
@@ -185,6 +199,13 @@ p_pgdp<-edgar_by_gas %>%
     ggplot(.,aes(x=year,y=per_gdp_real))+
     geom_line(aes(color=gas))+
     geom_ribbon(aes(ymin=per_gdp_low,ymax=per_gdp_high,fill=gas),alpha=0.3)+
+  geom_rect(aes(
+    x = year,
+    xmin = 2018,
+    xmax = 2019,
+    ymin = per_gdp_low,
+    ymax = per_gdp_high
+  ),fill = "white",alpha=0.04) +
     scale_x_continuous(breaks=c(1970,1990,2010,2019)) +
     #scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
     scale_fill_manual(values=colours) +
