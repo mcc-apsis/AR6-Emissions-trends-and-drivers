@@ -113,7 +113,7 @@ p1 <- ggplot() +
   #guides(fill = guide_legend(override.aes = list(fill = c(scale_fill_steps(low = 'lightyellow',high = "darkblue", na.value="lightgrey", breaks=c(1990,1995,2000,2005,2010,2015,2020), oob=squish))))) +
   #scale_fill_discrete(c("green","yellow")) +
   #check again with new data the limit to 35 tCO2eq per capita
-  theme(panel.border = element_rect(colour = "black",fill=NA),
+  theme(panel.border = element_rect(colour = "white",fill=NA),
         legend.position = c(0.4,0),
         legend.direction = "horizontal",
         #legend.key.width = unit(2,"cm"),

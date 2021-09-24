@@ -20,7 +20,8 @@ source("../Analysis and figures/small_figures.R")
 
 
 #load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
-load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+#load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 load('../../Data/WDI_gdp_pop.RData')
@@ -41,6 +42,7 @@ wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_sector_map_data_",Sys.Dat
 
 mapdata <- edgar_ghg %>% 
   filter(year>1969) %>% 
+  filter(year<=2019) %>%
   group_by(country,ISO,year,chapter_title) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE))
 

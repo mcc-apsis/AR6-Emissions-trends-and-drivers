@@ -26,11 +26,11 @@ source("../Analysis and figures/small_figures.R")
 # load("../../Data/edgar_data_all.RData")
 #load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
 #load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
-load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
 #load("../../Data/edgar6_data_raw_gwp_ar5.RData") #if changed to ar6 change line 432 and 440
 #load("../../Data/edgar6_data_raw.RData")
 #load("../../Data/edgar_essd_data_raw.RData")
-load('../../Data/edgar6_v2_data_raw.RData')
+load('../../Data/edgar6_v4_data_raw.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 load("../../Data/primap_crf_data_ghg_gwp.RData")
@@ -89,7 +89,7 @@ waterfall_data <- edgar_raw %>%
   # group_by(year) %>% 
   # summarise_at(vars(CO2:SF6),sum,na.rm=TRUE) %>% 
   # mutate_at(vars(CO2:SF6),list(~./1e9))
-  group_by(year,gas,gwp100_ar2,gwp100_ar4,gwp100_ar5) %>% 
+  group_by(year,gas,gwp100_ar2,gwp100_ar4,gwp100_ar5,gwp100_ar6) %>% 
   #group_by(year,gas,gwp100_ar2,gwp100_ar5) %>% 
   summarise(value=sum(value,na.rm=TRUE)) %>% 
   mutate(value=value/1e9) %>%
@@ -101,9 +101,9 @@ waterfall_data <- waterfall_data %>%
   mutate(gwp_ar2=gwp100_ar2*value) %>% 
   mutate(gwp_ar4=gwp100_ar4*value) %>% 
   mutate(gwp_ar5=gwp100_ar5*value) %>% 
-  #mutate(gwp_ar6=gwp_ar6*value) %>% 
+  mutate(gwp_ar6=gwp100_ar6*value) %>% 
   group_by(year,gas) %>% 
-  summarise_at(vars(gwp_ar2:gwp_ar5),sum,na.rm=TRUE) #%>% 
+  summarise_at(vars(gwp_ar2:gwp_ar6),sum,na.rm=TRUE) #%>% 
   #select(-value,-gwp100_ar2,-gwp100_ar5)#,-gwp_ar6_sod)
 
 
@@ -146,8 +146,8 @@ waterfall_data <- waterfall_data %>%
 fgas <- waterfall_data %>% 
   filter(!gas %in% c("CO2","CH4","N2O")) %>% 
   group_by(year) %>% 
-  #summarise_at(vars(gwp_ar2:gwp_ar6),sum,na.rm=TRUE) %>% 
-  summarise_at(vars(gwp_ar2:gwp_ar5),sum,na.rm=TRUE) %>% 
+  summarise_at(vars(gwp_ar2:gwp_ar6),sum,na.rm=TRUE) %>% 
+  #summarise_at(vars(gwp_ar2:gwp_ar5),sum,na.rm=TRUE) %>% 
   mutate(gas="Fgas") %>% 
   select(year,gas,everything())
 
@@ -162,7 +162,7 @@ waterfall_land <- land_totals %>%
   mutate(gwp_ar2=CO2_landuse) %>% 
   mutate(gwp_ar4=CO2_landuse) %>% 
   mutate(gwp_ar5=CO2_landuse) %>% 
-  #mutate(gwp_ar6=CO2_landuse) %>% 
+  mutate(gwp_ar6=CO2_landuse) %>% 
   select(-CO2_landuse)
 
 waterfall_data <- waterfall_data %>% 
@@ -189,8 +189,8 @@ waterfall_data$gas <-  factor(waterfall_data$gas,levels(waterfall_data$gas)[c(2,
 waterfall_data <- waterfall_data %>% 
   arrange(gas)
 
-# waterfall_data <- gather(waterfall_data,gwp,value,gwp_ar2:gwp_ar6)
-waterfall_data <- gather(waterfall_data,gwp,value,gwp_ar2:gwp_ar5)
+waterfall_data <- gather(waterfall_data,gwp,value,gwp_ar2:gwp_ar6)
+#waterfall_data <- gather(waterfall_data,gwp,value,gwp_ar2:gwp_ar5)
 
 waterfall_data <- waterfall_data %>% 
   group_by(gwp) %>% 
@@ -224,9 +224,15 @@ colours = c("#e78ac3","#fc8d62","#8da0cb","#66c2a5","#a6d854")
 
 #waterfall_data<-rbind(waterfall_data,waterfall_data_duplicate)
 
+waterfall_data<-waterfall_data %>%
+  mutate(gwp=ifelse(gwp=="gwp_ar2","GWP AR2",gwp)) %>%
+  mutate(gwp=ifelse(gwp=="gwp_ar4","GWP AR4",gwp)) %>%
+  mutate(gwp=ifelse(gwp=="gwp_ar5","GWP AR5",gwp)) %>%
+  mutate(gwp=ifelse(gwp=="gwp_ar6","GWP AR6",gwp))
+
 waterfall_data$gwp <- as.factor(waterfall_data$gwp)
 #waterfall_data$gwp <-  factor(waterfall_data$gwp,levels(waterfall_data$gwp)[c(6,5,4,3,2,1)])
-waterfall_data$gwp <-  factor(waterfall_data$gwp,levels(waterfall_data$gwp)[c(3,2,1)])
+waterfall_data$gwp <-  factor(waterfall_data$gwp,levels(waterfall_data$gwp)[c(4,3,2,1)])
 
 ### plot
 
@@ -290,7 +296,7 @@ p_waterfall <- waterfall_data %>%
      panel.spacing = unit(0, "mm"),
      strip.background = element_blank())
      #plot.margin = unit(c(2,0,0,0),units="cm"))
-     #strip.text = c("AR2 GWP","AR5 GWP","AR6 GWP"))
+     #axis.text.x = element_text(c("AR6 GWP","AR5 GWP","AR4 GWP","AR2 GWP")))
 
 p_waterfall
 

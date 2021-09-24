@@ -22,15 +22,14 @@ source("small_figures.R")
 #load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
 #load('../../Data/edgar_essd_data_raw.RData')
 
-load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
-load('../../Data/edgar6_v2_data_raw.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v4_data_raw.RData')
 
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 
 uncertainties <- data.frame(gas=c('CO2 FFI','CO2 LULUCF','CH4','N2O','Fgas'),
                             uncertainty=c(0.08,0.7,0.3,0.6,0.3))
-
 
 ```
 
@@ -262,7 +261,7 @@ p_waterfall <- waterfall_data %>%
 
    facet_grid(~gwp,switch="both") +
 
-   geom_text(data=waterfall_data %>% filter(gas=="CH4"),aes(x=gas,y=62,label=paste(round(total,1),  "Gt")),size=3.5,colour="#252525") +
+   geom_text(data=waterfall_data %>% filter(gas=="CH4"),aes(x=gas,y=62,label=paste(round(total,0),  "Gt")),size=3.5,colour="#252525") +
 
    theme_bw() +
    scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
@@ -305,6 +304,8 @@ gas_trend <- gas_trend %>%
 gas_trend$gas <- as.factor(gas_trend$gas)
 gas_trend$gas <-  factor(gas_trend$gas,levels(gas_trend$gas)[c(4,5,1,3,2)])
 
+### get the shares and totals in each time period
+
 shares <- gas_trend %>% 
   filter(year %in% c(1990,2000,2010,2019)) %>% 
   group_by(year) %>% 
@@ -317,6 +318,17 @@ shares <- locate_shares(shares,"gas",4)
 
 line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2019,2019),y=c(0,60))
 
+### get the growth rates between time periods
+rates <- gas_trend %>% 
+  filter(year %in% c(1990,1999,2000,2009,2010,2019)) %>% 
+  group_by(year) %>% 
+  summarise(value=sum(value)) %>% 
+  mutate(total_rate=NA)
+
+rates$total_rate[rates$year==1990] = ((rates$value[rates$year==1999]/rates$value[rates$year==1990])^(1/(1999-1990))-1)*100
+rates$total_rate[rates$year==2000] = ((rates$value[rates$year==2009]/rates$value[rates$year==2000])^(1/(2009-2000))-1)*100
+rates$total_rate[rates$year==2010] = ((rates$value[rates$year==2019]/rates$value[rates$year==2010])^(1/(2019-2010))-1)*100
+  
 
 p_gas_totals <- gas_trend %>% 
   ggplot(.,aes(x=year,y=value,fill=gas)) +
@@ -327,8 +339,13 @@ p_gas_totals <- gas_trend %>%
   #### text with the shares
   geom_text(data=shares,aes(x=year+0.25,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525",hjust=0)+
   
+  #### text with the rates
+  geom_text(data=rates %>% filter(!is.na(total_rate)),inherit.aes = FALSE,
+                            aes(x=ifelse(year==2010,year+4.5,year+5),y=60,
+                                label=paste0("+",round(total_rate,1),"%")),size=3.5,colour="#252525") +
+  
   #### text with the totals
-  geom_text(data=shares %>% filter(gas=="Fgas"),aes(x=year,y=62,label=paste(round(totals,1),  "Gt")),size=3.5,colour="#252525")+
+  geom_text(data=shares %>% filter(gas=="Fgas"),aes(x=year,y=62,label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
   
   ylab('Greenhouse gas emissions (GtCO2eq/yr)') +
   labs(fill="Gas") +
@@ -355,11 +372,13 @@ p_gas_totals
 
 
 gas_trend_nogwp <- edgar_raw %>%
+  filter(year<2020) %>% 
   filter(gas %in% c("CO2","CH4","N2O")) %>% 
   group_by(year,gas) %>%
   summarise(value=sum(value,na.rm=TRUE))
 
 fgas_trend <- edgar_ghg %>% 
+  filter(year<2020) %>% 
   group_by(year) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)) %>% 
   mutate(gas="Fgas")
@@ -417,48 +436,48 @@ p_gas_trends
 ```{r ghgs_no_gwp_scales, echo=FALSE,warning=FALSE,include=FALSE,fig.width=8,fig.height=2}
 
 
-# p1 <- gas_trend_nogwp %>%
-#   filter(gas!="Fgas") %>% 
-#   ggplot(.,aes(x=year,y=value)) +
-#   geom_hline(yintercept = 1,color="#636363") +
-#   geom_line(aes(color=gas),width=2) +
-#   geom_ribbon(data=gas_trend_nogwp %>% filter(gas!="Fgas"),aes(ymin=low,ymax=high,fill=gas),alpha=0.3)+
-#   scale_x_continuous(breaks=c(1990,2000,2010)) +
-#   scale_fill_manual(values=colours) +
-#   scale_color_manual(values=colours) +
-#   theme_bw() +
-#   ylab('GHG Emissions\n(relative to 1990)') +
-#   facet_wrap(.~gas,nrow=1) +
-#   theme(legend.position = "none",
-#         axis.title.x = element_blank(),
-#         axis.title.y = element_text(margin=margin(0,10,0,0)),
-#         text = element_text(size=11),
-#         panel.grid.minor.x = element_blank(),
-#         panel.grid.minor.y = element_blank()) +
-#   ggtitle("b. Trends in global greenhouse gas emissions and their uncertainties, relative to 1990")
-# 
-# p2 <- gas_trend_nogwp %>%
-#   filter(gas=="Fgas") %>% 
-#   ggplot(.,aes(x=year,y=value)) +
-#   geom_hline(yintercept = 1,color="#636363") +
-#   geom_line(aes(color=gas),width=2) +
-#   geom_ribbon(data=gas_trend_nogwp %>% filter(gas=="Fgas"),aes(ymin=low,ymax=high,fill=gas),alpha=0.3)+
-#   scale_x_continuous(breaks=c(1990,2000,2010)) +
-#   #scale_y_continuous(limits = c(-3,7),breaks=c(-2,1,3.5,6)) +
-#   scale_fill_manual(values=colours) +
-#   scale_color_manual(values=colours) +
-#   theme_bw() +
-#   facet_wrap(.~gas,nrow=1) +
-#   theme(legend.position = "none",
-#         axis.title.x = element_blank(),
-#         axis.title.y = element_blank(),
-#         text = element_text(size=11),
-#         panel.grid.minor.x = element_blank(),
-#         panel.grid.minor.y = element_blank(),plot.background = element_blank())
-# 
-# 
-# p_gas_trends_scaled <- p1 + p2 + plot_layout(width = c(4,1))
-# p_gas_trends_scaled
+p1 <- gas_trend_nogwp %>%
+  filter(gas!="Fgas") %>%
+  ggplot(.,aes(x=year,y=value)) +
+  geom_hline(yintercept = 1,color="#636363") +
+  geom_line(aes(color=gas),width=2) +
+  geom_ribbon(data=gas_trend_nogwp %>% filter(gas!="Fgas"),aes(ymin=low,ymax=high,fill=gas),alpha=0.3)+
+  scale_x_continuous(breaks=c(1990,2000,2010)) +
+  scale_fill_manual(values=colours) +
+  scale_color_manual(values=colours) +
+  theme_bw() +
+  ylab('GHG Emissions\n(relative to 1990)') +
+  facet_wrap(.~gas,nrow=1) +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(margin=margin(0,10,0,0)),
+        text = element_text(size=11),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank()) +
+  ggtitle("b. Trends in global greenhouse gas emissions and their uncertainties, relative to 1990")
+
+p2 <- gas_trend_nogwp %>%
+  filter(gas=="Fgas") %>%
+  ggplot(.,aes(x=year,y=value)) +
+  geom_hline(yintercept = 1,color="#636363") +
+  geom_line(aes(color=gas),width=2) +
+  geom_ribbon(data=gas_trend_nogwp %>% filter(gas=="Fgas"),aes(ymin=low,ymax=high,fill=gas),alpha=0.3)+
+  scale_x_continuous(breaks=c(1990,2000,2010)) +
+  #scale_y_continuous(limits = c(-3,7),breaks=c(-2,1,2,4)) +
+  scale_fill_manual(values="#e78ac3") +
+  scale_color_manual(values="#e78ac3") +
+  theme_bw() +
+  facet_wrap(.~gas,nrow=1) +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        text = element_text(size=11),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),plot.background = element_blank())
+
+
+p_gas_trends_scaled <- p1 + p2 + plot_layout(width = c(4,1))
+p_gas_trends_scaled
 
 ```
 
@@ -467,7 +486,7 @@ p_gas_trends
 
 #########
 
-(p_gas_totals + p_waterfall + plot_layout(width = c(3, 1))) / p_gas_trends + plot_layout(height = c(3,1))
+(p_gas_totals + p_waterfall + plot_layout(width = c(3, 1))) / p_gas_trends_scaled + plot_layout(height = c(3,1))
 #gases <- (p_gas_totals + p_waterfall + plot_layout(width = c(2.5, 1))) / p_gas_trends_scaled + plot_layout(height = c(3,1))
 #gases
 
@@ -487,7 +506,4 @@ writeData(wb, sheet = "gas_trend", spread(gas_trend,year,value), colNames = T, r
 writeData(wb, sheet = "gwp_waterfall", waterfall_data, colNames = T, rowNames = F)
 writeData(wb, sheet = "gas_trend_normalised", gas_trend_nogwp, colNames = T, rowNames = F)
 
-
 saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm1_gases.xlsx"),overwrite=T)
-
-```

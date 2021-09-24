@@ -17,12 +17,12 @@ library(ggplot2); theme_set(theme_bw())
 library(RColorBrewer)
 
 #load('../../Data/edgar6_data_ghg_gwp_ar6.RData')
-load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
 load('../../Data/indirect_CO2.RData')
 
 data <- edgar_ghg %>% 
-  filter(year==2018) %>% 
-  group_by(chapter,chapter_title,subsector,subsector_title) %>% 
+  filter(year==2019) %>% 
+  group_by(chapter,chapter_title,subsector_title) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE)/1e9,CO2=sum(CO2,na.rm=TRUE)/1e9)
 
 
@@ -31,28 +31,27 @@ data <- edgar_ghg %>%
 load('../../Data/land.RData')
 
 land <- land %>%
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   mutate(chapter=7) %>% 
   mutate(chapter_title="AFOLU") %>% 
-  mutate(subsector=7.7) %>% 
-  mutate(subsector_title="Land-use CO2") %>%
-  group_by(chapter,chapter_title,subsector,subsector_title) %>% 
+  mutate(subsector_title="LULUCF CO2") %>%
+  group_by(chapter,chapter_title,subsector_title) %>% 
   summarise(GHG=sum(mean)/1e9,CO2=0)
 
 data <- rbind(data,land)
-data <- data %>% arrange(subsector)
+data <- data %>% arrange(chapter_title)
 
-indirect <- gather(indirect_CO2_world,year,CO2_indirect,`1990`:`2018`)
+indirect <- gather(indirect_CO2_world,year,CO2_indirect,`1990`:`2019`)
 indirect <- indirect %>% 
-  filter(year==2018) %>% 
-  group_by(chapter,chapter_title,subsector,subsector_title) %>% 
+  filter(year==2019) %>% 
+  group_by(chapter,chapter_title,subsector_title) %>% 
   summarise(CO2_indirect=sum(CO2_indirect,na.rm=TRUE))
 
 ### scope 1
 
 scope1_sectors <- data %>% 
   ungroup() %>% 
-  mutate(chapter_title=ifelse(subsector==6.1,subsector_title,chapter_title))
+  mutate(chapter_title=ifelse(subsector_title=="Electricity & heat",subsector_title,chapter_title))
 
 scope1_sectors <- scope1_sectors %>% 
   group_by(chapter_title) %>% 
@@ -65,16 +64,16 @@ scope1_sectors <- scope1_sectors %>%
 
 ### scope 2 subsectors
 
-scope2_subsectors <- left_join(data,indirect,by = c("chapter", "chapter_title", "subsector", "subsector_title"))
+scope2_subsectors <- left_join(data,indirect,by = c("chapter", "chapter_title", "subsector_title"))
 scope2_subsectors <- scope2_subsectors %>% 
   mutate(GHG=ifelse(!is.na(CO2_indirect),GHG+CO2_indirect,GHG)) %>% 
   select(-CO2_indirect,-CO2) %>% 
-  filter(subsector!=6.1)
+  filter(subsector_title!="Electricity & heat")
 
 # fractions
 
 scope2_subsectors <- scope2_subsectors %>% 
-  mutate(fraction=round(((GHG/sum(data$GHG))*100),1))
+  mutate(fraction=round(((GHG/sum(scope2_subsectors$GHG))*100),1))
 
 ### scope 2 sectors
 
@@ -86,7 +85,8 @@ scope2_sectors <- left_join(scope1_sectors %>% select(-fraction),indirect,by = "
 
 scope2_sectors <- scope2_sectors %>% 
   filter(chapter_title!="Electricity & heat") %>% 
-  mutate(total=GHG+CO2_indirect)
+  mutate(total=GHG+CO2_indirect) %>% 
+  mutate(total=ifelse(chapter_title=="AFOLU",GHG,total))
 
 scope2_sectors <- gather(scope2_sectors,var,GHG,GHG:CO2_indirect)
 scope2_sectors <- scope2_sectors %>% 
@@ -124,7 +124,7 @@ blarg <- scope1_sectors %>%
   mutate(label_position = cumsum(GHG) - GHG/2)
 
 p1 <- scope1_sectors %>% ggplot(.,aes(x=1,y=GHG,fill=chapter_title)) +
-  geom_bar(stat="identity",colour="white",,width=1) +
+  geom_bar(stat="identity",colour="white",width=1) +
   geom_text(data=blarg,aes(x=1.6,y=label_position,label=paste0(fraction,"%"),color=chapter_title),hjust=0) +
   scale_fill_manual(values=c("#66c2a5","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854")) +
   scale_color_manual(values=c("#66c2a5","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854")) +
@@ -175,7 +175,6 @@ p2
 
 scope2_subsectors <- scope2_subsectors %>% 
   arrange(chapter_title,GHG) %>% 
-  mutate(subsector_title=ifelse(subsector==7.9,"Fuel combustion",subsector_title)) %>% 
   mutate(label=paste0(subsector_title," (",fraction,"%)"))
 
 
@@ -216,13 +215,13 @@ p3
 
 ```{r direct_indirect_emissions,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
-#ggarrange(p1,p2,p3,nrow=1,ncol=3,widths=c(0.2,0.2,0.6))
+ggarrange(p1,p2,p3,nrow=1,ncol=3,widths=c(0.2,0.2,0.6))
 
 
 # save data for soapbox
 
 
-wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_indirect_emissions_plot_",Sys.Date()))
+wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_indirect_emissions"))
 
 openxlsx::addWorksheet(wb,"direct emissions")
 openxlsx::addWorksheet(wb,"indirect emissions")
@@ -233,9 +232,9 @@ openxlsx::writeData(wb,"indirect emissions",scope2_sectors, colNames = T, rowNam
 openxlsx::writeData(wb,"indirect emissions - subsectors",scope2_subsectors, colNames = T, rowNames = F)
 
 
-openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_plot_indirect_emissions",".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm4_sectors",".xlsx"),overwrite=T)
 
 
-p1 + p2 + p3 + plot_layout(widths=c(0.2,0.2,0.6))
+#p1 + p2 + p3 + plot_layout(widths=c(0.2,0.2,0.6))
 
 ```

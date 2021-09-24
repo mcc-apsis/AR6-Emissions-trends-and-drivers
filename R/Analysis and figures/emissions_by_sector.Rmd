@@ -25,7 +25,7 @@ source("small_figures.R")
 
 end_year = 2019
 
-load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load('../../Data/indirect_CO2.RData')
 load('../../Data/land.RData')
@@ -292,7 +292,7 @@ trend_figure <- function(trend_data,chapter) {
     geom_area(color='#737373') +
     
     geom_vline(xintercept=c(1990,2000,2010,end_year),alpha=0.3,linetype="dashed") +
-    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]),aes(x=year,y=1.05*max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste(round(totals,1),  "Gt")),size=3.5,colour="#252525") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]),aes(x=year,y=1.05*max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525") +
     
     #geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,size=3.5,colour="#252525") +
     
@@ -746,7 +746,7 @@ trend_data <- gather_trend_data(edgar_ghg,ch)
 
 ## align factors and labels
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
-trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,4,2,5,6,1)])
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(2,3,1,4,5)])
 
 p1 <- trend_figure(trend_data,ch)
 
@@ -756,7 +756,7 @@ region_data <- gather_region_data(edgar_ghg,ch)
 
 ## align factors and labels
 region_data$subsector_title <- as.factor(region_data$subsector_title)
-region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(3,4,2,5,6,1)])
+region_data$subsector_title <- factor(region_data$subsector_title,levels=levels(region_data$subsector_title)[c(2,3,1,4,5)])
 
 p2 <- plot_region_figure(region_data,ch)
 

@@ -24,8 +24,8 @@ library(zoo)
 knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
 options(dplyr.summarise.inform = FALSE)
 
-load('../../Data/edgar6_v2_data_raw.RData')
-load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v4_data_raw.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
 load('../../Data/land.RData')
 
 

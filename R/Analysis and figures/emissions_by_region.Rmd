@@ -19,7 +19,7 @@ library(openxlsx)
 
 source("small_figures.R")
 
-load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 load('../../Data/WDI_gdp_pop.RData')
@@ -105,7 +105,7 @@ p1 <- region_trend %>%
   geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed")  +
   
   #### text with the totals
-  geom_text(data=shares %>% filter(region_ar6_6_short=="AIRSEA"),aes(x=year,y=62,label=paste(round(totals,1),  "Gt")),size=3.5,colour="#252525")+
+  geom_text(data=shares %>% filter(region_ar6_6_short=="AIRSEA"),aes(x=year,y=62,label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
   
   #### labels
   geom_text(data=shares %>% filter(year==2019),aes(x=2021.25,y=location,label=str_wrap(region_ar6_6,width=28),color=region_ar6_6_short),hjust=0) +

@@ -21,7 +21,7 @@ source("../../R/Analysis and figures/small_figures.R")
 
 #load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
 #load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
-load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load('../../Data/land.RData')
 
@@ -88,6 +88,7 @@ growth_rate <- function(years,y){
 ## sum emissions for the sector
 sector_data <- edgar_ghg %>%
   filter(year>1969) %>%
+  filter(year<=2019) %>%
   group_by(year,chapter,chapter_title) %>%
   summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>% 
   mutate_at(vars(CO2,CH4,N2O,Fgas,GHG),list(~./1e9)) %>%
@@ -223,6 +224,7 @@ p1
 ## sum emissions for the sector
 subsector_data <- edgar_ghg %>%
   filter(year>1969) %>%
+  filter(year<=2018) %>%
   group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
   summarise_at(vars(CO2,CH4,N2O,Fgas,GHG),sum,na.rm=TRUE) %>% 
   mutate_at(vars(CO2,CH4,N2O,Fgas,GHG),list(~./1e9)) %>%
@@ -231,6 +233,8 @@ subsector_data <- edgar_ghg %>%
 
 # PREPARE LAND DATA
 land_totals <- land %>%
+  filter(year>1969) %>%
+  filter(year<=2018) %>%
   group_by(year,chapter,chapter_title,subsector,subsector_title) %>%
   summarise(GHG=sum(value,na.rm=TRUE)) %>%
   mutate(GHG=GHG/1e9)

@@ -20,25 +20,39 @@ theme_set(theme_bw())
 ggplot <- function(...) ggplot2::ggplot(...)# + scale_fill_brewer(palette="Set2")
 
 load('../../../Data/edgar6_data_raw.RData')
-edgar_raw_v6_old <- edgar_raw %>%
-  filter(!is.na(value))
+edgar_raw_v6_1 <- edgar_raw %>%
+  filter(!is.na(value))%>%
+  filter(year<2019)
 load('../../../Data/edgar5_data_raw.RData')
 edgar_raw_v5 <- edgar_raw %>%
-  filter(!is.na(value))
+  filter(!is.na(value))%>%
+  filter(year<2019)
 load('../../../Data/edgar6_v2_data_raw.RData')
-edgar_raw_v6_new <- edgar_raw %>%
-  filter(!is.na(value))
+edgar_raw_v6_2 <- edgar_raw %>%
+  filter(!is.na(value))%>%
+  filter(year<2019)
+load('../../../Data/edgar6_v3_data_raw.RData')
+edgar_raw_v6_3 <- edgar_raw %>%
+  filter(!is.na(value))%>%
+  filter(year<2019)
 rm(edgar_raw)
 
 load('../../../Data/edgar6_data_ghg_gwp_ar6.RData')
-edgar_ghg_v6_old <- edgar_ghg %>%
-  filter(!is.na(Fgas))
+edgar_ghg_v6_1 <- edgar_ghg %>%
+  filter(!is.na(Fgas))%>%
+  filter(year<2019)
 load('../../../Data/edgar5_data_ghg_gwp_ar6.RData')
 edgar_ghg_v5 <- edgar_ghg %>%
-  filter(!is.na(Fgas))
+  filter(!is.na(Fgas))%>%
+  filter(year<2019)
 load('../../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
-edgar_ghg_v6_new <- edgar_ghg %>%
-  filter(!is.na(Fgas))
+edgar_ghg_v6_2 <- edgar_ghg %>%
+  filter(!is.na(Fgas))%>%
+  filter(year<2019)
+load('../../../Data/edgar6_v3_data_ghg_gwp_ar6.RData')
+edgar_ghg_v6_3 <- edgar_ghg %>%
+  filter(!is.na(Fgas))%>%
+  filter(year<2019)
 rm(edgar_ghg)
 
 crf_data<-read_csv("../../../Data/supplemetary data/Guetschow-et-al-2021-PRIMAP-crf96_2021-v1.csv")
@@ -57,12 +71,12 @@ fgas_data_v5 <- edgar_raw_v5 %>%
   summarise(value=sum(value,na.rm=TRUE)) %>% 
   mutate(version="edgar_v5")
 
-fgas_data_v6_new <- edgar_raw_v6_new %>% 
+fgas_data_v6_3 <- edgar_raw_v6_3 %>% 
   group_by(year,gas,gwp100_ar5,gwp100_ar6) %>% 
   summarise(value=sum(value,na.rm=TRUE)) %>% 
-  mutate(version="edgar_v6_new")
+  mutate(version="edgar_v6_3")
 
-fgas_data <- rbind(fgas_data_v5,fgas_data_v6_new)
+fgas_data <- rbind(fgas_data_v5,fgas_data_v6_3)
 
 
 fgas_data <- fgas_data %>% 
@@ -92,13 +106,13 @@ fgas_data_v5_gwp <- edgar_ghg_v5 %>%
   mutate(version="edgar_v5_ar6_gwp") %>% 
   mutate(region_ar6_10=ifelse(region_ar6_10=="South-East Asia and Developing Pacific","South-East Asia and developing Pacific",region_ar6_10))
 
-fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+fgas_data_v6_3_gwp <- edgar_ghg_v6_3 %>% 
   group_by(year,region_ar6_10) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-  mutate(version="edgar_v6_new_ar6_gwp")
+  mutate(version="edgar_v6_3_ar6_gwp")
 
 
-fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_3_gwp)
 
 
 fgas_data_gwp %>% 
@@ -125,12 +139,12 @@ fgas_data_v5_gwp <- edgar_ghg_v5 %>%
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
   mutate(version="edgar_v5_ar6_gwp")
 
-fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+fgas_data_v6_3_gwp <- edgar_ghg_v6_3 %>% 
   group_by(year) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-  mutate(version="edgar_v6_new_ar6_gwp")
+  mutate(version="edgar_v6_3_ar6_gwp")
 
-fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_3_gwp)
 
 
 fgas_data_gwp %>% 
@@ -192,12 +206,12 @@ fgas_data_v5_gwp <- edgar_ghg_v5 %>%
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
   mutate(version="edgar_v5_ar6_gwp")
 
-fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+fgas_data_v6_3_gwp <- edgar_ghg_v6_3 %>% 
   group_by(year,region_ar6_6) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-  mutate(version="edgar_v6_new_ar6_gwp")
+  mutate(version="edgar_v6_3_ar6_gwp")
 
-fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_3_gwp)
 
 
 fgas_data_gwp %>% 
@@ -234,12 +248,12 @@ fgas_data_v5_gwp <- edgar_ghg_v5 %>%
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
   mutate(version="edgar_v5_ar6_gwp")
 
-fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+fgas_data_v6_3_gwp <- edgar_ghg_v6_3 %>% 
   group_by(year,ISO) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-  mutate(version="edgar_v6_new_ar6_gwp")
+  mutate(version="edgar_v6_3_ar6_gwp")
 
-fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_3_gwp)
 
 fgas_data_gwp <- left_join(fgas_data_gwp,annexIcountries,by=c("ISO"="countries"))
 
@@ -264,17 +278,17 @@ fgas_data_gwp %>%
 ```{r compile_data_no_gwp_3,fig.width=10,fig.height=8}
 
 
-fgas_data_v6_old <- edgar_raw_v6_old %>%  
+fgas_data_v6_1 <- edgar_raw_v6_1 %>%  
   group_by(year,gas,gwp100_ar5,gwp100_ar6) %>% 
   summarise(value=sum(value,na.rm=TRUE)) %>% 
-  mutate(version="edgar_v6_old")
+  mutate(version="edgar_v6_1")
 
-fgas_data_v6_new <- edgar_raw_v6_new %>% 
+fgas_data_v6_3 <- edgar_raw_v6_3 %>% 
   group_by(year,gas,gwp100_ar5,gwp100_ar6) %>% 
   summarise(value=sum(value,na.rm=TRUE)) %>% 
-  mutate(version="edgar_v6_new")
+  mutate(version="edgar_v6_3")
 
-fgas_data <- rbind(fgas_data_v6_old,fgas_data_v6_new)
+fgas_data <- rbind(fgas_data_v6_1,fgas_data_v6_3)
 
 
 fgas_data <- fgas_data %>% 
@@ -297,17 +311,17 @@ fgas_data %>%
 ```{r compile_data_no_gwp_4,fig.width=4,fig.height=4}
 
 
-fgas_data_v6_old_gwp <- edgar_ghg_v6_old %>%  
+fgas_data_v6_1_gwp <- edgar_ghg_v6_1 %>%  
   group_by(year) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-  mutate(version="edgar_v6_old_ar6_gwp")
+  mutate(version="edgar_v6_1_ar6_gwp")
 
-fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+fgas_data_v6_3_gwp <- edgar_ghg_v6_3 %>% 
   group_by(year) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-  mutate(version="edgar_v6_new_ar6_gwp")
+  mutate(version="edgar_v6_3_ar6_gwp")
 
-fgas_data_gwp <- rbind(fgas_data_v6_old_gwp,fgas_data_v6_new_gwp)
+fgas_data_gwp <- rbind(fgas_data_v6_1_gwp,fgas_data_v6_3_gwp)
 
 
 fgas_data_gwp %>% 
@@ -369,12 +383,12 @@ fgas_data_v5_gwp <- edgar_ghg_v5 %>%
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
   mutate(version="edgar_v5_ar6_gwp")
 
-fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+fgas_data_v6_3_gwp <- edgar_ghg_v6_3 %>% 
   group_by(year,region_ar6_6) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-  mutate(version="edgar_v6_new_ar6_gwp")
+  mutate(version="edgar_v6_3_ar6_gwp")
 
-fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_3_gwp)
 
 
 fgas_data_gwp %>% 
@@ -411,12 +425,12 @@ fgas_data_v5_gwp <- edgar_ghg_v5 %>%
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
   mutate(version="edgar_v5_ar6_gwp")
 
-fgas_data_v6_new_gwp <- edgar_ghg_v6_new %>% 
+fgas_data_v6_3_gwp <- edgar_ghg_v6_3 %>% 
   group_by(year,ISO) %>% 
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>% 
-  mutate(version="edgar_v6_new_ar6_gwp")
+  mutate(version="edgar_v6_3_ar6_gwp")
 
-fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_new_gwp)
+fgas_data_gwp <- rbind(fgas_data_v5_gwp,fgas_data_v6_3_gwp)
 
 fgas_data_gwp <- left_join(fgas_data_gwp,annexIcountries,by=c("ISO"="countries"))
 
@@ -457,18 +471,18 @@ crf_fgas<-crf_fgas %>%
   mutate(version="primap_crf_ar5_gwp_annexI")
 
 load('../../../Data/edgar6_v2_data_ghg_gwp_ar5.RData')
-edgar_ghg_v6_new_ar5 <- edgar_ghg %>%
+edgar_ghg_v6_3_ar5 <- edgar_ghg %>%
   filter(!is.na(Fgas))
 
-edgar_ghg_v6_new_ar5<-left_join(edgar_ghg_v6_new_ar5,annexIcountries,by=c("ISO"="countries")) %>%
+edgar_ghg_v6_3_ar5<-left_join(edgar_ghg_v6_3_ar5,annexIcountries,by=c("ISO"="countries")) %>%
   filter(!is.na(annexI))
 
-fgas_data_v6_new_gwp_ar5 <- edgar_ghg_v6_new_ar5 %>%
+fgas_data_v6_3_gwp_ar5 <- edgar_ghg_v6_3_ar5 %>%
   group_by(year,ISO,country) %>%
   summarise(value=sum(Fgas,na.rm=TRUE)/1e9) %>%
-  mutate(version="edgar_v6_new_ar5_gwp_annexI")
+  mutate(version="edgar_v6_3_ar5_gwp_annexI")
 
-fgas_data_gwp <- rbind(fgas_data_v6_new_gwp_ar5,crf_fgas)
+fgas_data_gwp <- rbind(fgas_data_v6_3_gwp_ar5,crf_fgas)
 
 blarg <- fgas_data_gwp %>% 
   filter(year==2018) %>% 
@@ -502,9 +516,9 @@ fgas_data_gwp %>%
 # 
 # fgas_data <- fgas_data %>% 
 #   mutate(edgar_v5_gwp_ar5 = edgar_v5*gwp100_ar5) %>% 
-#   mutate(edgar_v6_new_gwp_ar5 = edgar_v6_new*gwp100_ar5) %>% 
+#   mutate(edgar_v6_3_gwp_ar5 = edgar_v6_3*gwp100_ar5) %>% 
 #   mutate(edgar_v5_gwp_ar6 = edgar_v5*gwp100_ar6) %>% 
-#   mutate(edgar_v6_new_gwp_ar6 = edgar_v6_new*gwp100_ar6)
+#   mutate(edgar_v6_3_gwp_ar6 = edgar_v6_3*gwp100_ar6)
 # 
 # write.xlsx(fgas_data,"edgar_fgas.xlsx")
 

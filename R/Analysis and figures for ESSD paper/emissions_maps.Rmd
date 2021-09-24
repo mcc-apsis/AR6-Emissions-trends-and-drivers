@@ -20,7 +20,8 @@ source("../Analysis and figures/small_figures.R")
 
 
 #load('../../Data/edgar6_data_ghg_gwp_ar5.RData')
-load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+#load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 load('../../Data/WDI_gdp_pop.RData')
@@ -44,6 +45,7 @@ wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_map_data_",Sys.Date()))
 
 mapdata <- edgar_ghg %>% 
   filter(year>1969) %>% 
+  filter(year<=2019) %>%
   group_by(country,ISO,year) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE))
 
@@ -60,34 +62,34 @@ mapdata <- mapdata %>%
 
 time_start=1990
 mapdata_1990 <- mapdata %>% 
-  filter(year %in% c(time_start,2019)) %>% 
+  filter(year %in% c(time_start,2018)) %>% 
   group_by(country,ISO) %>% 
   mutate(avg_growth_1990=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
-  filter(year==2019) %>% 
+  filter(year==2018) %>% 
   mutate(avg_growth_1990=avg_growth_1990*100) %>% 
   select(country,ISO,avg_growth_1990)
 
-time_start=2010
-mapdata_2010 <- mapdata %>% 
-  filter(year %in% c(time_start,2019)) %>% 
+time_start=2009
+mapdata_2009 <- mapdata %>% 
+  filter(year %in% c(time_start,2018)) %>% 
   group_by(country,ISO) %>% 
-  mutate(avg_growth_2010=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
-  filter(year==2019) %>% 
-  mutate(avg_growth_2010=avg_growth_2010*100) %>% 
-  select(country,ISO,avg_growth_2010)
+  mutate(avg_growth_2009=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
+  filter(year==2018) %>% 
+  mutate(avg_growth_2009=avg_growth_2009*100) %>% 
+  select(country,ISO,avg_growth_2009)
 
 time_start=1970
 mapdata_1970 <- mapdata %>% 
-  filter(year %in% c(time_start,2019)) %>% 
+  filter(year %in% c(time_start,2018)) %>% 
   group_by(country,ISO) %>% 
   mutate(avg_growth_1970=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
-  filter(year==2019) %>% 
+  filter(year==2018) %>% 
   mutate(avg_growth_1970=avg_growth_1970*100) %>% 
   select(country,ISO,avg_growth_1970)
 
-mapdata <- mapdata %>% filter(year==2019)
+mapdata <- mapdata %>% filter(year==2018)
 mapdata <- left_join(mapdata,mapdata_1990,by = c("country", "ISO"))
-mapdata <- left_join(mapdata,mapdata_2010,by = c("country", "ISO"))
+mapdata <- left_join(mapdata,mapdata_2009,by = c("country", "ISO"))
 mapdata <- left_join(mapdata,mapdata_1970,by = c("country", "ISO"))
 
 world <- map_data("world") %>% 
@@ -126,11 +128,11 @@ p1 <- ggplot() +
         plot.margin = unit(c(0,0,0.5,0),units="cm"),
         plot.title = element_text(size=12),
         panel.grid=element_blank()) +
-  ggtitle("a. GHG emissions per capita in 2019 in tCO2eq")
+  ggtitle("a. GHG emissions per capita in 2018 in tCO2eq")
 p1
 
 p2 <- ggplot() + 
-  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_2010),color="grey",size=0.25,na.rm=T) + 
+  geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_2009),color="grey",size=0.25,na.rm=T) + 
   #scale_fill_viridis_c() +
   scale_fill_steps2(low = "midnightblue",mid = "lightyellow",high = "darkred", na.value="lightgrey", midpoint=0, breaks=c(-8,-6,-4,-2,0,2,4,6,8), limits=c(-10,10), oob=squish) +
   theme(panel.border = element_rect(colour = "black",fill=NA),
@@ -155,10 +157,10 @@ p2 <- ggplot() +
   #       axis.text = element_blank(),
   #       plot.margin = unit(c(0,0,0,0),units="cm"),
   #       plot.title = element_text(size=12)) +
-  ggtitle("b. Average annual GHG emissions growth in percent (2010-2019)")
+  ggtitle("b. Average annual GHG emissions growth in percent (2009-2018)")
 p2
 
-## growth 1990-2019
+## growth 1990-2018
 # p3 <- ggplot() + 
 #   geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_1990),color="grey",size=0.25,na.rm=T) + 
 #   #scale_fill_viridis_c() +
@@ -176,10 +178,10 @@ p2
 #         plot.margin = unit(c(0,0,0.5,0),units="cm"),
 #         plot.title = element_text(size=12),
 #         panel.grid=element_blank()) +
-#   ggtitle("c. Average annual GHG emissions growth in percent (1990-2019)")
+#   ggtitle("c. Average annual GHG emissions growth in percent (1990-2018)")
 # p3
 
-## growth 1970-2019
+## growth 1970-2018
 p4 <- ggplot() + 
   geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=avg_growth_1970),color="grey",size=0.25,na.rm=T) + 
   #scale_fill_viridis_c() +
@@ -197,7 +199,7 @@ p4 <- ggplot() +
         plot.margin = unit(c(0,0,0.5,0),units="cm"),
         plot.title = element_text(size=12),
         panel.grid=element_blank()) +
-  ggtitle("c. Average annual GHG emissions growth in percent (1970-2019)")
+  ggtitle("c. Average annual GHG emissions growth in percent (1970-2018)")
 
 ```
 

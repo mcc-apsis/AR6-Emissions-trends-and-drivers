@@ -93,7 +93,7 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Figures/SPM_regions.png")
+include_graphics("Results/Plots/region_trends_spm-1.png")
 
 
 ```
@@ -106,7 +106,7 @@ cat("<br>")
 cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>data</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_region.Rmd'>code</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Figures/SPM_regions.png'>download png</a>")
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/region_trends_spm-1.png'>download png</a>")
 ```
 
 

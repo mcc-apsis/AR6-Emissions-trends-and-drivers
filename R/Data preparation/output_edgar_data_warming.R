@@ -2,116 +2,107 @@
 rm(list = ls())
 library(tidyverse)
 library(openxlsx)
-load('Data/edgar_data_all.RData')
+load('Data/edgar6_v4_data_raw.RData')
 
 #################### prep
 
 codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
-edgar_GHG <- left_join(edgar_GHG,codes %>% select(alpha.3,WB.income),by=c("ISO"="alpha.3"))
+edgar_raw <- left_join(edgar_raw,codes %>% select(alpha.3,WB.income),by=c("ISO"="alpha.3"))
 
-edgar_GHG <- edgar_GHG %>% 
+edgar_raw <- edgar_raw %>% 
   mutate(WB.income=ifelse(ISO=="AIR","Intl. Aviation",WB.income)) %>% 
   mutate(WB.income=ifelse(ISO=="SEA","Intl. Shipping",WB.income)) %>% 
   mutate(WB.income=ifelse(is.na(WB.income),"Low income",WB.income))
 
-
-
-edgar_GHG <- edgar_GHG %>% 
-  select(-region_ar6_5_short,-region_ar6_22,-region_ar6_dev) %>% 
-  select(ISO,country,region_ar6_5,region_ar6_10,WB.income,year,everything()) %>% 
+edgar_raw <- edgar_raw %>% 
+  select(-region_ar6_22,-region_ar6_dev) %>% 
+  select(ISO,country,region_ar6_6,region_ar6_10,WB.income,year,everything()) %>% 
   filter(sector_code!="Total") %>% 
   arrange(ISO)
 
-load('Data/ipcc_categories.RData')
+load('Data/ipcc_sectors.RData')
 load('Data/gwps.RData')
 
-edgar_categories <- edgar_GHG %>% 
+edgar_categories <- edgar_raw %>% 
   select(sector_code,chapter,chapter_title,description) %>% 
   unique() %>% 
   arrange(chapter)
 
-regions <- edgar_GHG %>% 
-  select(ISO,country,region_ar6_5,region_ar6_10,region_income=WB.income) %>% 
+regions <- edgar_raw %>% 
+  select(ISO,country,region_ar6_6,region_ar6_10,region_income=WB.income) %>% 
   distinct() %>% 
   arrange(ISO)
 
 
 #################### aggregate by region and sector
 
-regions_ar6_5 <- edgar_GHG %>% 
-  group_by(region_ar6_5,year) %>% 
-  summarise_at(vars(gwps$gas),sum,na.rm = T)
+regions_ar6_6 <- edgar_raw %>% 
+  group_by(region_ar6_6,year,gas) %>% 
+  summarise(value=sum(value,na.rm = T))
 
-regions_ar6_10 <- edgar_GHG %>% 
-  group_by(region_ar6_10,year) %>% 
-  summarise_at(vars(gwps$gas),sum,na.rm = T)
 
-regions_income <- edgar_GHG %>% 
-  group_by(WB.income,year) %>% 
-  summarise_at(vars(gwps$gas),sum,na.rm = T)
+regions_ar6_10 <- edgar_raw %>% 
+  group_by(region_ar6_10,year,gas) %>% 
+  summarise(value=sum(value,na.rm = T))
 
-sectors <- edgar_GHG %>% 
-  group_by(chapter_title,year) %>% 
-  summarise_at(vars(gwps$gas),sum,na.rm = T) %>% 
-  ungroup()
-  
+
+regions_income <- edgar_raw %>% 
+  group_by(WB.income,year,gas) %>% 
+  summarise(value=sum(value,na.rm = T))
+
+
+sectors <- edgar_raw %>% 
+  group_by(chapter_title,year,gas) %>% 
+  summarise(value=sum(value,na.rm = T))
 
 #################### add land to sectors
 load("Data/land.RData")
 
 land <- land %>% 
-  group_by(year) %>% 
-  summarise(mean=sum(mean))
+  group_by(year) %>%
+  summarise(value=sum(mean))
 
-land[,gwps$gas]=NA
 
 land <- land %>% 
   filter(year>1969) %>% 
-  filter(year<2019) %>% 
+  filter(year<2020) %>% 
   mutate(chapter_title="AFOLU") %>% 
-  mutate(CO2=mean) %>% 
-  select(chapter_title,year,-mean,CO2:SF6)
+  mutate(gas="CO2 LULUCF")
 
 sectors <- rbind(sectors,land)
-
-### merge LUC CO2 and AFOLU
-sectors <- sectors %>%
-  group_by(chapter_title,year) %>%
-  summarise_at(vars(gwps$gas),sum,na.rm=T) %>%
-  ungroup()
 
 #################### add land to regions
 
 load("Data/land.RData")
 
-land <- left_join(land,regions %>% select(region_ar6_5,region_ar6_10) %>% distinct(),by = "region_ar6_10")
-land[,gwps$gas]=NA
-
 land <- land %>% 
   filter(year>1969) %>% 
-  filter(year<2019) %>% 
-  mutate(CO2=mean)
+  filter(year<2020) %>% 
+  mutate(gas="CO2 LULUCF") %>% 
+  mutate(value=mean)
 
 land_5 <- land %>%
-  group_by(year,region_ar6_5) %>% 
-  summarise_at(vars(CO2:SF6),sum) %>% 
-  select(region_ar6_5,year,CO2:SF6)
+  group_by(year,region_ar6_6,gas) %>% 
+  summarise(value=sum(value))
+
 
 land_10 <- land %>% 
-  group_by(year,region_ar6_10) %>% 
-  summarise_at(vars(CO2:SF6),sum) %>% 
-  select(region_ar6_10,year,CO2:SF6)
+  group_by(year,region_ar6_10,gas) %>% 
+  summarise(value=sum(value))
 
-regions_ar6_5 <- rbind(regions_ar6_5,land_5)
+
+regions_ar6_6 <- rbind(regions_ar6_6,land_5)
 regions_ar6_10 <- rbind(regions_ar6_10,land_10)
 
-regions_ar6_5 <- regions_ar6_5 %>% 
-  group_by(region_ar6_5,year) %>% 
-  summarise_at(vars(CO2:SF6),sum,na.rm=TRUE)
+#################### spread
 
-regions_ar6_10 <- regions_ar6_10 %>% 
-  group_by(region_ar6_10,year) %>% 
-  summarise_at(vars(CO2:SF6),sum,na.rm=TRUE)
+
+regions_ar6_6 <- spread(regions_ar6_6,gas,value)
+regions_ar6_10 <- spread(regions_ar6_10,gas,value)
+regions_income <- spread(regions_income,gas,value)
+sectors <- spread(sectors,gas,value)
+
+
 
 #################### info
 
@@ -124,7 +115,7 @@ info = data.frame("x" = c("Units","Source"),
 
 wb <- openxlsx::createWorkbook(title = "ipcc_ar6_edgar_data_warming")
 addWorksheet(wb,"info")
-addWorksheet(wb,"regions_ar6_5")
+addWorksheet(wb,"regions_ar6_6")
 addWorksheet(wb,"regions_ar6_10")
 addWorksheet(wb,"regions_income")
 addWorksheet(wb,"sectors")
@@ -132,14 +123,14 @@ addWorksheet(wb,"sector_classification")
 addWorksheet(wb,"region_classification")
 
 writeData(wb, sheet = "info", info, colNames = F)
-writeData(wb, sheet = "regions_ar6_5", regions_ar6_5, colNames = T)
+writeData(wb, sheet = "regions_ar6_6", regions_ar6_6, colNames = T)
 writeData(wb, sheet = "regions_ar6_10", regions_ar6_10, colNames = T)
 writeData(wb, sheet = "regions_income", regions_income, colNames = T)
 writeData(wb, sheet = "sectors", sectors, colNames = T)
 writeData(wb, sheet = "sector_classification",edgar_categories,colNames=T)
 writeData(wb, sheet = "region_classification",regions,colNames=T)
 
-saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_warming_21_09.xlsx",overwrite = T)
+saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_warming_24_09_21.xlsx",overwrite = T)
 
 
   
