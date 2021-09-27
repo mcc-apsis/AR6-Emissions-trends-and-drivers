@@ -46,11 +46,11 @@ land <- land %>%
   filter(year>1989) %>% 
   filter(year<=end_year) %>% 
   mutate(subsector=7.7) %>% 
-  mutate(subsector_title="Land-use (CO2)") %>% 
+  mutate(subsector_title="LULUCF (CO2)") %>% 
   select(region_ar6_10,region_ar6_10_short,year,subsector,subsector_title,value=mean)
 
 
-info <- data.frame(x=c("Author","Date","Units","Contact","Code"),y=c("William F. Lamb",as.character(Sys.Date()),"tCO2eq","Lamb@mcc-berlin.net","https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd"))
+info <- data.frame(x=c("Author","Date","Units","Contact","Code"),y=c("William F. Lamb",as.character(Sys.Date()),"GtCO2eq","Lamb@mcc-berlin.net","https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd"))
 openxlsx::addWorksheet(wb,sheetName="info")
 openxlsx::writeData(wb,sheet="info",info,colNames=F,rowNames=F)
 
@@ -323,7 +323,10 @@ trend_figure <- function(trend_data,chapter) {
     theme(legend.position="right",
           axis.title.x = element_blank(),
           legend.title=element_blank(),
-          legend.spacing.x= unit(0.25, 'cm')) +
+          legend.spacing.x= unit(0.25, 'cm'),
+          plot.background = element_blank(),
+          panel.background = element_blank(),
+          legend.background = element_blank()) +
     ylab(bquote("GHG Emissions (Gt" ~CO[2]* "eq/yr)"))
   
   return(p)
@@ -484,7 +487,10 @@ plot_region_figure <- function(region_data,chapter) {
           axis.title.x = element_blank(),
           legend.title=element_blank(),
           axis.text.x = element_text(angle = 45,hjust=1),
-          legend.spacing.x= unit(0.25, 'cm'))
+          legend.spacing.x= unit(0.25, 'cm'),
+          plot.background = element_blank(),
+          panel.background = element_blank(),
+          legend.background = element_blank())
   
   return(p)
 }
@@ -561,7 +567,7 @@ plot_region_figure <- function(region_data,chapter) {
 
 # All 5 sectors by 10 regions
 
-```{r totals,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r totals,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf','svg')}
 
 
 ## Which chapter?
@@ -720,11 +726,11 @@ sector_totals
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel a"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel b"))
 
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel a"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel b"),region_data, colNames = T, rowNames = F)
 
 # openxlsx::addWorksheet(wb,"Emissions growth by subsector")
 # openxlsx::writeData(wb, sheet = "Emissions growth by subsector", subsector_data, colNames = T, rowNames = F)
@@ -733,7 +739,7 @@ openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),reg
 
 # Energy
 
-```{r energy,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r energy,echo=FALSE,warning=FALSE,results='asis',dpi=300,fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf','svg')}
 
 
 ## Which chapter?
@@ -770,10 +776,10 @@ sector_energy
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel a"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel b"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel a"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel b"),region_data, colNames = T, rowNames = F)
 
 
 
@@ -781,7 +787,7 @@ openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),reg
 
 # Industry
 
-```{r industry,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r industry,echo=FALSE,warning=FALSE,results='asis',dpi=300,fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf','svg')}
 
 
 ## Which chapter?
@@ -817,17 +823,17 @@ sector_industry
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel a"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel b"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel a"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel b"),region_data, colNames = T, rowNames = F)
 
 
 ```
 
 # Transport
 
-```{r transport,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r transport,echo=FALSE,warning=FALSE,results='asis',dpi=300,fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf','svg')}
 
 
 ## Which chapter?
@@ -863,17 +869,17 @@ sector_transport
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel a"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel b"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel a"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel b"),region_data, colNames = T, rowNames = F)
 
 
 ```
 
 # Buildings
 
-```{r buildings,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r buildings,echo=FALSE,warning=FALSE,results='asis',dpi=300,fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf','svg')}
 
 
 ## Which chapter?
@@ -913,10 +919,10 @@ sector_buildings
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel a"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel b"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel a"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel b"),region_data, colNames = T, rowNames = F)
 
 
 ```
@@ -924,7 +930,7 @@ openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),reg
 
 # Buildings (Scope 3) ->indirect CO2 only until 2018, compilation with end-year 2019 therefore failed
 
-```{r buildings_with_scope3, echo=FALSE, fig.height=6, fig.path="../../Results/Plots/Sectors/", fig.width=8, warning=FALSE, dev=c('png','pdf'), results='asis'}
+```{r buildings_with_scope3, echo=FALSE,dpi=300, fig.height=6, fig.path="../../Results/Plots/Sectors/", fig.width=8, warning=FALSE, dev=c('png','pdf','svg'), results='asis'}
 
 
 # ## Which chapter?
@@ -1025,7 +1031,7 @@ openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),reg
 
 # AFOLU
 
-```{r AFOLU,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r AFOLU,echo=FALSE,warning=FALSE,results='asis',dpi=300,fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf','svg')}
 
 
 ## Which chapter?
@@ -1070,10 +1076,10 @@ sector_afolu
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," trend"))
-openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," regions"))
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," trend"),trend_data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),region_data, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel a"))
+openxlsx::addWorksheet(wb,paste0(chapters$chapter_title[i]," panel b"))
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel a"),trend_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," panel b"),region_data, colNames = T, rowNames = F)
 
 
 ```
@@ -1082,7 +1088,7 @@ openxlsx::writeData(wb, sheet = paste0(chapters$chapter_title[i]," regions"),reg
 
 # Top emitting sectors + indirect emissions
 
-```{r top_subsectors_indirect,echo=FALSE,warning=FALSE,results='asis',fig.width=9,fig.height=5,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r top_subsectors_indirect,echo=FALSE,warning=FALSE,dpi=300,results='asis',fig.width=9,fig.height=5,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf','svg')}
 
 top_sectors <- edgar_ghg  %>%
   filter(year>1989) %>%
@@ -1146,7 +1152,7 @@ subsector_gases <- edgar_ghg %>%
 
 top_sectors <- left_join(top_sectors,subsector_gases,by = c("year", "chapter", "chapter_title", "subsector", "subsector_title"))
 top_sectors <- top_sectors %>% 
-  mutate(CO2=ifelse(subsector_title=="Land-use (CO2)",total_GHG,CO2))
+  mutate(CO2=ifelse(subsector_title=="LULUCF (CO2)",total_GHG,CO2))
 
 top_sectors <- top_sectors %>% 
   select(`CO2 (direct)`=CO2,`CO2 (indirect)`=CO2_indirect,everything())

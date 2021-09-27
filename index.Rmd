@@ -135,7 +135,7 @@ These figures are up to date for EDGAR v6, but we do not yet have IEA indirect e
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/totals-1.png")
+include_graphics("Results/Plots/Sectors/Final/totals-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -145,7 +145,7 @@ cat("<br>")
 cat(captions$caption[captions$plot=="sectors_total"])
 cat("<br>")
 cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/totals-1.png'>download png</a>")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/Final/totals-1.png'>download png</a>")
 ```
 
 
@@ -155,7 +155,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/energy-1.png")
+include_graphics("Results/Plots/Sectors/Final/energy-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -165,7 +165,7 @@ cat("<br>")
 cat(captions$caption[captions$plot=="sectors_energy"])
 cat("<br>")
 cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/energy-1.png'>download png</a>")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/Final/energy-1.png'>download png</a>")
 ```
 
 
@@ -175,7 +175,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/industry-1.png")
+include_graphics("Results/Plots/Sectors/Final/industry-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -185,7 +185,7 @@ cat("<br>")
 cat(captions$caption[captions$plot=="sectors_industry"])
 cat("<br>")
 cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/industry-1.png'>download png</a>")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/Final/industry-1.png'>download png</a>")
 ```
 
 
@@ -195,7 +195,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/buildings-1.png")
+include_graphics("Results/Plots/Sectors/Final/buildings-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -205,7 +205,7 @@ cat("<br>")
 cat(captions$caption[captions$plot=="sectors_buildings"])
 cat("<br>")
 cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/buildings-1.png'>download png</a>")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/Final/buildings-1.png'>download png</a>")
 ```
 
 
@@ -215,7 +215,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/transport-1.png")
+include_graphics("Results/Plots/Sectors/Final/transport-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -225,7 +225,7 @@ cat("<br>")
 cat(captions$caption[captions$plot=="sectors_transport"])
 cat("<br>")
 cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/transport-1.png'>download png</a>")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/Final/transport-1.png'>download png</a>")
 ```
 
 
@@ -235,7 +235,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/afolu-1.png")
+include_graphics("Results/Plots/Sectors/Final/afolu-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -245,7 +245,7 @@ cat("<br>")
 cat(captions$caption[captions$plot=="sectors_afolu"])
 cat("<br>")
 cat("Links: ")
-cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/AFOLU-1.png'>download png</a>")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/Final/AFOLU-1.png'>download png</a>")
 ```
 
 Growth rates
