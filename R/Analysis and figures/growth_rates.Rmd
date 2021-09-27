@@ -184,7 +184,7 @@ totals <- rbind(totals_5,totals_10,decades,halfdecades)
 totals <- totals %>% 
   select(group,t1,t2,value_t1,value_t2,abs_change,avg_annual_change)
 
-#write.xlsx(totals,"growth_rates_totalGHG.xlsx")
+write.xlsx(totals,"growth_rates_totalGHG.xlsx")
 
 ```
 
