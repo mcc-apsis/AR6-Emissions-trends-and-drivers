@@ -708,7 +708,7 @@ kaya_figure <- function(kaya_rates,sector) {
 # Results
 ## AFOLU
 
-```{r afolu_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r afolu_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
 trend_data <- sector_ghg_total %>%
@@ -732,7 +732,7 @@ p4 <- kaya_figure(kaya_rates_afolu,"AFOLU")
 
 ## Energy systems
 
-```{r energy_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r energy_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
 trend_data <- sector_ghg_total %>% 
@@ -754,7 +754,7 @@ p4 <- kaya_figure(kaya_rates,"Energy systems")
 
 ## Industry
 
-```{r industry_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r industry_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
 
@@ -777,7 +777,7 @@ p4 <- kaya_figure(kaya_rates,"Industry")
 
 ## Buildings
 
-```{r buildings_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r buildings_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 trend_data <- sector_ghg_total %>% 
   filter(chapter_title=="Buildings")
@@ -797,7 +797,7 @@ p4 <- kaya_figure(kaya_rates,"Buildings")
 
 ## Transport
 
-```{r transport_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r transport_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
 trend_data <- sector_ghg_total %>% 
@@ -821,7 +821,7 @@ p4 <- kaya_figure(kaya_rates,"Transport")
 
 ## Total
 
-```{r total_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r total_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 # Re-build data for all sectors together
 # Remove indirect components

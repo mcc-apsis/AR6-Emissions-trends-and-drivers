@@ -134,6 +134,32 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 ```
 
 
+
+-----------------------------------------------------------------------
+
+### Global carbon emissions in 2020 and the impact of COVID-19 
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/covid_emissions-1.png")
+
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="covid"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="covid"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_covid2020.xlsx'>data</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/covid_emissions.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/covid_emissions-1.png'>download png</a>")
+
+```
+
+
+
 Sector emissions trends
 =====================================
 

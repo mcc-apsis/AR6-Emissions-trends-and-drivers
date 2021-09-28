@@ -372,28 +372,25 @@ p_covid_sectors
 ```
 
 
-```{r covid_emissions, echo=FALSE,warning=FALSE,fig.width=8,fig.height=5,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+```{r covid_emissions, echo=FALSE,warning=FALSE,dpi=300,fig.width=8,fig.height=5,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
 p <- p_annual_gcb / p_covid_sectors + plot_layout(heights=c(0.6,0.4))
 p
 
 
+openxlsx::addWorksheet(wb,"panel a")
+openxlsx::addWorksheet(wb,"panel a reduction rates")
+openxlsx::addWorksheet(wb,"panel b")
 
-```
-## EDGAR 2020 estimates
+openxlsx::writeData(wb,"panel a",gcb, colNames = T, rowNames = F)
+openxlsx::writeData(wb,"panel a reduction rates",crises, colNames = T, rowNames = F)
+openxlsx::writeData(wb,"panel b",covid_sectors, colNames = T, rowNames = F)
 
-```{r covid_edgar_sectors, echo=FALSE,warning=FALSE,}
 
-
-load('../../Data/edgar6_v4_data_raw.RData')
-
-edgar_covid_sectors <- edgar_raw %>% 
-  filter(gas=="CO2") %>% 
-  group_by(chapter_title,subsector_title,year) %>% 
-  summarise(value=sum(value,na.rm=TRUE)/1e9)
-
+openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_covid2020",".xlsx"),overwrite=T)
 
 
 
 ```
+
 
