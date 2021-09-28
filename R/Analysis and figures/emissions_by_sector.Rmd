@@ -292,7 +292,7 @@ trend_figure <- function(trend_data,chapter) {
     geom_area(color='#737373') +
     
     geom_vline(xintercept=c(1990,2000,2010,end_year),alpha=0.3,linetype="dashed") +
-    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]),aes(x=year,y=1.05*max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]),aes(x=year,y=1.05*max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste(signif(totals,2),  "Gt")),size=3.5,colour="#252525") +
     
     #geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,size=3.5,colour="#252525") +
     
@@ -309,7 +309,7 @@ trend_figure <- function(trend_data,chapter) {
     
     # geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(round(fractions,0),"%")),hjust=0,size=3.5,colour="#252525") +
     
-    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4.5,year+5),y=max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste0(ifelse(total_rate>0,"+","-"),round(abs(total_rate),1),"%")),size=3.5,colour="#252525") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4.5,year+5),y=max(shares$totals+ifelse(shares$subsector==1,5,1)),label=paste0(ifelse(total_rate>0,"+","-"),signif(abs(total_rate),2),"%")),size=3.5,colour="#252525") +
     
     scale_x_continuous(breaks=c(1990,2000,2010,end_year),limits = c(1990,end_year+2)) +
     scale_y_continuous() +
@@ -1248,7 +1248,7 @@ p <- plot_data %>%
 
 p2 <- plot_data %>% 
   filter(key=="CO2 (direct)") %>% 
-  ggplot(.,aes(y="a",x=reorder(label,total_GHG_plus_indirect),label=paste0(ifelse(rate>0,"+","-"),round(abs(rate)*100,1),"%"))) +
+  ggplot(.,aes(y="a",x=reorder(label,total_GHG_plus_indirect),label=paste0(ifelse(rate>0,"+","-"),signif(abs(rate)*100,2),"%"))) +
   geom_text() +
   coord_flip() +
   facet_grid(facet~.,scales="free",space="free") +
