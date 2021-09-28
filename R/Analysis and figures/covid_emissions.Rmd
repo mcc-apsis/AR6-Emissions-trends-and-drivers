@@ -19,7 +19,6 @@ library(ggplot2); theme_set(theme_bw())
 library(patchwork)
 library(zoo)
 
-load('../../Data/edgar6_v2_data_raw.RData')
 
 Sys.setlocale("LC_ALL","English")
 
@@ -381,3 +380,20 @@ p
 
 
 ```
+## EDGAR 2020 estimates
+
+```{r covid_edgar_sectors, echo=FALSE,warning=FALSE,}
+
+
+load('../../Data/edgar6_v4_data_raw.RData')
+
+edgar_covid_sectors <- edgar_raw %>% 
+  filter(gas=="CO2") %>% 
+  group_by(chapter_title,subsector_title,year) %>% 
+  summarise(value=sum(value,na.rm=TRUE)/1e9)
+
+
+
+
+```
+

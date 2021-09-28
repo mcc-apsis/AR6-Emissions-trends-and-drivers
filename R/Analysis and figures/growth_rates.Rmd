@@ -33,6 +33,8 @@ load('../../Data/indirect_CO2.RData')
 
 options(dplyr.summarise.inform = FALSE)
 
+
+
 ```
 
 ## Growth rate calculation

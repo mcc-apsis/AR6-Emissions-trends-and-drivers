@@ -29,9 +29,9 @@ library(ggrepel)
 
 source("small_figures.R")
 
-end_year = 2018
+end_year = 2019
 
-load('../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load('../../Data/indirect_CO2.RData')
 load('../../Data/land.RData')
@@ -74,27 +74,59 @@ indirect_CO2_countries <- indirect_CO2_countries %>%
   summarise(CO2_indirect=sum(CO2_indirect,na.rm=TRUE)*1e9)
 
 
-blarg <- edgar_ghg %>% 
-  filter(year==2018) %>% 
-  group_by(region_ar6_10_short,year) %>% 
-  summarise(GHG=sum(GHG,na.rm=TRUE))
-blarg <- left_join(blarg,land)
-blarg <- blarg %>% 
-  mutate(GHG_total=GHG+CO2_land) %>% 
-  mutate(GHG_total=ifelse(region_ar6_10_short=="AIR",GHG,GHG_total)) %>%
-  mutate(GHG_total=ifelse(region_ar6_10_short=="SEA",GHG,GHG_total)) 
-
-blarg <- blarg %>% 
-  mutate(world_total=sum(blarg$GHG_total)) %>% 
-  mutate(fraction=(GHG_total/world_total)*100)
-
-blarg <- left_join(blarg,pop_regions)
-blarg <- blarg %>% 
-  mutate(per_capita=GHG_total/population)
+# blarg <- edgar_ghg %>% 
+#   filter(year==2019) %>% 
+#   group_by(region_ar6_10_short,year) %>% 
+#   summarise(GHG=sum(GHG,na.rm=TRUE))
+# blarg <- left_join(blarg,land)
+# blarg <- blarg %>% 
+#   mutate(GHG_total=GHG+CO2_land) %>% 
+#   mutate(GHG_total=ifelse(region_ar6_10_short=="AIR",GHG,GHG_total)) %>%
+#   mutate(GHG_total=ifelse(region_ar6_10_short=="SEA",GHG,GHG_total)) 
+# 
+# blarg <- blarg %>% 
+#   mutate(world_total=sum(blarg$GHG_total)) %>% 
+#   mutate(fraction=(GHG_total/world_total)*100)
+# 
+# blarg <- left_join(blarg,pop_regions)
+# blarg <- blarg %>% 
+#   mutate(per_capita=GHG_total/population)
 
 ```
 
 # Data preparation
+
+## Growth rate calculation
+
+```{r growth_rate,echo=FALSE,warning=FALSE}
+
+growth_rates <- function(data) {
+  
+  # leap year adjustment
+  # rates <- data %>%
+  #   mutate(leap_years = leap_year(year)) %>% 
+  #   mutate(value = ifelse(leap_years==TRUE,value*365/366,value)) %>% 
+  #   select(-leap_years)
+  
+  rates <- data %>% 
+    filter(year %in% c(1990,1999,2000,2009,2010,end_year)) %>% 
+    mutate(total_rate=NA)
+  
+  rates$total_rate[rates$year==1990] = ((rates$value[rates$year==1999]/rates$value[rates$year==1990])^(1/(1999-1990))-1)*100
+  
+  rates$total_rate[rates$year==2000] = ((rates$value[rates$year==2009]/rates$value[rates$year==2000])^(1/(2009-2000))-1)*100
+  
+  rates$total_rate[rates$year==2010] = ((rates$value[rates$year==end_year]/rates$value[rates$year==2010])^(1/(end_year-2010))-1)*100
+  
+  
+  return(rates)
+             
+}
+
+
+
+```
+
 ## Total sector & subsector trend
 
 ```{r sector_ghg_total,echo=FALSE,warning=FALSE}
@@ -118,7 +150,7 @@ rm(sector_ghg_total_land)
 
 # for transport, buildings, industry we add CO2 indirect as subsectors
 
-indirect_CO2_world <- gather(indirect_CO2_world,year,GHG,`1990`:`2018`)
+indirect_CO2_world <- gather(indirect_CO2_world,year,GHG,`1990`:`2019`)
 indirect_CO2_world <- indirect_CO2_world %>% 
   group_by(chapter_title,subsector_title,year) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE))
@@ -146,7 +178,7 @@ sector_ghg_total <- rbind(sector_ghg_total,indirect_CO2_world)
 sector_ghgs_regions <- data %>% 
   #filter(region_ar6_10_short!="AIR") %>% 
   #filter(region_ar6_10_short!="SEA") %>% 
-  filter(year %in% c(2010,2018)) %>% 
+  filter(year %in% c(2010,2019)) %>% 
   group_by(region_ar6_10,region_ar6_10_short,chapter_title,year) %>% 
   summarise(GHG=sum(GHG,na.rm=TRUE)/1e9)
 
@@ -160,7 +192,7 @@ sector_ghgs_regions <- left_join(sector_ghgs_regions,land,by = c("region_ar6_10"
 indirect_CO2_regions <- indirect_CO2_regions %>% 
   group_by(region_ar6_10,region_ar6_10_short,chapter_title,year) %>% 
   summarise(CO2_indirect = sum(CO2_indirect,na.rm=TRUE)) %>% 
-  filter(year %in% c(2010,2018)) %>% 
+  filter(year %in% c(2010,2019)) %>% 
   filter(chapter_title!="Energy systems")
 
 sector_ghgs_regions <- left_join(sector_ghgs_regions,indirect_CO2_regions,by = c("region_ar6_10", "region_ar6_10_short", "chapter_title", "year"))
@@ -189,7 +221,7 @@ sector_ghgs_regions <- sector_ghgs_regions %>%
   mutate(rate=(last(GHG_total)/first(GHG_total))^(1/(last(year)-first(year)))-1) %>% 
   mutate(rate=rate*100)
 
-sector_ghgs_regions <- sector_ghgs_regions %>% filter(year==2018)
+sector_ghgs_regions <- sector_ghgs_regions %>% filter(year==2019)
 
 ## add population to calculate regional average per capita emissions
 
@@ -214,7 +246,7 @@ per_capita <- left_join(data,indirect_CO2_countries,by = c("ISO", "country", "re
 # for AFOLU, we will use the region per capita data calculated in the last chunk
 
 pop_world <- wdi_data_gdp_pop %>% 
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   filter(iso3c=="WLD")
 
 per_capita_world <- sector_ghgs_regions %>% 
@@ -230,7 +262,7 @@ per_capita_world <- per_capita_world %>%
 per_capita <- per_capita %>% 
   filter(region_ar6_10_short!="AIR") %>% 
   filter(region_ar6_10_short!="SEA") %>% 
-  filter(year %in% c(2018)) %>% 
+  filter(year %in% c(2019)) %>% 
   group_by(ISO,country,region_ar6_10,region_ar6_10_short,chapter_title,year) %>% 
   summarise(GHG=sum(GHG),population=nth(population,1),CO2_indirect=sum(CO2_indirect,na.rm=TRUE)) %>% 
   mutate(GHG_total=ifelse(chapter_title!="Energy systems",GHG+CO2_indirect,GHG)) %>% 
@@ -244,14 +276,14 @@ per_capita <- per_capita %>%
 
 kaya_rates <- gather(kaya_data %>% select(-GDP),var,value,CO2,energy,energy_GDP,CO2_energy,GDP_POP,POP) %>%   filter(sector!="AFOLU") %>% 
   filter(region_ar6_10!="World") %>% 
-  filter(year %in% c(2010,2018)) %>% 
+  filter(year %in% c(2010,2019)) %>% 
   select(chapter_title=sector,everything())
 
 kaya_rates <- kaya_rates %>% 
   group_by(region_ar6_10,chapter_title,var) %>%
   mutate(rate=(last(value)/first(value))^(1/(last(year)-first(year)))-1) %>% 
   mutate(rate=rate*100) %>% 
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   ungroup() %>% 
   select(-value,-year)
 
@@ -259,7 +291,7 @@ kaya_rates <- kaya_rates %>%
 
 ghg_rates <- sector_ghgs_regions %>% 
   ungroup() %>% 
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   filter(chapter_title!="AFOLU") %>% 
   select(region_ar6_10,chapter_title,rate) %>% 
   mutate(var="GHG") %>% 
@@ -296,19 +328,13 @@ kaya_rates <- left_join(kaya_rates,ipcc_regions %>% select(region_ar6_10,region_
 ```{r kaya_rates_afolu,echo=FALSE,warning=FALSE}
 
 
-hong_a <- openxlsx::read.xlsx('../../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Ag_production_kcal')
-names(hong_a) <- c("country","product",1961:2017)
-hong_a <- gather(hong_a,year,ag_production_kcal,`1961`:`2017`)
-hong_a <- hong_a %>% 
-  group_by(year,country) %>% 
-  summarise(ag_production_kcal=sum(ag_production_kcal))
+hong_a <- openxlsx::read.xlsx('../../Data/Kaya/LUE_Data_2019_CH.xlsx',sheet='8.1.AgProd')
+names(hong_a) <- c("country",1961:2019)
+hong_a <- gather(hong_a,year,ag_production_kcal,`1961`:`2019`)
 
-hong_b <- openxlsx::read.xlsx('../../Data/Land and GCB/DataPortal_LUE_28Jun20.xlsx',sheet='Land_area_hectares')
-names(hong_b) <- c("country","product",1961:2017)
-hong_b <- gather(hong_b,year,land_area_hectares,`1961`:`2017`)
-hong_b <- hong_b %>% 
-  group_by(year,country) %>% 
-  summarise(land_area_hectares=sum(land_area_hectares))
+hong_b <- openxlsx::read.xlsx('../../Data/Kaya/LUE_Data_2019_CH.xlsx',sheet='9.1.AgLand')
+names(hong_b) <- c("country",1961:2019)
+hong_b <- gather(hong_b,year,land_area_hectares,`1961`:`2019`)
 
 hong <- left_join(hong_a,hong_b,by = c("year", "country"))
 codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
@@ -316,12 +342,14 @@ codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R
 hong <- left_join(hong %>% mutate(country=tolower(country)),codes,by=c("country"="alternative.name"))
 
 hong <- hong %>% 
-  mutate(alpha.3=ifelse(grepl("d ivoire",country),"CIV",alpha.3)) %>% 
-  mutate(alpha.3=ifelse(grepl("china, taiwan province of",country),"TWN",alpha.3)) %>% 
-  mutate(alpha.3=ifelse(grepl("union",country),"REU",alpha.3))  %>% 
-  mutate(alpha.3=ifelse(grepl("pacific islands trust territory",country),"PCI",alpha.3)) %>%
+  mutate(alpha.3=ifelse(grepl("china- taiwan province of",country),"TWN",alpha.3)) %>% 
+  mutate(alpha.3=ifelse(grepl("china- hong kong sar",country),"HKG",alpha.3)) %>% 
+  mutate(alpha.3=ifelse(grepl("china- macao sar",country),"MAC",alpha.3)) %>% 
+  mutate(alpha.3=ifelse(grepl("china- mainland",country),"CHN",alpha.3)) %>% 
+  mutate(alpha.3=ifelse(grepl("saint helena- ascension and tristan da cunha",country),"SHN",alpha.3)) %>%
   ungroup() %>% 
-  mutate(year=as.numeric(year))
+  mutate(year=as.numeric(year)) %>% 
+  filter(year>=1970)
 
 afolu_GHG <- edgar_ghg %>% 
   filter(chapter_title=="AFOLU") %>% 
@@ -329,6 +357,9 @@ afolu_GHG <- edgar_ghg %>%
   summarise(GHG=sum(GHG,na.rm = TRUE))
 
 hong <- left_join(hong,afolu_GHG,by=c("alpha.3"="ISO","year"="year"))
+
+blarg <- anti_join(afolu_GHG,hong,by=c("ISO"="alpha.3","year"))
+
 hong <- hong %>% 
   filter(year>1989) %>% 
   filter(!is.na(region_ar6_10)) %>% 
@@ -337,7 +368,7 @@ hong <- hong %>%
 hong <- left_join(hong,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population),by=c("ISO","year"))
 
 kaya_rates_afolu <- hong %>% 
-  filter(year %in% c(2010,2017)) %>% 
+  filter(year %in% c(2010,2019)) %>% 
   mutate(chapter_title="AFOLU") %>% 
   group_by(region_ar6_10,chapter_title,year) %>% 
   summarise(ag_production_kcal=sum(ag_production_kcal,na.rm=TRUE),
@@ -362,15 +393,15 @@ kaya_rates_afolu <- kaya_rates_afolu %>%
   mutate(land_production=land_area_hectares/ag_production_kcal) %>% 
   mutate(ghg_land_area=GHG_total/land_area_hectares)
 
-kaya_rates_afolu <- gather(kaya_rates_afolu %>% 
-                             select(-ag_production_kcal,-land_area_hectares,-GHG),var,value,population:ghg_land_area)
+kaya_rates_afolu <- gather(kaya_rates_afolu %>% select(-ag_production_kcal,-land_area_hectares,-GHG),
+                           var,value,population:ghg_land_area)
 
 
 kaya_rates_afolu <- kaya_rates_afolu %>% 
   group_by(region_ar6_10,chapter_title,var) %>%
   mutate(rate=(last(value)/first(value))^(1/(last(year)-first(year)))-1) %>% 
   mutate(rate=rate*100) %>% 
-  filter(year==2017) %>% 
+  filter(year==2019) %>% 
   ungroup() %>% 
   select(-value,-year)
 
@@ -384,13 +415,13 @@ kaya_rates_afolu$rate_colour <- as.factor(kaya_rates_afolu$rate_colour)
 kaya_rates_afolu$rate_colour <- factor(kaya_rates_afolu$rate_colour,levels=levels(kaya_rates_afolu$rate_colour)[c(2,3,1)])
 
 # facet titles
-titles <- data.frame(var=c("population","GHG_total","production_percap","land_production","ghg_land_area"),facet=c("Population","GHG Total","Agricultural output","Land efficiency","GHG intensity"))
+titles <- data.frame(var=c("population","GHG_total","production_percap","land_production","ghg_land_area"),facet=c("Population","GHG","Agricultural output","Land efficiency","GHG intensity"))
 
 kaya_rates_afolu <- left_join(kaya_rates_afolu,titles,by = "var")
 
 # reorder vars
 kaya_rates_afolu$facet <- as.factor(kaya_rates_afolu$facet)
-kaya_rates_afolu$facet <- factor(kaya_rates_afolu$facet,levels=levels(kaya_rates_afolu$facet)[c(3,2,4,1,5)])
+kaya_rates_afolu$facet <- factor(kaya_rates_afolu$facet,levels=levels(kaya_rates_afolu$facet)[c(2,3,4,1,5)])
 
 
 # add short regions
@@ -440,15 +471,11 @@ trend_figure <- function(trend_data,sector) {
   
   # # calculate overall growth between years (time 1 time 2)
   growth_data <- trend_data %>%
-    filter(year %in% c(1990,2000,2010,end_year)) %>%
     group_by(year) %>%
-    summarise(value=sum(value)) %>%
-    mutate(total_rate = NA)
+    summarise(value=sum(value))
   
-  for (j in 1:length(growth_data$year)-1) {
-    rate = (((growth_data$value[j+1]/growth_data$value[j])^(1/(growth_data$year[j+1]-growth_data$year[j])))-1)*100
-    growth_data$total_rate[j] <- rate
-  }
+  growth_data <- growth_rates(growth_data)
+  
   
   shares <- left_join(shares,growth_data %>% select(-value) %>% filter(year %in% c(1990,2000,2010)),by="year")
   
@@ -475,7 +502,7 @@ trend_figure <- function(trend_data,sector) {
     
     geom_vline(xintercept=c(1990,2000,2010,end_year),alpha=0.3,linetype="dashed") +
     
-    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]),aes(x=year,y=1.09*max(shares$totals),label=paste(round(totals,1),  "Gt")),size=4,colour="#252525") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]),aes(x=year,y=1.09*max(shares$totals),label=paste(round(totals,0),  "Gt")),size=4,colour="#252525") +
     
     #geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,size=3.5,colour="#252525") +
     
@@ -530,10 +557,10 @@ fraction_figure <- function(sector_ghgs_regions,sector) {
     filter(region_ar6_10_short!="SEA") %>% 
     mutate(facet=paste0("% of tot. sector GHG emissions"))
   
-   title <- data.frame(title=ifelse(sector=="AFOLU","Emissions by region in 2018\n(all GHGs, incl. LULUCF CO2)","Emissions by region in 2018\n(all GHGs, incl. Indirect CO2)"))
+   title <- data.frame(title=ifelse(sector=="AFOLU","Emissions by region in 2019\n(all GHGs, incl. LULUCF CO2)","Emissions by region in 2019\n(all GHGs, incl. Indirect CO2)"))
   title <- title %>% 
-    mutate(title=ifelse(sector=="Energy systems","Emissions by region in 2018\n(all GHGs)",title)) %>% 
-    mutate(title=ifelse(sector=="Total","Emissions by region in 2018\n(all GHGs, incl. LULUCF CO2, excl. Indirect CO2",title))
+    mutate(title=ifelse(sector=="Energy systems","Emissions by region in 2019\n(all GHGs)",title)) %>% 
+    mutate(title=ifelse(sector=="Total","Emissions by region in 2019\n(all GHGs, incl. LULUCF CO2, excl. Indirect CO2",title))
   
   
     p <- fraction_data %>% 
@@ -577,7 +604,7 @@ per_capita_figure <- function(per_capita,per_capita_world,sector_ghgs_regions,se
   
   per_capita_data <- per_capita %>% 
     filter(chapter_title==sector) %>% 
-    filter(year==2018) %>% 
+    filter(year==2019) %>% 
     mutate(facet="Per capita GHG emissions (tCO2eq/capita)")
   
   # mean by region
@@ -643,10 +670,10 @@ kaya_figure <- function(kaya_rates,sector) {
     filter(var!="GHG")
   
   
-   title <- data.frame(title=ifelse(sector=="AFOLU","c. Avg. annual change in kaya factors 2010-2018\n(GHG incl. LULUCF CO2)","c. Avg. annual change in kaya factors, 2010-2018\n(CO2 only, excl. indirect CO2)"))
+   title <- data.frame(title=ifelse(sector=="AFOLU","c. Avg. annual change in kaya factors 2010-2019\n(GHG excl. LULUCF CO2)","c. Avg. annual change in kaya factors, 2010-2019\n(CO2 only, excl. indirect CO2)"))
   title <- title %>% 
-    mutate(title=ifelse(sector=="Energy systems","c. Avg. annual change in kaya factors 2010-2018\n(CO2 only)",title)) %>% 
-    mutate(title=ifelse(sector=="Total","c. Avg. annual change in kaya factors 2010-2018\n(CO2 only, excl. LULUCF CO2, excl. indirect CO2)",title))
+    mutate(title=ifelse(sector=="Energy systems","c. Avg. annual change in kaya factors 2010-2019\n(CO2 only)",title)) %>% 
+    mutate(title=ifelse(sector=="Total","c. Avg. annual change in kaya factors 2010-2019\n(CO2 only, excl. LULUCF CO2, excl. indirect CO2)",title))
    
    
   p <- kaya_rates %>% 
@@ -684,7 +711,7 @@ kaya_figure <- function(kaya_rates,sector) {
 ```{r afolu_summary,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
-trend_data <- sector_ghg_total %>% 
+trend_data <- sector_ghg_total %>%
   filter(chapter_title=="AFOLU")
 
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
@@ -713,7 +740,7 @@ trend_data <- sector_ghg_total %>%
   filter(subsector_title!="Indirect CO2")
 
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
-trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,4,5,2,6,1)])
+trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(2,3,4,1,5)])
 
 p1 <- trend_figure(trend_data,"Energy systems")
 p2 <- fraction_figure(sector_ghgs_regions,"Energy systems")

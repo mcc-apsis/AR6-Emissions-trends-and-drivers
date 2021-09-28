@@ -244,7 +244,7 @@ meta <- data.frame("Variable" = c("blue","houghton","oscar","mean"),
                                   "Gasser, T., Crepin, L., Quilcaille, Y., Houghton, R. A., Ciais, P., & Obersteiner, M. (2020). Historical CO2 emissions from land use and land cover change and their uncertainty. Biogeosciences, 17(15), 4075–4101. https://doi.org/10.5194/bg-17-4075-2020",
                                   "Hansis et al. 2015, Houghton et al. 2017, Gasser et al. 2020"))
 
-info = data.frame("x" = c("Data description","Appropriate use","Region codes","Author & contact","R code","","Last date of compilation","","","Sources","Link to public EDGAR version"),
+info = data.frame("x" = c("Data description","Appropriate use","Region codes","Author & contact","R code","","Last date of compilation","","","Sources"),
                   "y" = c("This data file provides LULUCF CO2 emissions for use in IPCC AR6. There are 3 global bookeeping models that inform the WG3 assessment of LULUCF CO2 emissions. We use the mean of these three, following the Global Carbon Project convention.",
                           "This data is only authorised for use within the IPCC AR6 process, as it contains a level of detail that is not currently publically available. To use this data for non-IPCC purposes, including the publication of articles, please contact Julia Pongratz (julia.pongratz@geographie.uni-muenchen.de).",
                           "Countries have been allocated to regions by the WGIII Technical Support Unit. A summary of the country and region codes is in the region_classification tab.",
@@ -254,8 +254,7 @@ info = data.frame("x" = c("Data description","Appropriate use","Region codes","A
                           as.character(Sys.time()),
                           "",
                           "",
-                          "See metadata tab",
-                          "https://edgar.jrc.ec.europa.eu/dataset_ghg60"))
+                          "See metadata tab"))
 
 
 
@@ -271,7 +270,7 @@ writeData(wb6, sheet = "metadata", meta, colNames = T)
 writeData(wb6, sheet = "data", land, colNames = T)
 writeData(wb6, sheet = "region_classification",ipcc_regions,colNames=T)
 
-saveWorkbook(wb6,"Results/Data/ipcc_ar6_data_edgar6_LULUCF.xlsx",overwrite = T)
+saveWorkbook(wb6,"Results/Data/ipcc_ar6_data_LULUCF.xlsx",overwrite = T)
 
 ############################################################   by gases for Robbie
 

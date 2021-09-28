@@ -21,7 +21,8 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2"
 
 #crf_data<-read_csv("../../Data/supplemetary data/Guetschow-et-al-2020-PRIMAP-crf_2020-v1.csv")
 
-load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+#load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
+load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
 #load("../../Data/edgar_data_all.RData")
 load('../../Data/gwps.RData')
 
@@ -51,7 +52,7 @@ crf_total_sector<-left_join(crf_total_sector,gwps,by=c("entity"="Code.PRIMAP"))
 crf_total_sector<-crf_total_sector %>%
   filter(`area (ISO3)`!="EU27BX") %>%
   filter(`area (ISO3)`!="EU28") %>%
-  filter(!is.na(gwp_ar5))
+  filter(!is.na(gwp_ar6))
 
 crf_total_sector<-gather(crf_total_sector,key = "year", value = "value", "1986":"2019") %>%
   mutate(value=ifelse(unit1=="k",value/1e6,value/1e9)) %>%   #transforming kt to Gt
@@ -78,7 +79,7 @@ crf_methane_adjustment<-gather(crf_methane_adjustment,key = "year", value = "val
 crf_total_sector<-rbind(crf_total_sector,crf_methane_adjustment) 
 
 crf_total_sector<-crf_total_sector %>%
-  filter(!is.na(gwp_crf_ar5)) %>%
+  filter(!is.na(gwp_crf_ar6)) %>%
   group_by(`area (ISO3)`,year,gas) %>%
   summarise_at(c("gwp_crf_ar5","gwp_crf_ar6"),sum,na.rm = TRUE)
 
@@ -175,8 +176,8 @@ edgar_data <- gather(edgar_data,gas,value,CH4:GHG)
 
 
 combined_crf_edgar <- left_join(crf_total_sector,edgar_data,by=c("ISO","year","gas")) %>%
-  rename("EDGAR"="value","CRF"="gwp_crf") %>%
-  filter(year>=1990) %>%
+  rename("EDGAR"="value","CRF"="gwp_crf_ar6") %>%
+  filter(year>=1990 & year<=2018) %>%
   filter(gas %in% c("CO2","CH4","N2O","GHG")) %>%
   filter(!is.na(EDGAR))
 
@@ -201,14 +202,14 @@ plot_theme <- theme_bw() +
 
 plot_diff<-function(GAS){
   dat<- combined_crf_edgar %>%
-    filter(year==2019) %>%
+    filter(year==2018) %>%
     filter(gas==GAS)
   
   dat<-gather(dat,key="data",value = "value", c("EDGAR","CRF"))
   p<-ggplot(dat, aes(x=country,y=value,fill=data)) + geom_bar(stat = "identity", position=position_dodge()) +
     #theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))+
     ylab("emissions in GtCO2eq/yr")+
-    ggtitle(paste("2019", GAS, "data in GtCO2eq/yr", sep=" ")) +
+    ggtitle(paste("2018", GAS, "data in GtCO2eq/yr", sep=" ")) +
     plot_theme
   return(p)
 }
@@ -225,7 +226,7 @@ box_diff<-function(GAS){
   p<-ggplot(dat, aes(x=country,goup=country,y=diff_p)) + geom_boxplot() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))+
     ylab("percentage difference")+
-    ggtitle(paste("Annual differences in", GAS, " data between 1990 and 2019 (in %)", sep=" ")) +
+    ggtitle(paste("Annual differences in", GAS, " data between 1990 and 2018 (in %)", sep=" ")) +
     plot_theme
   return(p)
 }

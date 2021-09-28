@@ -110,6 +110,30 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 ```
 
 
+-----------------------------------------------------------------------
+
+### Emissions by sector, including indirect emissions from the electricity and heat sector
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Figures/SPM_indirect_emissions.png")
+
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="direct_indirect"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="direct_indirect"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm_sectors.xlsx'>data</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/direct_indirect_emissions.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Figures/SPM_indirect_emissions.png'>download png</a>")
+
+```
+
+
 Sector emissions trends
 =====================================
 
@@ -263,7 +287,6 @@ where E is the emissions value in a given year t.
 The code for producing these tables is here: <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/growth_rates.Rmd">link</a>
 
 A spreadsheet is also available: <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Public%20data/ipcc_ar6_data_growth_rates.xlsx">link</a>
-
 
 
 -----------------------------------------------------------------------

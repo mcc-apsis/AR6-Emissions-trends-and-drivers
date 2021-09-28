@@ -773,6 +773,14 @@ sector_energy
 
 
 ############ Save data
+region_data_totals <- region_data %>%
+  group_by(year,region_ar6_10,region_ar6_10_short) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  mutate(subsector=NA) %>% 
+  mutate(subsector_title="Total")
+
+region_data <- rbind(region_data,region_data_totals)
+
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
@@ -820,6 +828,14 @@ sector_industry <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_industry
 
 ############ Save data
+region_data_totals <- region_data %>%
+  group_by(year,region_ar6_10,region_ar6_10_short) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  mutate(subsector=NA) %>% 
+  mutate(subsector_title="Total")
+
+region_data <- rbind(region_data,region_data_totals)
+
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
@@ -866,6 +882,16 @@ sector_transport <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_transport
 
 ############ Save data
+region_data_totals <- region_data %>%
+  filter(region_ar6_10!="Intl. Aviation") %>% 
+  filter(region_ar6_10!="Intl. Shipping") %>% 
+  group_by(year,region_ar6_10,region_ar6_10_short) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  mutate(subsector=NA) %>% 
+  mutate(subsector_title="Total")
+
+region_data <- rbind(region_data,region_data_totals)
+
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
@@ -916,6 +942,14 @@ sector_buildings <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_buildings
 
 ############ Save data
+region_data_totals <- region_data %>% 
+  group_by(year,region_ar6_10,region_ar6_10_short) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  mutate(subsector=NA) %>% 
+  mutate(subsector_title="Total")
+
+region_data <- rbind(region_data,region_data_totals)
+
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
@@ -1073,6 +1107,14 @@ sector_afolu <- ggarrange(p1,p2,nrow=2,align = "h")
 sector_afolu
 
 ############ Save data
+region_data_totals <- region_data %>%
+  group_by(year,region_ar6_10,region_ar6_10_short) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  mutate(subsector=NA) %>% 
+  mutate(subsector_title="Total")
+
+region_data <- rbind(region_data,region_data_totals)
+
 trend_data <- spread(trend_data,year,value)
 region_data <- spread(region_data,year,value)
 
