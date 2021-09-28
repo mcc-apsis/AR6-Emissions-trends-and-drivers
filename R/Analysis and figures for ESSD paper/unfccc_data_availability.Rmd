@@ -22,7 +22,6 @@ unfccc$`last reporting year NC`<-as.numeric(unfccc$`last reporting year NC`)
 unfccc$`last reporting year NIR`<-as.numeric(unfccc$`last reporting year NIR`)
 
 unfccc <- unfccc %>%
-  mutate(`last reporting year NC`=ifelse(country=="Nepal",2001,`last reporting year NC`)) %>%
   #mutate(`annex-1`=!is.na(`annex-1`)) %>%
   mutate(country=ifelse(country=="Democratic People's Republic of Korea","North Korea",country)) %>%
   mutate(country=ifelse(country=="Republic of Korea","South Korea",country)) %>%
