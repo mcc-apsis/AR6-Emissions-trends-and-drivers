@@ -275,7 +275,7 @@ per_capita <- per_capita %>%
 ```{r kaya_rates,echo=FALSE,warning=FALSE}
 
 kaya_rates <- gather(kaya_data %>% select(-GDP),var,value,CO2,energy,energy_GDP,CO2_energy,GDP_POP,POP) %>%   filter(sector!="AFOLU") %>% 
-  filter(region_ar6_10!="World") %>% 
+  #filter(region_ar6_10!="World") %>% 
   filter(year %in% c(2010,2019)) %>% 
   select(chapter_title=sector,everything())
 
@@ -288,18 +288,17 @@ kaya_rates <- kaya_rates %>%
   select(-value,-year)
 
 # join ghg data
-
-ghg_rates <- sector_ghgs_regions %>% 
-  ungroup() %>% 
-  filter(year==2019) %>% 
-  filter(chapter_title!="AFOLU") %>% 
-  select(region_ar6_10,chapter_title,rate) %>% 
-  mutate(var="GHG") %>% 
-  filter(region_ar6_10!="Intl. Aviation") %>% 
-  filter(region_ar6_10!="Intl. Shipping")
-
-
-kaya_rates <- rbind(kaya_rates,ghg_rates)
+# 
+# ghg_rates <- sector_ghgs_regions %>% 
+#   ungroup() %>% 
+#   filter(year==2019) %>% 
+#   filter(chapter_title!="AFOLU") %>% 
+#   select(region_ar6_10,chapter_title,rate) %>% 
+#   mutate(var="GHG") %>% 
+#   filter(region_ar6_10!="Intl. Aviation") %>% 
+#   filter(region_ar6_10!="Intl. Shipping")
+# 
+# kaya_rates <- rbind(kaya_rates,ghg_rates)
 
 
 # set colour thresholds
@@ -311,13 +310,13 @@ kaya_rates$rate_colour <- as.factor(kaya_rates$rate_colour)
 kaya_rates$rate_colour <- factor(kaya_rates$rate_colour,levels=levels(kaya_rates$rate_colour)[c(2,3,1)])
 
 # facet titles
-titles <- data.frame(var=c("CO2","GHG","energy","energy_GDP","CO2_energy","GDP_POP","POP"),facet=c("CO2","GHG","Energy cons.","Energy intensity","Carbon intensity","GDP/ pop","Population"))
+titles <- data.frame(var=c("CO2","energy","energy_GDP","CO2_energy","GDP_POP","POP"),facet=c("CO2","Energy cons.","Energy intensity","Carbon intensity","GDP/ pop","Population"))
 
 kaya_rates <- left_join(kaya_rates,titles,by = "var")
 
 # reorder vars
 kaya_rates$facet <- as.factor(kaya_rates$facet)
-kaya_rates$facet <- factor(kaya_rates$facet,levels=levels(kaya_rates$facet)[c(6,2,1,4,3,5,7)])
+kaya_rates$facet <- factor(kaya_rates$facet,levels=levels(kaya_rates$facet)[c(2,1,4,3,5,6)])
 
 
 kaya_rates <- left_join(kaya_rates,ipcc_regions %>% select(region_ar6_10,region_ar6_10_short) %>% distinct(),by = "region_ar6_10")
@@ -502,7 +501,7 @@ trend_figure <- function(trend_data,sector) {
     
     geom_vline(xintercept=c(1990,2000,2010,end_year),alpha=0.3,linetype="dashed") +
     
-    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]),aes(x=year,y=1.09*max(shares$totals),label=paste(round(totals,0),  "Gt")),size=4,colour="#252525") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]),aes(x=year,y=1.09*max(shares$totals),label=paste(signif(totals,2),  "Gt")),size=4,colour="#252525") +
     
     #geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,size=3.5,colour="#252525") +
     
@@ -519,7 +518,7 @@ trend_figure <- function(trend_data,sector) {
     
     # geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(round(fractions,0),"%")),hjust=0,size=3.5,colour="#252525") +
     
-    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4,year+5),y=1.072*max(shares$totals),label=paste0(ifelse(total_rate>0,"+","-"),round(abs(total_rate),1),"%")),size=4,colour="#252525") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4,year+5),y=1.072*max(shares$totals),label=paste0(ifelse(total_rate>0,"+","-"),signif(abs(total_rate),2),"%")),size=4,colour="#252525") +
     
     scale_x_continuous(breaks=c(1990,2000,2010,end_year),limits = c(1990,end_year+2)) +
     scale_y_continuous() +
@@ -548,14 +547,23 @@ trend_figure <- function(trend_data,sector) {
 ## Fraction figure
 
 ```{r fraction_figure,echo=FALSE,warning=FALSE}
-
+sector="Energy systems"
 fraction_figure <- function(sector_ghgs_regions,sector) {
+  
+  colors = colorRampPalette(brewer.pal(8, "Set2"))(10)
+  colors = c(colors,"#f8766dff")
   
   fraction_data <- sector_ghgs_regions %>% 
     filter(chapter_title==sector) %>% 
     filter(region_ar6_10_short!="AIR") %>% 
     filter(region_ar6_10_short!="SEA") %>% 
     mutate(facet=paste0("% of tot. sector GHG emissions"))
+  
+  fraction_data <- rbind(fraction_data,
+                         data.frame(region_ar6_10="World",
+                                    region_ar6_10_short="World",
+                                    region_fraction_of_sector=NA,
+                                    facet="% of tot. sector GHG emissions"))
   
    title <- data.frame(title=ifelse(sector=="AFOLU","Emissions by region in 2019\n(all GHGs, incl. LULUCF CO2)","Emissions by region in 2019\n(all GHGs, incl. Indirect CO2)"))
   title <- title %>% 
@@ -571,7 +579,7 @@ fraction_figure <- function(sector_ghgs_regions,sector) {
     expand_limits(y=c(0,max(sector_ghgs_regions$region_fraction_of_sector)*1.2)) +
     coord_flip() +
     facet_grid(.~facet,labeller = label_wrap_gen(width=20)) +
-    scale_fill_manual(values=colorRampPalette(brewer.pal(8, "Set2"))(10)) +
+    scale_fill_manual(values=colors) +
     theme(axis.title.y = element_blank(),
           #axis.text.y = element_blank(),
           #axis.ticks.y = element_blank(),
@@ -601,11 +609,19 @@ fraction_figure <- function(sector_ghgs_regions,sector) {
 per_capita_figure <- function(per_capita,per_capita_world,sector_ghgs_regions,sector) {
   
   colors = colorRampPalette(brewer.pal(8, "Set2"))(10)
+  colors = c(colors,"#f8766dff")
   
   per_capita_data <- per_capita %>% 
     filter(chapter_title==sector) %>% 
     filter(year==2019) %>% 
     mutate(facet="Per capita GHG emissions (tCO2eq/capita)")
+  
+  per_capita_data <- rbind(per_capita_data,data.frame(ISO="WLD",
+                                                      country="World",
+                                                      region_ar6_10="World",
+                                                      region_ar6_10_short="World",
+                                                      GHG_pc=NA,
+                                                      facet="Per capita GHG emissions (tCO2eq/capita)"))
   
   # mean by region
   mean = sector_ghgs_regions %>%
@@ -614,6 +630,11 @@ per_capita_figure <- function(per_capita,per_capita_world,sector_ghgs_regions,se
     filter(region_ar6_10_short!="SEA") %>% 
     filter(chapter_title==sector) %>% 
     select(region_ar6_10_short,chapter_title,GHG_pc=region_per_capita)
+  
+  mean <- rbind(mean,data.frame(region_ar6_10_short="World",
+                                chapter_title=sector,
+                                GHG_pc=per_capita_world$GHG_total_pc[per_capita_world$chapter_title==sector]))
+  
   
   ## if its the AFOLU sector, we dont actually want to show countries, because of missing LULUCF CO2
   # solution is to hide them behind the regional means
@@ -708,7 +729,7 @@ kaya_figure <- function(kaya_rates,sector) {
 # Results
 ## AFOLU
 
-```{r afolu_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r afolu_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8.5,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
 trend_data <- sector_ghg_total %>%
@@ -725,14 +746,14 @@ p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"AFOLU")
 p3 <- p3 + ylim(0,6)
 p4 <- kaya_figure(kaya_rates_afolu,"AFOLU")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.25))
+(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.3))
 
 
 ```
 
 ## Energy systems
 
-```{r energy_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r energy_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8.5,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
 trend_data <- sector_ghg_total %>% 
@@ -748,13 +769,13 @@ p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Energy 
 p3 <- p3 + ylim(0,25)
 p4 <- kaya_figure(kaya_rates,"Energy systems")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.25))
+(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.3))
 
 ```
 
 ## Industry
 
-```{r industry_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r industry_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8.5,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
 
@@ -770,14 +791,14 @@ p2 <- p2 + ylim(0,60)
 p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Industry")
 p4 <- kaya_figure(kaya_rates,"Industry")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.25))
+(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.3))
 
 
 ```
 
 ## Buildings
 
-```{r buildings_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r buildings_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8.5,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 trend_data <- sector_ghg_total %>% 
   filter(chapter_title=="Buildings")
@@ -791,13 +812,13 @@ p2 <- p2 + ylim(0,40)
 p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Buildings")
 p4 <- kaya_figure(kaya_rates,"Buildings")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.25))
+(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.3))
 
 ```
 
 ## Transport
 
-```{r transport_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+```{r transport_summary,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=8.5,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
 
 trend_data <- sector_ghg_total %>% 
@@ -814,7 +835,7 @@ p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Transpo
 p3 <- p3 + ylim(0,7.5)
 p4 <- kaya_figure(kaya_rates,"Transport")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.25))
+(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.5,3)))) + plot_layout(heights=c(1,1.3))
 
 
 ```

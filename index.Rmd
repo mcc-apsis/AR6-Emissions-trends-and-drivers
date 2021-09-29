@@ -177,8 +177,6 @@ Consolidated data files are available for the figures here:
 
 * <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_sectors.xlsx">Emissions by sector</a>
 
-These figures are up to date for EDGAR v6, but we do not yet have IEA indirect emissions data for 2019, hence the 2018 cutoff date.
-
 -----------------------------------------------------------------------
 ### All sectors - regional trends
 
@@ -196,6 +194,26 @@ cat(captions$caption[captions$plot=="sectors_total"])
 cat("<br>")
 cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/Final/totals-1.png'>download png</a>")
+```
+
+
+-----------------------------------------------------------------------
+### All sectors - Kaya trends and per capita emissions
+
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/Sectors/total_summary-1.png")
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_total"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="sectors_total"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/total_summary-1.png'>download png</a>")
 ```
 
 
@@ -220,6 +238,26 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+### Energy sector - Kaya trends and per capita emissions
+
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/Sectors/energy_summary-1.png")
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_energy"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="sectors_energy"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/energy_summary-1.png'>download png</a>")
+```
+
+
+-----------------------------------------------------------------------
 ### Industry sector - regional trends
 
 
@@ -236,6 +274,26 @@ cat(captions$caption[captions$plot=="sectors_industry"])
 cat("<br>")
 cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/Final/industry-1.png'>download png</a>")
+```
+
+
+-----------------------------------------------------------------------
+### Industry sector - Kaya trends and per capita emissions
+
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/Sectors/industry_summary-1.png")
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_industry"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="sectors_industry"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/industry_summary-1.png'>download png</a>")
 ```
 
 
@@ -260,6 +318,26 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+### Building sector - Kaya trends and per capita emissions
+
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/Sectors/buildings_summary-1.png")
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_buildings"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="sectors_buildings"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/buildings_summary-1.png'>download png</a>")
+```
+
+
+-----------------------------------------------------------------------
 ### Transport sector - regional trends
 
 
@@ -276,6 +354,26 @@ cat(captions$caption[captions$plot=="sectors_transport"])
 cat("<br>")
 cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/Final/transport-1.png'>download png</a>")
+```
+
+
+-----------------------------------------------------------------------
+### Transport sector - Kaya trends and per capita emissions
+
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/Sectors/transport_summary-1.png")
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_transport"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="sectors_transport"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/transport_summary-1.png'>download png</a>")
 ```
 
 
@@ -297,6 +395,27 @@ cat("<br>")
 cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/Final/AFOLU-1.png'>download png</a>")
 ```
+
+
+-----------------------------------------------------------------------
+### AFOLU sector - Kaya trends and per capita emissions
+
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/Sectors/afolu_summary-1.png")
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="sectors_afolu"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="sectors_afolu"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/afolu_summary-1.png'>download png</a>")
+```
+
 
 Growth rates
 =====================================
