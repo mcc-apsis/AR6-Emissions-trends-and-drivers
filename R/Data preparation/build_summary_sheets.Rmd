@@ -1,6 +1,8 @@
 ---
 title: "build_summary_sheets"
 output: word_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results/knitr/") })
 ---
 
 ```{r setup, include=FALSE}

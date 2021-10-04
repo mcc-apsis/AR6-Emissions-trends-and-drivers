@@ -281,11 +281,13 @@ threshold <- sum(threshold$GHG,na.rm=T)*0.9
 subsector_data <- subsector_data %>% 
   filter(year>=1990) %>% 
   group_by(subsector,subsector_title) %>% 
-  mutate(avg_growth_1990=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
+  mutate(avg_growth_1990=growth_rate(years = year,y=GHG))%>%
+  #mutate(avg_growth_1990=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_growth_1990=last(GHG)-first(GHG)) %>%
   filter(year>=2009) %>% 
   group_by(subsector,subsector_title) %>% 
-  mutate(avg_growth_2009=(last(GHG)/first(GHG))^(1/(last(year)-2009))-1) %>% 
+  mutate(avg_growth_2009=growth_rate(years = year,y=GHG))%>%
+  #mutate(avg_growth_2009=(last(GHG)/first(GHG))^(1/(last(year)-2009))-1) %>% 
   mutate(abs_growth_2009=last(GHG)-first(GHG)) %>%
   filter(year==2018) %>% 
   mutate(avg_growth_1990=avg_growth_1990*100) %>% 
@@ -322,7 +324,7 @@ p2 <- subsector_data %>%
   coord_flip() +
   plot_theme +
   scale_fill_brewer(type = "qual",palette="Set2") +
-  ylab("%") +
+  ylab("%/yr") +
   ggtitle(str_wrap("b. Avg. annual GHG emissions growth",width=38)) +
   annotate(geom = 'text', label = 'Years: 1990-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
@@ -336,7 +338,7 @@ p3 <- subsector_data %>%
   coord_flip() +
   plot_theme +
   scale_fill_brewer(type = "qual",palette="Set2") +
-  ylab("Gt CO2eq") +
+  ylab("Gt CO2eq/yr") +
   ggtitle(str_wrap("c. Absolute GHG emissions growth",width=35)) +
     annotate(geom = 'text', label = 'Years: 1990-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
@@ -350,7 +352,7 @@ p4 <- subsector_data %>%
   coord_flip() +
   plot_theme +
   scale_fill_brewer(type = "qual",palette="Set2") +
-  ylab("%") +
+  ylab("%/yr") +
   ggtitle(str_wrap("d. Avg. annual GHG emissions growth",width=38)) +
   annotate(geom = 'text', label = 'Years: 2009-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
@@ -364,7 +366,7 @@ p5 <- subsector_data %>%
   coord_flip() +
   plot_theme +
   scale_fill_brewer(type = "qual",palette="Set2") +
-  ylab("Gt CO2eq") +
+  ylab("Gt CO2eq/yr") +
   ggtitle(str_wrap("e. Absolute GHG emissions growth",width=35)) +
     annotate(geom = 'text', label = 'Years: 2009-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")

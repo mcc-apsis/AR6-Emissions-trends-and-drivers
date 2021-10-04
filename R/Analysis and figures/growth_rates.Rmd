@@ -44,11 +44,11 @@ options(dplyr.summarise.inform = FALSE)
 
 growth_rates <- function(data) {
   
-  # leap year adjustment
-  # rates <- data %>%
-  #   mutate(leap_years = leap_year(year)) %>% 
-  #   mutate(value = ifelse(leap_years==TRUE,value*365/366,value)) %>% 
-  #   select(-leap_years)
+  #leap year adjustment
+  rates <- data %>%
+    mutate(leap_years = leap_year(year)) %>%
+    mutate(value = ifelse(leap_years==TRUE,value*365/366,value)) %>%
+    select(-leap_years)
   
   rates <- data %>% 
     filter(year %in% c(1990,1999,2000,2009,2010,2019))

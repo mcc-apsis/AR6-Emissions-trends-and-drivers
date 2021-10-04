@@ -83,6 +83,18 @@ sum(blarg$CO2)
 # 
 # openxlsx::write.xlsx(blarg,"Europe_buildings.xlsx")
 
+
+# AFOLU data for Jeremy
+
+# load('../../Data/edgar6_v4_data_raw.RData')
+# afolu <- edgar_raw %>% 
+#   filter(chapter_title=="AFOLU") %>% 
+#   group_by(year,chapter_title,subsector_title,gas,gwp100_ar6) %>% 
+#   summarise(value=sum(value,na.rm=TRUE)) %>% 
+#   arrange(subsector_title,year)
+# write.xlsx(afolu,"edgar_afolu_data.xlsx")
+
+
 indirect_CO2_world <- gather(indirect_CO2_world,year,CO2_indirect,`1990`:`2019`) %>% 
   mutate(year=as.numeric(year))
 
@@ -98,10 +110,10 @@ indirect_CO2_world <- gather(indirect_CO2_world,year,CO2_indirect,`1990`:`2019`)
 growth_rates <- function(data) {
   
   # leap year adjustment
-  # rates <- data %>%
-  #   mutate(leap_years = leap_year(year)) %>% 
-  #   mutate(value = ifelse(leap_years==TRUE,value*365/366,value)) %>% 
-  #   select(-leap_years)
+  rates <- data %>%
+    mutate(leap_years = leap_year(year)) %>%
+    mutate(value = ifelse(leap_years==TRUE,value*365/366,value)) %>%
+    select(-leap_years)
   
   rates <- data %>% 
     filter(year %in% c(1990,1999,2000,2009,2010,end_year)) %>% 

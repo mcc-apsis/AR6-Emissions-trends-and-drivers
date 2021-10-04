@@ -557,17 +557,34 @@ countries<-gather(countries,value = value,key = gas,CH4:Fgas)
 countries<-left_join(countries,crf_ghg,by=c("ISO","year"))%>%
   rename("GHG_crf"="gwp_crf_ar6")
 
+# countries <- countries %>% 
+#   filter(year %in% c(time_start,2018)) %>% 
+#   group_by(country,gas) %>% 
+#   #mutate(avg_growth=ifelse(is.na(value),value,1))#growth_rate(years = year,y=value))) %>%
+#   mutate(avg_growth=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>% 
+#   mutate(abs_growth=last(value)-first(value)) %>%
+#   #mutate(avg_ghg_growth=growth_rate(years = year,y=GHG)) %>%
+#   mutate(avg_ghg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
+#   mutate(abs_ghg_growth=last(GHG)-first(GHG)) %>%
+#   #mutate(avg_ghg_growth_crf=ifelse(is.na(growth_rate(years = year,y=GHG_crf)),NA,growth_rate(years = year,y=GHG_crf))) %>%
+#   mutate(avg_ghg_growth_crf=(last(GHG_crf)/first(GHG_crf))^(1/(last(year)-time_start))-1) %>% 
+#   mutate(abs_ghg_growth_crf=last(GHG_crf)-first(GHG_crf)) %>%
+#   filter(year==2018) %>% 
+#   mutate(avg_growth=avg_growth*100)%>% 
+#   mutate(avg_ghg_growth=avg_ghg_growth*100)%>%
+#   mutate(avg_ghg_growth_crf=ifelse(is.na(avg_ghg_growth_crf),NA,avg_ghg_growth_crf*100))
+
 countries <- countries %>% 
-  filter(year %in% c(time_start,2018)) %>% 
+  #filter(year %in% c(time_start,2018)) %>% 
   group_by(country,gas) %>% 
-  #mutate(avg_growth=ifelse(is.na(value),value,1))#growth_rate(years = year,y=value))) %>%
+  #mutate(avg_growth=growth_rate(years = year,y=value)) #%>%
   mutate(avg_growth=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_growth=last(value)-first(value)) %>%
-  #mutate(avg_ghg_growth=growth_rate(years = year,y=GHG)) %>%
-  mutate(avg_ghg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
+  mutate(avg_ghg_growth=growth_rate(years = year,y=GHG)) %>%
+  #mutate(avg_ghg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_ghg_growth=last(GHG)-first(GHG)) %>%
-  #mutate(avg_ghg_growth_crf=ifelse(is.na(growth_rate(years = year,y=GHG_crf)),NA,growth_rate(years = year,y=GHG_crf))) %>%
-  mutate(avg_ghg_growth_crf=(last(GHG_crf)/first(GHG_crf))^(1/(last(year)-time_start))-1) %>% 
+  mutate(avg_ghg_growth_crf=ifelse(is.na(GHG_crf),NA,growth_rate(years = year,y=GHG_crf))) %>%
+  #mutate(avg_ghg_growth_crf=(last(GHG_crf)/first(GHG_crf))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_ghg_growth_crf=last(GHG_crf)-first(GHG_crf)) %>%
   filter(year==2018) %>% 
   mutate(avg_growth=avg_growth*100)%>% 
@@ -598,7 +615,7 @@ p_countries_rate <- countries %>%
   geom_point(aes(y = avg_ghg_growth_crf),stat='identity',colour="#525252",fill="yellow",size=2,shape=21)+
   coord_flip() +
   plot_theme +
-  ylab("%") +
+  ylab("%/yr") +
   ggtitle(str_wrap("b. Avg. annual GHG emissions growth",width=38)) +
   annotate(geom = 'text', label = 'Years: 2009-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
@@ -612,7 +629,7 @@ p_countries_abs <- countries %>%
   geom_point(aes(y = abs_ghg_growth_crf),stat='identity',colour="#525252",fill="yellow",size=2,shape=21)+
   coord_flip() +
   plot_theme +
-  ylab("Gt CO2eq") +
+  ylab("Gt CO2eq/yr") +
   ggtitle(str_wrap("c. Absolute GHG emissions growth",width=35)) +
     annotate(geom = 'text', label = 'Years: 2009-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
@@ -689,8 +706,8 @@ sectors <- sectors %>%
   #mutate(avg_growth=growth_rate(years = year,y=value)) %>%
   mutate(avg_growth=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_growth=last(value)-first(value)) %>%
- # mutate(avg_ghg_growth=growth_rate(years = year,y=GHG)) %>%
-  mutate(avg_ghg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
+  mutate(avg_ghg_growth=growth_rate(years = year,y=GHG)) %>%
+  #mutate(avg_ghg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
   mutate(abs_ghg_growth=last(GHG)-first(GHG)) %>%
   filter(year==2018) %>% 
   mutate(avg_growth=avg_growth*100) %>% 
@@ -719,7 +736,7 @@ p_sectors_rate <- sectors %>%
   geom_bar(aes(y = avg_ghg_growth),stat='identity',colour="#525252")+
   coord_flip() +
   plot_theme +
-  ylab("%") +
+  ylab("%/yr") +
   ggtitle(str_wrap("d. Avg. annual GHG emissions growth",width=38)) +
   annotate(geom = 'text', label = 'Years: 2009-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
@@ -732,7 +749,7 @@ p_sectors_abs <- sectors %>%
   scale_fill_manual(values=colours) +
   coord_flip() +
   plot_theme +
-  ylab("Gt CO2eq") +
+  ylab("Gt CO2eq/yr") +
   ggtitle(str_wrap("e. Absolute GHG emissions growth",width=35)) +
     annotate(geom = 'text', label = 'Years: 2009-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")

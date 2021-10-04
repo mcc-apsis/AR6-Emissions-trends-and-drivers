@@ -80,6 +80,7 @@ p1 <- budget_data %>%
   
   ylab("Carbon emissions (GtCO2/yr)") +
   big_trend_theme +
+  scale_x_continuous(breaks=c(1850,1900,1950,2000,2019))  +
   theme(legend.position = c(0.15,0.7),
         legend.title = element_blank(),
         legend.background = element_blank())
@@ -87,33 +88,6 @@ p1 <- budget_data %>%
 p1
 ```
 
-```{r budget_trend_cumulative, echo=FALSE,warning=FALSE,fig.width=10,fig.height=3,fig.path="../../Results/Plots/",dev=c('png','pdf')}
-
-total <- budget_data %>% group_by(year) %>% summarise(value=sum(value))
-total <- total %>% 
-  mutate(cumsum=cumsum(value))
-
-line_data <- data.frame(x=c(1939,1939,1974,1974,1994,1994,2010,2010,2019,2019),y=c(0,45))
-
-
-
-budget_data %>% 
-  ggplot(.,aes(x=year,y=value,fill=key,color=key)) + 
-  geom_area(colour="#737373") +
-  
-  geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
-  
-  geom_text(data=shares,aes(x=year+3.5,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
-  
-  ylab("Carbon emissions (GtCO2/yr)") +
-  ylim(0,47) +
-  big_trend_theme +
-  theme(legend.position = c(0.15,0.7),
-        legend.title = element_blank(),
-        legend.background = element_blank())
-
-
-```
 
 ```{r cumulative_CO2, echo=FALSE,warning=FALSE,fig.width=4,fig.height=3}
 
@@ -124,7 +98,7 @@ cumulative_CO2 <- gcb %>%
   select(Year,value=Total_CO2) %>% 
   filter(Year>=1850) %>% 
   mutate(key=NA) %>%
-  mutate(key=ifelse(Year>1850 & Year < 1990,'1850- 1990',key)) %>% 
+  mutate(key=ifelse(Year>1850 & Year < 1990,'1850- 1989',key)) %>% 
   mutate(key=ifelse(Year>=1990,'1990- 2019',key)) %>% 
   filter(!is.na(key))
 
@@ -132,8 +106,10 @@ cumulative_CO2 <- cumulative_CO2 %>%
   mutate(key=as.factor(key)) %>% 
   group_by(key) %>% 
   summarise(value=sum(value)) %>% 
-  add_row(key="1.5 budget (2020-)",value=400) %>% 
-  add_row(key="2.0 budget (2020-)",value=1150)
+  add_row(key="1.5 budget (2020-)",value=382-43) %>% 
+  add_row(key="2.0 budget (2020-)",value=915-43) # subtract 2019 total CO2 emissions
+
+# from SPM_TS_table_CH3_template_filled20210827_C19.xlsx
 
 
 ###### calculate start and end positions for the bar plots
@@ -146,40 +122,38 @@ cumulative_CO2 <- cbind(cumulative_CO2,id=c(1,2,3,4))
 
 # reset 2C budget to same starting level as 1.5
 cumulative_CO2 <- cumulative_CO2 %>% 
-  mutate(start = ifelse(key=="2.0 budget (2020-)",start-400,start)) %>% 
-  mutate(end = ifelse(key=="2.0 budget (2020-)",end-400,end))
-
+  mutate(start = ifelse(key=="2.0 budget (2020-)",start-(382-43),start)) %>% 
+  mutate(end = ifelse(key=="2.0 budget (2020-)",end-(382-43),end))
 
 
 
 # add lower and higher budget levels
-# Remaining carbon budget from 1 January 2020 (33rd/50th/67th percentile of TCRE): 
-# 1.5°C: 500 390 310 GtCO2
-# 2.0°C: 1390 1140 960 GtCO2
+# from SPM_TS_table_CH3_template_filled20210827_C19.xlsx
 
-# WG1 FGD (Table 5.8)
-# 1.5°C: 650 500 400 GtCO2
-# 2.0°C: 1700 1350 1150 GtCO2
+cumulative_CO2 <- cumulative_CO2 %>%
+  mutate(lower_budget=ifelse(key=="1.5 budget (2020-)",start+271-43,NA)) %>%
+  mutate(higher_budget=ifelse(key=="1.5 budget (2020-)",start+575-43,NA)) %>%
+  mutate(lower_budget=ifelse(key=="2.0 budget (2020-)",start+630-43,lower_budget)) %>%
+  mutate(higher_budget=ifelse(key=="2.0 budget (2020-)",start+1170-43,higher_budget))
 
+
+# add additional budget uncertainty of +-250 GtCO2 (dont do this any more as we switched to WG3 budgets)
 # cumulative_CO2 <- cumulative_CO2 %>% 
-#   mutate(lower_budget=ifelse(key=="1.5 budget (2020-)",end-(value-400),NA)) %>% 
-#   mutate(higher_budget=ifelse(key=="1.5 budget (2020-)",end+(650-value),NA)) %>% 
-#   mutate(lower_budget=ifelse(key=="2.0 budget (2020-)",end-(value-1150),lower_budget)) %>% 
-#   mutate(higher_budget=ifelse(key=="2.0 budget (2020-)",end+(1700-value),higher_budget))
+#   mutate(lower_uncertainty=ifelse(id>2,end-250,NA)) %>% 
+#   mutate(higher_uncertainty=ifelse(id>2,end+250,NA))
 
+cumulative_CO2 <- cumulative_CO2 %>%
+  mutate(key=ifelse(key=="1.5 budget (2020-)","1.5\u00B0C budget (C1)",key)) %>%
+  mutate(key=ifelse(key=="2.0 budget (2020-)","2\u00B0C budget (C3)",key))
 
-###### place whiskers to depict an uncertainty range for the budget estimates of +-220 GtCO2
-
-# add additional uncertainty of +-250 GtCO2
-
-cumulative_CO2 <- cumulative_CO2 %>% 
-  mutate(lower_uncertainty=ifelse(id>2,end-250,NA)) %>% 
-  mutate(higher_uncertainty=ifelse(id>2,end+250,NA))
-         
 cumulative_CO2$key <- as.factor(cumulative_CO2$key)
 cumulative_CO2$key <- fct_reorder(cumulative_CO2$key,cumulative_CO2$id)
 
 color_scale <- c("#ffffcc","#a1dab4","#41b6c4","#225ea8")
+
+
+
+
 
 p2 <- cumulative_CO2 %>% 
   ggplot(.,aes(fill=key)) +
@@ -190,51 +164,57 @@ p2 <- cumulative_CO2 %>%
     ymax = end),
     colour = "#737373") +
   
-  # geom_rect(aes(x=key,
-  #   xmin = id,
-  #   xmax = id,
-  #   ymin = lower_budget,
-  #   ymax = higher_budget),
-  #   colour = "#232323") +
-  # 
-  # geom_rect(aes(
-  #   xmin = id - 0.1,
-  #   xmax = id + 0.1,
-  #   ymin = lower_budget,
-  #   ymax = lower_budget
-  # ),colour = "#232323") +
-  # 
-  # geom_rect(aes(
-  #   xmin = id - 0.1,
-  #   xmax = id + 0.1,
-  #   ymin = higher_budget,
-  #   ymax = higher_budget
-  # ),colour = "#232323") +
-  
   geom_rect(aes(x=key,
     xmin = id,
     xmax = id,
-    ymin = lower_uncertainty,
-    ymax = higher_uncertainty),
+    ymin = lower_budget,
+    ymax = higher_budget),
     colour = "#232323") +
-  
+
   geom_rect(aes(
-    xmin = id - 0.2,
-    xmax = id + 0.2,
-    ymin = lower_uncertainty,
-    ymax = lower_uncertainty
+    xmin = id - 0.1,
+    xmax = id + 0.1,
+    ymin = lower_budget,
+    ymax = lower_budget
+  ),colour = "#232323") +
+
+  geom_rect(aes(
+    xmin = id - 0.1,
+    xmax = id + 0.1,
+    ymin = higher_budget,
+    ymax = higher_budget
   ),colour = "#232323") +
   
-  geom_rect(aes(
-    xmin = id - 0.2,
-    xmax = id + 0.2,
-    ymin = higher_uncertainty,
-    ymax = higher_uncertainty
-  ),colour = "#232323") +
+  # geom_rect(aes(x=key,
+  #   xmin = id,
+  #   xmax = id,
+  #   ymin = lower_uncertainty,
+  #   ymax = higher_uncertainty),
+  #   colour = "#232323") +
+  # 
+  # geom_rect(aes(
+  #   xmin = id - 0.2,
+  #   xmax = id + 0.2,
+  #   ymin = lower_uncertainty,
+  #   ymax = lower_uncertainty
+  # ),colour = "#232323") +
+  #
+  # geom_rect(aes(
+  #   xmin = id - 0.2,
+  #   xmax = id + 0.2,
+  #   ymin = higher_uncertainty,
+  #   ymax = higher_uncertainty
+  # ),colour = "#232323") +
   
-  geom_text(aes(x=id,y=ifelse(!is.na(higher_uncertainty),higher_uncertainty+200,end+200),label=paste(round(value,0))),size=3.5,color="#737373") +
+  #geom_text(aes(x=id,y=ifelse(!is.na(higher_uncertainty),higher_uncertainty+200,end+200),label=paste(round(value,0))),size=3.5,color="#737373") +
+
+  geom_text(aes(x=id,y=ifelse(!is.na(higher_budget),higher_budget+250,end+250),label=paste(signif(value,2))),size=3.5,color="#737373") +
+
+  
   
   ylab('Carbon emissions,\n cumulative (GtCO2)') +
+  #ylab(expression(Carbon~emissions~cumulative~(GtCO^2))) +
+  
   ylim(0,4400) +
   big_trend_theme +
   scale_fill_manual(values=color_scale) +
@@ -278,7 +258,7 @@ p2
 #   ylab('Year of budget exceedance') 
 # 
 # p3
-time_data <- openxlsx::read.xlsx("../../Data/co2_budget_analysis.xlsx",sheet=4,startRow=43)
+time_data <- openxlsx::read.xlsx("../../Data/co2_budget_analysis.xlsx",sheet=5,startRow=43)
 
 time_data <- time_data %>% 
   mutate(Rate=as.factor(Rate)) %>% 
@@ -298,7 +278,7 @@ p3 <- time_data %>% ggplot(.,aes(x=Year.of.exceedance,y=Budget)) +
          axis.title.y=element_blank()) +
    xlab('Year of budget exceedance') 
 
-
+p3
 
 
 
@@ -343,7 +323,7 @@ p3 <- time_data %>% ggplot(.,aes(x=Year.of.exceedance,y=Budget)) +
 
 ```
 
-```{r co2_trends_spm, echo=FALSE,warning=FALSE,fig.width=10,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+```{r long_term_co2, echo=FALSE,warning=FALSE,fig.width=10,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
 p1 / (p2 + p3 + plot_layout(widths = c(1,2.5)))
 
@@ -364,6 +344,6 @@ openxlsx::addWorksheet(wb,"cumulative_co2")
 openxlsx::writeData(wb, sheet = "budget_trend", spread(budget_data,year,value), colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = "cumulative_co2", cumulative_CO2, colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_co2_longterm.xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_long_term_co2.xlsx"),overwrite=T)
 
 ```

@@ -17,6 +17,7 @@ library(ggplot2)
 library(ggpubr)
 library(patchwork)
 library(ggplot2); theme_set(theme_bw())
+library(lubridate)
 
 source("../Analysis and figures/small_figures.R")
 #source("../decomp_figure_countries.R")
@@ -40,6 +41,36 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2"
 
 
 wb <- openxlsx::createWorkbook(title = "ipcc_ar6_region_and_countries_plot")
+
+growth_rate <- function(years,y){
+  
+  # if(all(is.na(y))){
+  #    return(NA)
+  # } else {
+  
+  data <- data.frame(years,y)
+  
+  data <- data %>%
+    mutate(leap_years = leap_year(years)) %>%
+    mutate(y = ifelse(leap_years==TRUE,y*365/366,y)) #%>%
+    #filter(!is.na(y))
+  
+  # if (nrow(data<3)) {
+  #   return(NA)
+  #   } else {
+      
+  fit <- lm(log(y) ~ years,data = data)
+  
+  # data <- data %>% 
+  #   mutate(rate=fit$coefficients[2]) %>% 
+  #   mutate(predicted_x = exp(predict(fit,data %>% select(years)))) %>% 
+  #   mutate(st_error = sqrt(diag(vcov(fit)))[2])
+  # 
+  # return(list("rate"=fit$coefficients[2],"data"=data))
+  
+  return(fit$coefficients[2])
+  # }
+}
 
 
 ```
@@ -261,11 +292,13 @@ threshold <- sum(threshold$GHG,na.rm=T)*0.75
 ## calculate average annual and absolute growth
 
 countries <- countries %>% 
-  filter(year %in% c(time_start,2018)) %>% 
+  #filter(year %in% c(time_start,2018)) %>% 
   group_by(country) %>% 
-  mutate(avg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) %>% 
+  #mutate(avg_growth=(last(GHG)/first(GHG))^(1/(last(year)-time_start))-1) 
+  mutate(avg_growth=growth_rate(years = year,y=GHG)) %>% 
   mutate(abs_growth=last(GHG)-first(GHG)) %>%
-  mutate(avg_growth_crf=(last(GHG_crf)/first(GHG_crf))^(1/(last(year)-time_start))-1) %>% 
+  #mutate(avg_growth_crf=(last(GHG_crf)/first(GHG_crf))^(1/(last(year)-time_start))-1)
+  mutate(avg_growth_crf=ifelse(is.na(GHG_crf),NA,growth_rate(years = year,y=GHG_crf)))%>% 
   mutate(abs_growth_crf=last(GHG_crf)-first(GHG_crf)) %>%
       #mutate(GHG_1990=first(GHG))%>%
       #mutate(GHG_1990_crf=first(GHG_crf))%>%
@@ -302,7 +335,7 @@ p2 <- countries %>%
   geom_point(aes(y = avg_growth_crf),stat='identity',colour="#525252",fill="yellow",size=2,shape=21)+
   coord_flip() +
   plot_theme +
-  ylab("%") +
+  ylab("%/yr") +
   ggtitle(str_wrap("b. Avg. annual GHG emissions growth",width=38)) +
   annotate(geom = 'text', label = 'Years: 1990-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
@@ -318,7 +351,7 @@ p3 <- countries %>%
   #geom_bar(stat='identity',colour="#737373") + 
   coord_flip() +
   plot_theme +
-  ylab("Gt CO2eq") +
+  ylab("Gt CO2eq/yr") +
   ggtitle(str_wrap("c. Absolute GHG emissions growth",width=35)) +
     annotate(geom = 'text', label = 'Years: 1990-2018',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")

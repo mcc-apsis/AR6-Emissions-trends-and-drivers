@@ -203,7 +203,7 @@ p4 <- ggplot() +
 
 ```
 
-```{r maps,echo=FALSE,fig.width=5,fig.height=9,results='asis',fig.path="Results/Plots/",dev=c('png','pdf')}
+```{r emissions maps,echo=FALSE,fig.width=5,fig.height=9,results='asis',fig.path="Results/Plots/",dev=c('png','pdf')}
 
 p1/p2/p4
 

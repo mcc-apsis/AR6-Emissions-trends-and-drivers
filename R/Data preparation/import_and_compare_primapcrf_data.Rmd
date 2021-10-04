@@ -179,7 +179,8 @@ combined_crf_edgar <- left_join(crf_total_sector,edgar_data,by=c("ISO","year","g
   rename("EDGAR"="value","CRF"="gwp_crf_ar6") %>%
   filter(year>=1990 & year<=2018) %>%
   filter(gas %in% c("CO2","CH4","N2O","GHG")) %>%
-  filter(!is.na(EDGAR))
+  filter(!is.na(EDGAR)) %>%
+  mutate(gas=ifelse(gas=="CO2","CO2-FFI",gas))
 
 combined_crf_edgar <- combined_crf_edgar %>%
   mutate(diff=CRF-EDGAR) %>%
@@ -214,7 +215,7 @@ plot_diff<-function(GAS){
   return(p)
 }
 
-p1<-plot_diff("CO2")
+p1<-plot_diff("CO2-FFI")
 p2<-plot_diff("CH4")
 p3<-plot_diff("N2O")
 
@@ -226,12 +227,12 @@ box_diff<-function(GAS){
   p<-ggplot(dat, aes(x=country,goup=country,y=diff_p)) + geom_boxplot() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))+
     ylab("percentage difference")+
-    ggtitle(paste("Annual differences in", GAS, " data between 1990 and 2018 (in %)", sep=" ")) +
+    ggtitle(paste("Differences between EDGARv6 and CRF data for", GAS, "(in %)", sep=" ")) +
     plot_theme
   return(p)
 }
 
-p4<-box_diff("CO2")
+p4<-box_diff("CO2-FFI")
 p5<-box_diff("CH4")
 p6<-box_diff("N2O")
 
@@ -240,7 +241,7 @@ pGHGbox<-box_diff("GHG")
 ```
 
 
-```{r gas_trends_spm, echo=FALSE,warning=FALSE,fig.width=10,fig.height=14,fig.path="../Analysis and figures for ESSD paper/Results/Plots",dev=c('png','pdf')}
+```{r edgar_vs_crf, echo=FALSE,warning=FALSE,fig.width=10,fig.height=14,fig.path="../../Results/Plots",dev=c('png','pdf')}
 
 (pGHG + pGHGbox) / (p1 + p4) / (p2 + p5) / (p3 + p6)
 

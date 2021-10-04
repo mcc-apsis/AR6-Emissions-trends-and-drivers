@@ -96,6 +96,20 @@ shares <- locate_shares(shares,"region_ar6_6_short",4)
 
 line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2019,2019),y=c(0,60))
 
+
+
+### get the growth rates between time periods
+rates <- region_trend %>% 
+  filter(year %in% c(1990,1999,2000,2009,2010,2019)) %>% 
+  group_by(year) %>% 
+  summarise(value=sum(value)) %>% 
+  mutate(total_rate=NA)
+
+rates$total_rate[rates$year==1990] = ((rates$value[rates$year==1999]/rates$value[rates$year==1990])^(1/(1999-1990))-1)*100
+rates$total_rate[rates$year==2000] = ((rates$value[rates$year==2009]/rates$value[rates$year==2000])^(1/(2009-2000))-1)*100
+rates$total_rate[rates$year==2010] = ((rates$value[rates$year==2019]/rates$value[rates$year==2010])^(1/(2019-2010))-1)*100
+  
+
 p1 <- region_trend %>%
   ggplot(.,aes(x=year,y=value,fill=region_ar6_6_short)) +
   geom_area(colour="#737373") +
@@ -106,6 +120,12 @@ p1 <- region_trend %>%
   
   #### text with the totals
   geom_text(data=shares %>% filter(region_ar6_6_short=="AIRSEA"),aes(x=year,y=62,label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
+  
+  #### text with the rates
+  geom_text(data=rates %>% filter(!is.na(total_rate)),inherit.aes = FALSE,
+                            aes(x=ifelse(year==2010,year+4.5,year+5),y=60,
+                                label=paste0("+",round(total_rate,1),"%/yr")),size=3.5,colour="#252525") +
+  
   
   #### labels
   geom_text(data=shares %>% filter(year==2019),aes(x=2021.25,y=location,label=str_wrap(region_ar6_6,width=28),color=region_ar6_6_short),hjust=0) +
@@ -133,29 +153,56 @@ p1
 ```{r benchmark_data_and_rates, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
 
 
-## import scenario data
+## import scenario data (OLD VERSION)
+# 
+# scenario_data <- read.csv("../../Data/supplemetary data/Emission reduction benchmarks.csv")
+# 
+# scenario_data <- scenario_data %>% 
+#   rename(rate=reduction_rates_2020.2040) %>% #can be changed
+#   filter(rate>-25) %>% 
+#   filter(aggregated_category!="Other") %>% 
+#   select(aggregated_category,rate) %>% 
+#   mutate(aggregated_category=as.character(aggregated_category))
+# 
+# scenario_data <- scenario_data %>% 
+#   mutate(aggregated_category=ifelse(aggregated_category=="1.5C","1.5oC warming",aggregated_category)) %>% 
+#   mutate(aggregated_category=ifelse(aggregated_category=="High 2C","2oC warming (>50% probability)",aggregated_category)) %>% 
+#   mutate(aggregated_category=ifelse(aggregated_category=="Low 2C","2oC warming (>66% probability)",aggregated_category))
+# 
+# scenario_data <- scenario_data %>% 
+#   mutate(country="x") %>% 
+#   mutate(ISO="x") %>% 
+#   mutate(facet="Scenario reduction rates (2020-2040)") %>% 
+#   mutate(emissions_total_2019=NA) %>% 
+#   select(country,ISO,aggregated_category,rate,facet,emissions_total_2019)
 
-scenario_data <- read.csv("../../Data/supplemetary data/Emission reduction benchmarks.csv")
+
+## import scenario data (NEW VERSION)
+
+scenario_data <- read.csv("../../Data/supplemetary data/emission_reduction_benchmarks_ar6_2021_07_09.csv")
+
+scenario_data <- scenario_data %>%
+  rename(rate=reduction_rates_2020.2040)
 
 scenario_data <- scenario_data %>% 
-  rename(rate=reduction_rates_2020.2040) %>% #can be changed
-  filter(rate>-25) %>% 
-  filter(aggregated_category!="Other") %>% 
-  select(aggregated_category,rate) %>% 
-  mutate(aggregated_category=as.character(aggregated_category))
+  mutate(aggregated_category=NA) %>% 
+  mutate(aggregated_category=ifelse(grepl("C1",Category_name),"Below 1.5\u00B0C with no or low overshoot (C1)",aggregated_category)) %>% 
+  mutate(aggregated_category=ifelse(grepl("C3",Category_name),"Likely below 2\u00B0C (C3)",aggregated_category)) %>% 
+  mutate(aggregated_category=ifelse(grepl("C4",Category_name),"Below 2\u00B0C (C4)",aggregated_category))
 
-scenario_data <- scenario_data %>% 
-  mutate(aggregated_category=ifelse(aggregated_category=="1.5C","1.5oC warming",aggregated_category)) %>% 
-  mutate(aggregated_category=ifelse(aggregated_category=="High 2C","2oC warming (>50% probability)",aggregated_category)) %>% 
-  mutate(aggregated_category=ifelse(aggregated_category=="Low 2C","2oC warming (>66% probability)",aggregated_category))
 
-scenario_data <- scenario_data %>% 
-  mutate(country="x") %>% 
-  mutate(ISO="x") %>% 
-  mutate(facet="Scenario reduction rates (2020-2040)") %>% 
-  mutate(emissions_total_2019=NA) %>% 
-  select(country,ISO,aggregated_category,rate,facet,emissions_total_2019)
+scenario_data <- scenario_data %>%
+  filter(!is.na(aggregated_category)) %>% 
+  mutate(country="x") %>%
+  mutate(ISO="x") %>%
+  mutate(facet="Scenario reduction rates (2020-2040)") %>%
+  mutate(emissions_total_2019=NA) %>%
+  select(country,ISO,model,scenario,aggregated_category,rate,facet,emissions_total_2019)
 
+
+# remove the scenarios with positive growth (GCAM!!!!)
+scenario_data <- scenario_data %>%
+  filter(rate<0)
 
 ## calculate rates of change for each country
 
@@ -188,7 +235,9 @@ region_rates <- region_rates %>%
   mutate(rate=rate*100) %>% 
   mutate(aggregated_category=region_ar6_6) %>% 
   select(country,ISO,aggregated_category,rate,emissions_total_2019) %>% 
-  mutate(facet="Average annual emissions change (2010-2019)")
+  mutate(facet="Average annual emissions change (2010-2019)") %>% 
+  mutate(model=NA) %>% 
+  mutate(scenario=NA)
 
 # join to scenario data
 region_rates <- rbind(region_rates,scenario_data)
@@ -240,7 +289,7 @@ region_rates <- region_rates %>%
 region_rates <- region_rates %>% 
   mutate(aggregated_category = as.factor(aggregated_category))
 
-region_rates$aggregated_category <- factor(region_rates$aggregated_category,levels= levels(region_rates$aggregated_category)[c(4,5,6,7,8,9,2,3,1)])
+region_rates$aggregated_category <- factor(region_rates$aggregated_category,levels= levels(region_rates$aggregated_category)[c(1,2,5,6,7,9,4,8,3)])
 
 
 region_summary <- region_rates %>% 
