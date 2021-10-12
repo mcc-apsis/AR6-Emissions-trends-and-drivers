@@ -26,8 +26,8 @@ library(RColorBrewer)
 library(lubridate)
 library(openxlsx)
 
-load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
-load('../../Data/edgar6_v4_data_raw.RData')
+load('../../Data/edgar6_v5_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v5_data_raw.RData')
 load('../../Data/land.RData')
 load('../../Data/indirect_CO2.RData')
 
@@ -45,10 +45,10 @@ options(dplyr.summarise.inform = FALSE)
 growth_rates <- function(data) {
   
   #leap year adjustment
-  rates <- data %>%
-    mutate(leap_years = leap_year(year)) %>%
-    mutate(value = ifelse(leap_years==TRUE,value*365/366,value)) %>%
-    select(-leap_years)
+  # rates <- data %>%
+  #   mutate(leap_years = leap_year(year)) %>%
+  #   mutate(value = ifelse(leap_years==TRUE,value*365/366,value)) %>%
+  #   select(-leap_years)
   
   rates <- data %>% 
     filter(year %in% c(1990,1999,2000,2009,2010,2019))

@@ -322,9 +322,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.7"
-     inkscape:cx="84.563466"
-     inkscape:cy="391.82435"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="467.32705"
+     inkscape:cy="253.89308"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
@@ -354,7 +354,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -364,15 +364,12 @@
      id="layer1"
      transform="translate(-250.75282,-138.78796)">
     <text
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352778;"
        id="text2376-7"
        x="265.84323"
        y="145.69258"><tspan
-         x="265.84323 268.19696 269.37384 270.55069 272.62927 274.983 276.15985 278.51358 279.4534 280.63025 282.98398 285.33774 286.51459 288.86832 290.27802 292.63177 294.98547 297.33923 299.69296 302.04669 304.40042 305.34021 307.45688 308.63376 311.92728 314.98376 318.27728 319.45416 321.80789 325.33426 326.27405 328.39072 330.50739 331.44717 333.80093 336.15466 338.27133 339.44818 341.80191 344.15567 346.5094 348.86313 351.33539 353.68912 356.04285 358.39658"
-         y="145.69258"
          sodipodi:role="line"
-         id="tspan2374-9"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88056px;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.352778">a. Total anthropogenic GHG emissions 1990−2018</tspan></text>
+         id="tspan1867">a. Total anthropogenic GHG emissions 1990−2019</tspan></text>
     <text
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.88054px;font-family:Helvetica;-inkscape-font-specification:'Helvetica, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.352779"
        id="text2007-4-4-0"

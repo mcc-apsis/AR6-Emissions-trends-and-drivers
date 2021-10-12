@@ -1,5 +1,5 @@
 ---
-title: "edgar6_check"
+title: "edgar6_check_v4_v5"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   word_document:
@@ -23,21 +23,21 @@ theme_set(theme_bw())
 ggplot <- function(...) ggplot2::ggplot(...) + scale_fill_brewer(palette="Set2")
 
 #load('../../../Data/edgar5_data_raw.RData')
-load('../../../Data/edgar6_v2_data_raw.RData')
-edgar_raw_v1 <- edgar_raw %>% mutate(version="edgar6_v2")
-
 load('../../../Data/edgar6_v4_data_raw.RData')
-edgar_raw_v2 <- edgar_raw %>% mutate(version="edgar6_v4")
+edgar_raw_v1 <- edgar_raw %>% mutate(version="edgar6_v4")
+
+load('../../../Data/edgar6_v5_data_raw.RData')
+edgar_raw_v2 <- edgar_raw %>% mutate(version="edgar6_v5")
 rm(edgar_raw)
 
 
 
 #load('../../../Data/edgar5_data_ghg_gwp_ar6.RData')
-load('../../../Data/edgar6_v2_data_ghg_gwp_ar6.RData')
-edgar_ghg_v1 <- edgar_ghg %>% mutate(version="edgar6_v2")
-
 load('../../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
-edgar_ghg_v2 <- edgar_ghg %>% mutate(version="edgar6_v4")
+edgar_ghg_v1 <- edgar_ghg %>% mutate(version="edgar6_v4")
+
+load('../../../Data/edgar6_v5_data_ghg_gwp_ar6.RData')
+edgar_ghg_v2 <- edgar_ghg %>% mutate(version="edgar6_v5")
 rm(edgar_ghg)
 
 
@@ -394,7 +394,7 @@ plot_data_subsectors_v1 <- edgar_ghg_v1 %>%
   summarise(value=sum(GHG,na.rm=TRUE)/1e6) 
 
 for (i in 1:length(unique(plot_data_gases$country))) {
-#for (i in 35:36) {
+#for (i in 41:42) {
   
   country_handle = unique(plot_data_gases$country)[i]
   

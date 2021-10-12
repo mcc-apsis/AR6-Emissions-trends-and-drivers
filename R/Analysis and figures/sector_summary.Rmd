@@ -31,7 +31,7 @@ source("small_figures.R")
 
 end_year = 2019
 
-load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v5_data_ghg_gwp_ar6.RData')
 load('../../Data/gwps.RData')
 load('../../Data/indirect_CO2.RData')
 load('../../Data/land.RData')
@@ -520,7 +520,7 @@ trend_figure <- function(trend_data,sector) {
     
     # geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(round(fractions,0),"%")),hjust=0,size=3.5,colour="#252525") +
     
-    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4,year+5),y=1.072*max(shares$totals),label=paste0(ifelse(total_rate>0,"+","-"),signif(abs(total_rate),2),"%")),size=4,colour="#252525") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4,year+5),y=1.072*max(shares$totals),label=paste0(ifelse(total_rate>0,"+","-"),round(abs(total_rate),1),"%")),size=4,colour="#252525") +
     
     scale_x_continuous(breaks=c(1990,2000,2010,end_year),limits = c(1990,end_year+2)) +
     scale_y_continuous() +

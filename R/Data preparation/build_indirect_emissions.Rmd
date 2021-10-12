@@ -11,7 +11,7 @@ rm(list = ls())
 library(tidyverse)
 library(openxlsx)
 
-load("../../Data/edgar6_v4_data_ghg_gwp_ar6.RData")
+load("../../Data/edgar6_v5_data_ghg_gwp_ar6.RData")
 
 ```
 

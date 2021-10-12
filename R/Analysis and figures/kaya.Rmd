@@ -101,7 +101,7 @@ world_pop <- kaya_data %>%
   group_by(year) %>% 
   summarise(POP=sum(POP,na.rm=TRUE)/1e6)
 
-save(file='../../Data/kaya/kaya.RData',kaya_data)
+#save(file='../../Data/kaya/kaya.RData',kaya_data)
 
 # blarg <- kaya_data %>% 
 #   filter(ISO=="WLD") %>% 
@@ -142,9 +142,16 @@ missing_countries <- missing_countries %>%
   filter(sector!="OTH") %>% 
   filter(sector!="NON") %>% 
   filter(sector!="STT")
+missing_countries <- missing_countries %>% 
+  select(name) %>% distinct() %>% 
+  mutate(missing=1)
 
+#kaya_data <- kaya_data %>% 
+#  na.omit()
+kaya_data <- left_join(kaya_data,missing_countries,by = "name")
 kaya_data <- kaya_data %>% 
-  na.omit()
+  filter(is.na(missing)) %>% 
+  select(-missing)
 
 kaya_data <- kaya_data %>% 
   group_by(region_ar6_10,sector,year) %>% 

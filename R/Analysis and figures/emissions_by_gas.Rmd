@@ -16,14 +16,15 @@ library(ggpubr)
 library(patchwork)
 library(openxlsx)
 library(ggplot2); theme_set(theme_bw())
+library(lubridate)
 
 source("small_figures.R")
 
 #load('../../Data/edgar_essd_data_ghg_gwp_ar6.RData')
 #load('../../Data/edgar_essd_data_raw.RData')
 
-load('../../Data/edgar6_v4_data_ghg_gwp_ar6.RData')
-load('../../Data/edgar6_v4_data_raw.RData')
+load('../../Data/edgar6_v5_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v5_data_raw.RData')
 
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
@@ -325,6 +326,11 @@ rates <- gas_trend %>%
   summarise(value=sum(value)) %>% 
   mutate(total_rate=NA)
 
+### leap year adjustment
+# rates <- rates %>% 
+#   mutate(leap_year = leap_year(year)) %>%
+#   mutate(value_ly_adjusted = ifelse(leap_year=="TRUE",value*365/366,value))
+
 rates$total_rate[rates$year==1990] = ((rates$value[rates$year==1999]/rates$value[rates$year==1990])^(1/(1999-1990))-1)*100
 rates$total_rate[rates$year==2000] = ((rates$value[rates$year==2009]/rates$value[rates$year==2000])^(1/(2009-2000))-1)*100
 rates$total_rate[rates$year==2010] = ((rates$value[rates$year==2019]/rates$value[rates$year==2010])^(1/(2019-2010))-1)*100
@@ -489,6 +495,17 @@ p_gas_trends_scaled
 (p_gas_totals + p_waterfall + plot_layout(width = c(3, 1))) / p_gas_trends_scaled + plot_layout(height = c(3,1))
 #gases <- (p_gas_totals + p_waterfall + plot_layout(width = c(2.5, 1))) / p_gas_trends_scaled + plot_layout(height = c(3,1))
 #gases
+
+```
+
+```{r write_table, echo=FALSE,warning=FALSE}
+
+table_gas_trend <- gas_trend %>% 
+  group_by(year) %>% 
+  mutate(Total=sum(value))
+
+
+
 
 ##### write data
 
