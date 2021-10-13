@@ -85,7 +85,15 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_gas.Rmd'>code</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Figures/SPM_gases.png'>download png</a>")
 ```
+```{r,out.width="100%"}
 
+spm_table <- read.xlsx('Results/Plot data/ipcc_ar6_figure_spm1_gases.xlsx',sheet="spm table")
+
+spm_table %>% 
+  kbl() %>% 
+  kable_styling(bootstrap_options = c("striped"))
+
+```
 
 -----------------------------------------------------------------------
 
