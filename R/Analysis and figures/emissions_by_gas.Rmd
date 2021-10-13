@@ -17,6 +17,7 @@ library(patchwork)
 library(openxlsx)
 library(ggplot2); theme_set(theme_bw())
 library(lubridate)
+library(janitor)
 
 source("small_figures.R")
 
@@ -352,8 +353,7 @@ p_gas_totals <- gas_trend %>%
   
   #### text with the totals
   geom_text(data=shares %>% filter(gas=="Fgas"),aes(x=year,y=62,label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+
-  
-  ylab('Greenhouse gas emissions (GtCO2eq/yr)') +
+  ylab(bquote("Greenhouse gas emissions (Gt" ~CO[2]* "eq/yr)")) +
   labs(fill="Gas") +
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60)) +
   scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
@@ -500,12 +500,65 @@ p_gas_trends_scaled
 
 ```{r write_table, echo=FALSE,warning=FALSE}
 
-table_gas_trend <- gas_trend %>% 
+# write uncertainties into the table of GHG estimates
+
+table <- gas_trend
+table <- left_join(table,uncertainties,by = "gas")
+table <- table %>% 
+  mutate(uncertainty=uncertainty*value) %>% 
+  mutate(uncertainty2=uncertainty^2) %>% 
+  rename(level=value)
+
+table_total <- table %>% 
   group_by(year) %>% 
-  mutate(Total=sum(value))
+  summarise(gas="Total",level=sum(level),uncertainty=sqrt(sum(uncertainty2)))
+
+table <- rbind(table %>% select(-uncertainty2),table_total)
+table <- gather(table,var,value,level,uncertainty)
+
+table$gas <- as.factor(table$gas)
+table$gas <- factor(table$gas,levels(table$gas)[c(2,3,1,5,4,6)])
 
 
+# produce a table to go under SPM1
 
+spm_table <- spread(table,var,value)
+spm_table <- spm_table %>% 
+  filter(year==2019) %>% 
+  group_by(gas) %>% 
+  summarise(level=paste0(signif(level,2),"±",signif(uncertainty,2)))
+
+growth <- gas_trend %>% 
+  filter(year %in% c(1990,2019))
+
+growth_total <- growth %>% 
+  group_by(year) %>%
+  summarise(gas="Total",value=sum(value))
+
+growth <- rbind(growth,growth_total) %>% 
+  group_by(gas) %>% 
+  summarise(growth_abs=last(value)-first(value),growth_rel=((last(value)-first(value))/first(value))*100)
+
+growth <- left_join(growth,uncertainties,by = "gas")
+growth <- growth %>% 
+  mutate(uncertainty=uncertainty*growth_abs) %>% 
+  mutate(uncertainty2=uncertainty^2)
+growth <- growth %>% 
+  mutate(uncertainty=ifelse(gas=="Total",sqrt(sum(growth$uncertainty2,na.rm=TRUE)),uncertainty)) %>% 
+  select(-uncertainty2)
+
+growth <- growth %>%
+  mutate(growth_abs=paste0(signif(growth_abs,2),"±",signif(uncertainty,2))) %>% 
+  mutate(growth_rel=signif(growth_rel,2)) %>% 
+  select(-uncertainty)
+
+spm_table <- left_join(spm_table,growth,by = "gas")
+names(spm_table) <- c("gas","2019 Emissions (GtCO2eq)","1990-2019 Growth (GtCO2eq)","1990-2019 Growth (%)") 
+
+spm_table <- spm_table %>% 
+  t %>% 
+  as.data.frame() %>% 
+  row_to_names(1)
 
 ##### write data
 
@@ -517,15 +570,18 @@ addWorksheet(wb,"panel a growth rates")
 addWorksheet(wb,"panel a shares")
 addWorksheet(wb,"panel b")
 addWorksheet(wb,"panel c")
+addWorksheet(wb,"spm table")
 
 info = data.frame(x=c("Author","Last update","Code"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_gas.Rmd"))
 
 writeData(wb, sheet="info",info,colNames=F,rowNames=F)
-writeData(wb, sheet = "panel a", spread(gas_trend,year,value), colNames = T, rowNames = F)
+writeData(wb, sheet = "panel a", table <- spread(table,year,value) %>% arrange(var), colNames = T, rowNames = F)
 writeData(wb, sheet = "panel a growth rates", rates, colNames = T, rowNames = F)
 writeData(wb, sheet = "panel a shares", shares, colNames = T, rowNames = F)
 writeData(wb, sheet = "panel b", waterfall_data, colNames = T, rowNames = F)
 writeData(wb, sheet = "panel c", gas_trend_nogwp, colNames = T, rowNames = F)
+writeData(wb, sheet = "spm table", spm_table, colNames = T, rowNames = T)
 
 saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm1_gases.xlsx"),overwrite=T)
 
+```

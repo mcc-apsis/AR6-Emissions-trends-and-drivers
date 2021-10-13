@@ -207,7 +207,7 @@ Consolidated data files are available for the figures here:
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/Final/totals-1.png")
+include_graphics("Results/Plots/Sectors/totals-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -247,7 +247,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/Final/energy-1.png")
+include_graphics("Results/Plots/Sectors/energy-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -287,7 +287,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/Final/industry-1.png")
+include_graphics("Results/Plots/Sectors/industry-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -327,7 +327,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/Final/buildings-1.png")
+include_graphics("Results/Plots/Sectors/buildings-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -367,7 +367,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/Final/transport-1.png")
+include_graphics("Results/Plots/Sectors/transport-1.png")
 
 ```
 ```{r,results = 'asis'}
@@ -407,7 +407,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/Sectors/Final/afolu-1.png")
+include_graphics("Results/Plots/Sectors/afolu-1.png")
 
 ```
 ```{r,results = 'asis'}

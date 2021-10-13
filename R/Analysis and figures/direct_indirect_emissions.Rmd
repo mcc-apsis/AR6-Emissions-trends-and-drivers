@@ -60,8 +60,8 @@ scope1_sectors <- scope1_sectors %>%
 # fractions
 
 scope1_sectors <- scope1_sectors %>% 
-#  mutate(fraction=signif(((GHG/sum(data$GHG))*100),digits = 2))
-  mutate(fraction=round(((GHG/sum(data$GHG))*100),1))
+  mutate(fraction=signif(((GHG/sum(data$GHG))*100),digits = 2))
+#  mutate(fraction=round(((GHG/sum(data$GHG))*100),1))
 
 ### scope 2 subsectors
 
@@ -74,8 +74,8 @@ scope2_subsectors <- scope2_subsectors %>%
 # fractions
 
 scope2_subsectors <- scope2_subsectors %>% 
-#  mutate(fraction=signif(((GHG/sum(scope2_subsectors$GHG))*100),digits = 2))
-  mutate(fraction=round(((GHG/sum(scope2_subsectors$GHG))*100),1))
+  mutate(fraction=signif(((GHG/sum(scope2_subsectors$GHG))*100),digits = 2))
+#  mutate(fraction=round(((GHG/sum(scope2_subsectors$GHG))*100),1))
 
 ### scope 2 sectors
 
@@ -97,8 +97,8 @@ scope2_sectors <- scope2_sectors %>%
 # fractions
 
 scope2_sectors <- scope2_sectors %>% 
-#  mutate(fraction=signif(((total/sum(data$GHG))*100),2))
-  mutate(fraction=round(((total/sum(data$GHG))*100),1))
+  mutate(fraction=signif(((total/sum(data$GHG))*100),2))
+#  mutate(fraction=round(((total/sum(data$GHG))*100),1))
 
 ```
 

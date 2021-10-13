@@ -2,7 +2,7 @@
 rm(list = ls())
 library(tidyverse)
 library(openxlsx)
-load('Data/edgar6_v4_data_raw.RData')
+load('Data/edgar6_v5_data_raw.RData')
 
 #################### prep
 
@@ -130,7 +130,7 @@ writeData(wb, sheet = "sectors", sectors, colNames = T)
 writeData(wb, sheet = "sector_classification",edgar_categories,colNames=T)
 writeData(wb, sheet = "region_classification",regions,colNames=T)
 
-saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_warming_24_09_21.xlsx",overwrite = T)
+saveWorkbook(wb,"Results/Data/ipcc_ar6_edgar_data_warming_13_10_21.xlsx",overwrite = T)
 
 
   

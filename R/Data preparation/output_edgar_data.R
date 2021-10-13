@@ -2,7 +2,7 @@
 rm(list = ls())
 library(tidyverse)
 library(openxlsx)
-load('Data/edgar6_v4_data_ghg_gwp_ar6.RData')
+load('Data/edgar6_v5_data_ghg_gwp_ar6.RData')
 load('Data/land.RData')
 load('Data/ipcc_regions.RData')
 load('Data/ipcc_sectors.RData')
@@ -111,7 +111,7 @@ saveWorkbook(wb,"Results/Data/ipcc_ar6_data_edgar6_all_gases_gwp100.xlsx",overwr
 
 ########################## NO GWPS
 
-load('Data/edgar6_v4_data_raw.RData')
+load('Data/edgar6_v5_data_raw.RData')
 
 edgar_raw <- edgar_raw %>% 
   select(-gwp100_ar2,-gwp100_ar4,-gwp100_ar5_fb,-gwp100_ar5,-region_ar6_6_short) %>% 

@@ -2,7 +2,7 @@
 rm(list = ls())
 library(tidyverse)
 library(openxlsx)
-load('Data/edgar6_v4_data_raw.RData')
+load('Data/edgar6_v5_data_raw.RData')
 load('Data/land.RData')
 load('Data/ipcc_regions.RData')
 load('Data/ipcc_sectors.RData')
@@ -91,7 +91,7 @@ saveWorkbook(wb1,"Results/Data/essd_ghg_data.xlsx",overwrite = T)
 
 
 #################### aggregated data
-load('Data/edgar6_v4_data_ghg_gwp_ar6.RData')
+load('Data/edgar6_v5_data_ghg_gwp_ar6.RData')
 
 edgar_ghg <- edgar_ghg %>% 
   select(-region_ar6_6_short,-region_ar6_10_short,-chapter,-subsector)

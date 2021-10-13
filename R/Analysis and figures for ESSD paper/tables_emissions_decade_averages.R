@@ -8,7 +8,7 @@ library(lubridate)
 #load('../../Data/gwps.RData')
 #load("../../Data/land.RData")
 #load('../../Data/edgar_essd_data_raw.RData')
-load('../../Data/edgar6_v4_data_raw.RData')
+load('../../Data/edgar6_v5_data_raw.RData')
 load('../../Data/gwps.RData')
 load("../../Data/land.RData")
 
@@ -44,7 +44,7 @@ growth_rate <- function(years,y) {
 
 
 GHG_data<-edgar_raw %>%
-  filter(year<=2018)
+  filter(year<=2019)
 
 GHG_data<-GHG_data %>%
   mutate(region_ar6_10=as.character(region_ar6_10)) %>%
@@ -162,11 +162,19 @@ GHG_by_gas_2018 <- GHG_by_gas %>%
   filter(year==2018) %>%
   mutate(decade="2018")
 
+GHG_by_gas_2017 <- GHG_by_gas %>%
+  filter(year==2017) %>%
+  mutate(decade="2017")
+
+GHG_by_gas_2019 <- GHG_by_gas %>%
+  filter(year==2019) %>%
+  mutate(decade="2019")
+
 GHG_by_gas_1970 <- GHG_by_gas %>%
   filter(year==1970) %>%
   mutate(decade="1970")
 
-GHG_by_gas<-rbind(GHG_by_gas,GHG_by_gas_1970,GHG_by_gas_2018)
+GHG_by_gas<-rbind(GHG_by_gas,GHG_by_gas_1970,GHG_by_gas_2017,GHG_by_gas_2018,GHG_by_gas_2019)
 
 GHG <- GHG_by_gas %>%
   group_by(decade,year) %>%
@@ -230,7 +238,7 @@ region_ar6_6<-edgar_raw%>%
 GHG_by_region_ext <- left_join(GHG_data,region_ar6_6,by="region_ar6_10")
 
 GHG_by_region <- GHG_by_region_ext %>%
-  filter(year<=2018)%>%
+  #filter(year<=2018)%>%
   group_by(region_ar6_6,year) %>%
   summarise(value=sum(value,na.rm=TRUE)) %>%
   mutate(decade=ifelse((year>1969 & year<1980),"1970-1979",NA)) %>%
@@ -244,11 +252,15 @@ GHG_by_region_2018 <- GHG_by_region %>%
   filter(year==2018) %>%
   mutate(decade="2018")
 
+GHG_by_region_2019 <- GHG_by_region %>%
+  filter(year==2019) %>%
+  mutate(decade="2019")
+
 GHG_by_region_1970 <- GHG_by_region %>%
   filter(year==1970) %>%
   mutate(decade="1970")
 
-GHG_by_region<-rbind(GHG_by_region,GHG_by_region_1970,GHG_by_region_2018)
+GHG_by_region<-rbind(GHG_by_region,GHG_by_region_1970,GHG_by_region_2018,GHG_by_region_2019)
 
 GHG_by_region_total <- GHG_by_region %>%
   group_by(decade, year) %>%

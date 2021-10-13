@@ -47,6 +47,18 @@ edgar_ghg_v1 <- left_join(edgar_ghg_v1,wdi_data_gdp_pop %>% select(ISO=iso3c,yea
 edgar_ghg_v2 <- left_join(edgar_ghg_v2,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population), by = c("ISO", "year"))
 
 
+blarg <- edgar_raw_v1 %>% 
+  filter(year==2019) %>%
+  filter(gas=="N2O") %>% 
+  group_by(gas) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
+
+blarg2 <- edgar_raw_v2 %>% 
+  filter(year==2019) %>% 
+  filter(gas=="N2O") %>% 
+  group_by(gas) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
+
 ```
 
 \newpage
@@ -393,10 +405,20 @@ plot_data_subsectors_v1 <- edgar_ghg_v1 %>%
   group_by(year,country,chapter_title,subsector_title,version) %>% 
   summarise(value=sum(GHG,na.rm=TRUE)/1e6) 
 
-for (i in 1:length(unique(plot_data_gases$country))) {
+# country list: take the top 150
+
+country_list <- edgar_ghg_v1 %>% 
+  filter(year==2019) %>% 
+  group_by(country) %>% 
+  summarise(value=sum(GHG,na.rm=TRUE)) %>% 
+  arrange(desc(value)) %>% 
+  head(200)
+
+
+for (i in 1:length(country_list$country)) {
 #for (i in 41:42) {
   
-  country_handle = unique(plot_data_gases$country)[i]
+  country_handle = country_list$country[i]
   
   p1 <- plot_data_gases %>% 
     filter(country==country_handle) %>% 

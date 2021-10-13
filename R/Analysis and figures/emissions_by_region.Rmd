@@ -142,7 +142,7 @@ p1 <- region_trend %>%
         title = element_text(size=10),
         #plot.margin = unit(c(5.5,150,5.5,5.5),"points")
         ) +
-  ylab('GHG Emissions (GtCO2eq/yr)') +
+  ylab(bquote("Greenhouse gas emissions (Gt" ~CO[2]* "eq/yr)")) +
   ggtitle("a. Trends in global and regional greenhouse gas emissions")
 
 p1

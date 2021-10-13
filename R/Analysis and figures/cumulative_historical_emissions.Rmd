@@ -12,6 +12,7 @@ knit: (function(inputFile, encoding) {
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(RColorBrewer)
+library(ggrepel)
 colors = colorRampPalette(brewer.pal(8, "Set2"))(11)
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_manual(values=colors) + scale_fill_manual(values=colors)
 
@@ -297,6 +298,19 @@ land_1850<-land %>%
   mutate(source="CO2-LULUCF")
   
 hist_emissions_1850<-rbind(hist_emissions_1850,land_1850)
+
+hist_emissions_1850<-hist_emissions_1850 %>%
+  ungroup() %>%
+  mutate(share=ghg_cum_1850/sum(ghg_cum_1850)*100)
+
+wb <- openxlsx::createWorkbook(title = paste("cumulative_historical_emissions_by_region"))
+
+openxlsx::addWorksheet(wb,"emissions 1850-2019 10 regions")
+openxlsx::addWorksheet(wb,"emissions 1750-2019 10 regions")
+
+openxlsx::writeData(wb,"emissions 1850-2019 10 regions",hist_emissions_1850, colNames = T, rowNames = F)
+openxlsx::writeData(wb,"emissions 1750-2019 10 regions",hist_emissions_1750, colNames = T, rowNames = F)
+
 ```
 
 ```{r plot_region_10,echo=FALSE}
@@ -308,13 +322,71 @@ hist_emissions_1850 %>%
   ggtitle("Cumulative CO2 emissions 1850-2019")+
   theme(legend.title = element_blank())
 
+blarg <- hist_emissions_1850 %>% 
+  group_by(region_ar6_10) %>%
+  summarise_at(vars(ghg_cum_1850,share),sum,na.rm=TRUE) %>%
+  ungroup() %>%
+  arrange(desc(region_ar6_10)) %>% 
+  mutate(label=paste0(region_ar6_10," (",round(share,1),"%)")) %>%
+  #arrange(desc(chapter_title),GHG) %>% 
+  ungroup() %>% 
+  mutate(label_position = cumsum(ghg_cum_1850) - ghg_cum_1850/2)
+
 hist_emissions_1850 %>%
-  ggplot(aes(x="CO2 emissions from FFI and LULUCF",y=ghg_cum_1850,fill=region_ar6_10))+
+  ggplot(aes(x=01,y=ghg_cum_1850,fill=region_ar6_10))+
   geom_bar(stat="identity",position = "stack")+
+  geom_text_repel(inherit.aes = FALSE,data=blarg,aes(x=1.6,y=label_position,label=label,color=region_ar6_10),
+    nudge_x      = 1,
+    direction    = "y",
+    hjust        = 0,
+    segment.size = 0.02#,
+    #ylim = c(-1,100)
+  )+
+  xlim(0,9) +
   ylab('CO2 Emissions (Gt)') +
   xlab('') +
-  ggtitle("Cumulative CO2 emissions 1850-2019")+
-  theme(legend.title = element_blank())
+  ggtitle("Cumulative CO2 emissions (FFI and LULUCF) 1850-2019")+
+    theme(legend.position = "none",
+           plot.background = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.text.x = element_blank(),
+        panel.background = element_blank())
+
+blarg <- hist_emissions_1850 %>% 
+  group_by(region_ar6_10) %>%
+  summarise(share=sum(share)) %>%
+  ungroup() %>%
+  arrange(desc(region_ar6_10)) %>% 
+  mutate(label=paste0(region_ar6_10," (",round(share,1),"%)")) %>%
+  #arrange(desc(chapter_title),GHG) %>% 
+  ungroup() %>% 
+  mutate(label_position = cumsum(share) - share/2)
+
+hist_emissions_1850 %>%
+  group_by(region_ar6_10) %>%
+  summarise(share=sum(share)) %>%
+  ggplot(aes(x=1,y=share,fill=region_ar6_10))+
+  geom_bar(stat="identity",position = "stack")+
+   geom_text_repel(inherit.aes = FALSE,data=blarg,aes(x=1.6,y=label_position,label=label,color=region_ar6_10),
+    nudge_x      = 1,
+    direction    = "y",
+    hjust        = 0,
+    segment.size = 0.02,
+    ylim = c(-1,100)
+  )+
+  xlim(0,8) +
+  ylab('%-Share of CO2 Emissions') +
+  xlab('') +
+  ggtitle("Regional shares of cumulative CO2 emissions 1850-2019")+
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        panel.background = element_blank())
 
 hist_emissions_1750 %>%
   ggplot(aes(x=source,y=ghg_cum_1750,fill=region_ar6_10))+
@@ -395,6 +467,19 @@ land_1850<-land %>%
   mutate(source="CO2-LULUCF")
   
 hist_emissions_1850<-rbind(hist_emissions_1850,land_1850)
+
+hist_emissions_1850<-hist_emissions_1850 %>%
+  ungroup() %>%
+  mutate(share=ghg_cum_1850/sum(ghg_cum_1850)*100)
+
+openxlsx::addWorksheet(wb,"emissions 1850-2019 6 regions")
+openxlsx::addWorksheet(wb,"emissions 1750-2019 6 regions")
+
+openxlsx::writeData(wb,"emissions 1850-2019 6 regions",hist_emissions_1850, colNames = T, rowNames = F)
+openxlsx::writeData(wb,"emissions 1750-2019 6 regions",hist_emissions_1750, colNames = T, rowNames = F)
+
+openxlsx::saveWorkbook(wb,"../../Results/Plot data/cumulative_historical_emissions_by_region.xlsx",overwrite=T)
+
 ```
 
 ```{r plot_6_regions,echo=FALSE}
@@ -406,13 +491,72 @@ hist_emissions_1850 %>%
   ggtitle("Cumulative CO2 emissions 1850-2019")+
   theme(legend.title = element_blank())
 
+blarg <- hist_emissions_1850 %>% 
+  group_by(region_ar6_6) %>%
+  summarise_at(vars(ghg_cum_1850,share),sum,na.rm=TRUE) %>%
+  ungroup() %>%
+  arrange(desc(region_ar6_6)) %>% 
+  mutate(label=paste0(region_ar6_6," (",round(share,1),"%)")) %>%
+  #arrange(desc(chapter_title),GHG) %>% 
+  ungroup() %>% 
+  mutate(label_position = cumsum(ghg_cum_1850) - ghg_cum_1850/2)
+
 hist_emissions_1850 %>%
-  ggplot(aes(x="CO2 emissions from FFI and LULUCF",y=ghg_cum_1850,fill=region_ar6_6))+
+  ggplot(aes(x=1,y=ghg_cum_1850,fill=region_ar6_6))+
   geom_bar(stat="identity",position = "stack")+
+  geom_text_repel(inherit.aes = FALSE,data=blarg,aes(x=1.6,y=label_position,label=label,color=region_ar6_6),
+    nudge_x      = 1,
+    direction    = "y",
+    hjust        = 0,
+    segment.size = 0.02#,
+    #ylim = c(-1,100)
+  )+
+  xlim(0,9) +
   ylab('CO2 Emissions (Gt)') +
   xlab('') +
-  ggtitle("Cumulative CO2 emissions 1850-2019")+
-  theme(legend.title = element_blank())
+  ggtitle("Cumulative CO2 emissions (FFI and LULUCF) 1850-2019")+
+  theme(legend.position = "none",
+           plot.background = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.text.x = element_blank(),
+        panel.background = element_blank())
+
+blarg <- hist_emissions_1850 %>% 
+  group_by(region_ar6_6) %>%
+  summarise(share=sum(share)) %>%
+  ungroup() %>%
+  arrange(desc(region_ar6_6)) %>% 
+  mutate(label=paste0(region_ar6_6," (",round(share,1),"%)")) %>%
+  #arrange(desc(chapter_title),GHG) %>% 
+  ungroup() %>% 
+  mutate(label_position = cumsum(share) - share/2)
+
+hist_emissions_1850 %>%
+  group_by(region_ar6_6) %>%
+  summarise(share=sum(share)) %>%
+  ggplot(aes(x=1,y=share,fill=region_ar6_6))+
+  geom_bar(stat="identity",position = "stack")+
+   geom_text_repel(inherit.aes = FALSE,data=blarg,aes(x=1.6,y=label_position,label=label,color=region_ar6_6),
+    nudge_x      = 1,
+    direction    = "y",
+    hjust        = 0,
+    segment.size = 0.02,
+    ylim = c(-1,100)
+  )+
+  xlim(0,8) +
+  ylab('%-Share of CO2 Emissions') +
+  xlab('') +
+  ggtitle("Regional shares of cumulative CO2 emissions 1850-2019")+
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        panel.background = element_blank())
+
 
 hist_emissions_1750 %>%
   ggplot(aes(x=source,y=ghg_cum_1750,fill=region_ar6_6))+
