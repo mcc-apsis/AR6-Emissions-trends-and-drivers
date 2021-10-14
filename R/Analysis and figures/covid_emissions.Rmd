@@ -20,7 +20,7 @@ library(ggplot2); theme_set(theme_bw())
 library(patchwork)
 library(zoo)
 
-load('../../Data/edgar6_v4_data_raw.RData')
+load('../../Data/edgar6_v5_data_raw.RData')
 
 Sys.setlocale("LC_ALL","English")
 
@@ -75,7 +75,7 @@ wb <- openxlsx::createWorkbook(title = "ipcc_ar6_figure_covid2020")
 
 ### Table of emissions changes in 2020
 
-```{r table, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6}
+```{r table, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3.5}
 
 reductions <- function(edgar_raw,group) {
   
@@ -114,7 +114,10 @@ reductions <- function(edgar_raw,group) {
   
 }
 
-## compare average 2010-2019 value, 2019 value, 2020 value
+```
+
+```{r covid_sectors, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+
 
 edgar_sectors <- reductions(edgar_raw,"chapter_title")
 edgar_sector_total <- reductions(edgar_raw,"gas")
@@ -124,63 +127,92 @@ edgar_sector_total <- edgar_sector_total %>%
   select(-gas)
 edgar_sectors <- rbind(edgar_sectors,edgar_sector_total)
 
-######
+
+p <- edgar_sectors %>% ggplot(.,aes(y=-`2020 vs 2019 (GtCO2)`,x=reorder(chapter_title,desc(`2020 vs 2019 (GtCO2)`)),fill=chapter_title)) +
+  geom_bar(stat='identity',color="#737373") +
+  geom_text(aes(y=-`2020 vs 2019 (GtCO2)`+0.1,x=reorder(chapter_title,desc(`2020 vs 2019 (GtCO2)`)),label=paste0(round(`2020 vs 2019 (%)`,1),"%"))) +
+  coord_flip() +
+  ylab("Reduction in 2020 emissions relative to 2019 (GtCO2)") +
+  theme(legend.position="none",
+        #axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  ggtitle("Change in emissions by sector (EDGARv6), 2019-2020")
+
+p
+
+
+```
+
+```{r covid_subsectors, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+
+
 edgar_subsectors <- reductions(edgar_raw,c("chapter_title","subsector_title"))
 # remove minority CO2 subsectors
 edgar_subsectors <- edgar_subsectors %>% 
   filter(chapter_title!="AFOLU") %>% 
-  filter(subsector_title!="Waste")
+  filter(subsector_title!="Waste") %>% 
+  filter(subsector_title!="Non-CO2 (all buildings)")
 
-# p1 <- edgar_subsectors %>% ggplot(.,aes(y=-`2020 vs 2019 (%)`,x=subsector_title,fill=chapter_title)) +
-#   geom_bar(stat='identity',color="#737373") +
-#   #geom_text(aes(y=-`2020 vs 2019 (%)`+2.5,x=reorder(region_ar6_10,desc(region_ar6_10)),label=`2020 vs 2019 (%)`)) +
-#   coord_flip() +
-#   scale_fill_manual(values=colors) +
-#   ylab("Reduction in 2020 emissions relative to 2019 (%)") +
-#   theme(legend.position="none",
-#         #axis.title.x = element_blank(),
-#         axis.title.y = element_blank())
-# 
-# p2 <- edgar_subsectors %>% ggplot(.,aes(y=-`2020 vs 2019 (GtCO2)`,x=subsector_title,fill=chapter_title)) +
-#   geom_bar(stat='identity',color="#737373") +
-#   coord_flip() +
-#   scale_fill_manual(values=colors) +
-#   ylab("Reduction in 2020 emissions relative to 2019 (GtCO2)") +
-#   theme(legend.position="none",
-#         #axis.title.x = element_blank(),
-#         axis.title.y = element_blank())
-# 
-# p <- p1 / p2
-# p
+colors = colorRampPalette(brewer.pal(8, "Set2"))(19)
 
-
-
-#####
-edgar_regions <- reductions(edgar_raw,c("region_ar6_6","region_ar6_10","region_ar6_10_short"))
-
-colors = colorRampPalette(brewer.pal(8, "Set2"))(12)
-
-p1 <- edgar_regions %>% ggplot(.,aes(y=-`2020 vs 2019 (%)`,x=reorder(region_ar6_10,desc(region_ar6_10)),fill=region_ar6_10)) +
+p <- edgar_subsectors %>% ggplot(.,aes(y=-`2020 vs 2019 (GtCO2)`,x=reorder(subsector_title,desc(`2020 vs 2019 (GtCO2)`)),fill=subsector_title)) +
   geom_bar(stat='identity',color="#737373") +
-  #geom_text(aes(y=-`2020 vs 2019 (%)`+2.5,x=reorder(region_ar6_10,desc(region_ar6_10)),label=`2020 vs 2019 (%)`)) +
-  coord_flip() +
-  scale_fill_manual(values=colors) +
-  ylab("Reduction in 2020 emissions relative to 2019 (%)") +
-  theme(legend.position="none",
-        #axis.title.x = element_blank(),
-        axis.title.y = element_blank())
-
-p2 <- edgar_regions %>% ggplot(.,aes(y=-`2020 vs 2019 (GtCO2)`,x=reorder(region_ar6_10,desc(region_ar6_10)),fill=region_ar6_10)) +
-  geom_bar(stat='identity',color="#737373") +
+  geom_text(aes(y=-`2020 vs 2019 (GtCO2)`+0.04,x=reorder(subsector_title,desc(`2020 vs 2019 (GtCO2)`)),label=paste0(round(`2020 vs 2019 (%)`,1),"%"))) +
   coord_flip() +
   scale_fill_manual(values=colors) +
   ylab("Reduction in 2020 emissions relative to 2019 (GtCO2)") +
   theme(legend.position="none",
         #axis.title.x = element_blank(),
-        axis.title.y = element_blank())
+        axis.title.y = element_blank()) +
+  ggtitle("Change in emissions by subsector (EDGARv6), 2019-2020")
 
-p <- p1 / p2
 p
+
+```
+
+```{r covid_regions, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3.5,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+
+edgar_regions <- reductions(edgar_raw,c("region_ar6_6","region_ar6_10","region_ar6_10_short"))
+
+colors = colorRampPalette(brewer.pal(8, "Set2"))(12)
+
+p <- edgar_regions %>% ggplot(.,aes(y=-`2020 vs 2019 (GtCO2)`,x=reorder(region_ar6_10,desc(`2020 vs 2019 (GtCO2)`)),fill=region_ar6_10)) +
+  geom_bar(stat='identity',color="#737373") +
+  geom_text(aes(y=-`2020 vs 2019 (GtCO2)`+0.04,x=reorder(region_ar6_10,desc(`2020 vs 2019 (GtCO2)`)),label=paste0(round(`2020 vs 2019 (%)`,1),"%"))) +
+  coord_flip() +
+  scale_fill_manual(values=colors) +
+  ylab("Reduction in 2020 emissions relative to 2019 (GtCO2)") +
+  theme(legend.position="none",
+        #axis.title.x = element_blank(),
+        axis.title.y = element_blank()) +
+  ggtitle("Change in emissions by region (EDGARv6), 2019-2020")
+
+p
+
+```
+
+```{r save_covid_edgar, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3.5}
+
+
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_data_covid")
+
+addWorksheet(wb,"info")
+addWorksheet(wb,"EDGAR sectors")
+addWorksheet(wb,"EDGAR subsectors")
+addWorksheet(wb,"EDGAR regions")
+
+info = data.frame(x=c("Author","Last update","Code"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/covid_emissions.Rmd"))
+
+writeData(wb, sheet="info",info,colNames=F,rowNames=F)
+writeData(wb, sheet = "EDGAR sectors", edgar_sectors, colNames = T, rowNames = F)
+writeData(wb, sheet = "EDGAR subsectors", edgar_subsectors, colNames = T, rowNames = F)
+writeData(wb, sheet = "EDGAR regions", edgar_regions, colNames = T, rowNames = F)
+
+saveWorkbook(wb,"../../Results/Public data/ipcc_ar6_data_covid.xlsx",overwrite=T)
+
+
+
+
 
 ```
 
@@ -477,26 +509,16 @@ p_covid_sectors <- (p_covid_sectors + p_covid_sectors_total + plot_layout(widths
 p_covid_sectors
 ```
 
-
 ```{r covid_emissions, echo=FALSE,warning=FALSE,dpi=300,fig.width=8,fig.height=5,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
 p <- p_annual_gcb / p_covid_sectors + plot_layout(heights=c(0.6,0.4))
 p
 
-
 openxlsx::addWorksheet(wb,"panel a")
 openxlsx::addWorksheet(wb,"panel a reduction rates")
 openxlsx::addWorksheet(wb,"panel b")
-
 openxlsx::writeData(wb,"panel a",gcb, colNames = T, rowNames = F)
 openxlsx::writeData(wb,"panel a reduction rates",crises, colNames = T, rowNames = F)
 openxlsx::writeData(wb,"panel b",covid_sectors, colNames = T, rowNames = F)
-
-
 openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_covid2020",".xlsx"),overwrite=T)
-
-
-
 ```
-
-

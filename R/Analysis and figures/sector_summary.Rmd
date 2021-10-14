@@ -742,14 +742,14 @@ trend_data$subsector_title <- as.factor(trend_data$subsector_title)
 trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,2,4,6,5,7,1)])
 
 
-p1 <- trend_figure(trend_data,"AFOLU")
-p2 <- fraction_figure(sector_ghgs_regions,"AFOLU")
-p2 <- p2 + ylim(0,40)
-p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"AFOLU")
-p3 <- p3 + ylim(0,6)
-p4 <- kaya_figure(kaya_rates_afolu,"AFOLU")
+p1_afolu <- trend_figure(trend_data,"AFOLU")
+p2_afolu <- fraction_figure(sector_ghgs_regions,"AFOLU")
+p2_afolu <- p2_afolu + ylim(0,40)
+p3_afolu <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"AFOLU")
+p3_afolu <- p3_afolu + ylim(0,6)
+p4_afolu <- kaya_figure(kaya_rates_afolu,"AFOLU")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.3))
+(wrap_elements(p1_afolu) / wrap_elements(p2_afolu + p3_afolu + p4_afolu + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.3))
 
 
 ```
@@ -766,13 +766,13 @@ trend_data <- sector_ghg_total %>%
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
 trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(2,3,4,1,5)])
 
-p1 <- trend_figure(trend_data,"Energy systems")
-p2 <- fraction_figure(sector_ghgs_regions,"Energy systems")
-p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Energy systems")
-p3 <- p3 + ylim(0,25)
-p4 <- kaya_figure(kaya_rates,"Energy systems")
+p1_energy <- trend_figure(trend_data,"Energy systems")
+p2_energy <- fraction_figure(sector_ghgs_regions,"Energy systems")
+p3_energy <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Energy systems")
+p3_energy <- p3_energy + ylim(0,25)
+p4_energy <- kaya_figure(kaya_rates,"Energy systems")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.3))
+(wrap_elements(p1_energy) / wrap_elements(p2_energy + p3_energy + p4_energy + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.3))
 
 ```
 
@@ -788,13 +788,13 @@ trend_data <- sector_ghg_total %>%
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
 trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(3,5,4,2,6,1)])
 
-p1 <- trend_figure(trend_data,"Industry")
-p2 <- fraction_figure(sector_ghgs_regions,"Industry")
-p2 <- p2 + ylim(0,60)
-p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Industry")
-p4 <- kaya_figure(kaya_rates,"Industry")
+p1_industry <- trend_figure(trend_data,"Industry")
+p2_industry <- fraction_figure(sector_ghgs_regions,"Industry")
+p2_industry <- p2_industry + ylim(0,60)
+p3_industry <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Industry")
+p4_industry <- kaya_figure(kaya_rates,"Industry")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.3))
+(wrap_elements(p1_industry) / wrap_elements(p2_industry + p3_industry + p4_industry + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.3))
 
 
 ```
@@ -809,13 +809,13 @@ trend_data <- sector_ghg_total %>%
 trend_data$subsector_title <- as.factor(trend_data$subsector_title)
 trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(5,3,4,2,1)])
 
-p1 <- trend_figure(trend_data,"Buildings")
-p2 <- fraction_figure(sector_ghgs_regions,"Buildings")
-p2 <- p2 + ylim(0,40)
-p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Buildings")
-p4 <- kaya_figure(kaya_rates,"Buildings")
+p1_buildings <- trend_figure(trend_data,"Buildings")
+p2_buildings <- fraction_figure(sector_ghgs_regions,"Buildings")
+p2_buildings <- p2_buildings + ylim(0,40)
+p3_buildings <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Buildings")
+p4_buildings <- kaya_figure(kaya_rates,"Buildings")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.3))
+(wrap_elements(p1_buildings) / wrap_elements(p2_buildings + p3_buildings + p4_buildings + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.3))
 
 ```
 
@@ -831,14 +831,14 @@ trend_data$subsector_title <- as.factor(trend_data$subsector_title)
 trend_data$subsector_title <- factor(trend_data$subsector_title,levels=levels(trend_data$subsector_title)[c(2,8,5,4,1,6,3,7)])
 
 
-p1 <- trend_figure(trend_data,"Transport")
-p2 <- fraction_figure(sector_ghgs_regions,"Transport")
-p2 <- p2 + ylim(0,40)
-p3 <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Transport")
-p3 <- p3 + ylim(0,7.5)
-p4 <- kaya_figure(kaya_rates,"Transport")
+p1_transport <- trend_figure(trend_data,"Transport")
+p2_transport <- fraction_figure(sector_ghgs_regions,"Transport")
+p2_transport <- p2_transport + ylim(0,40)
+p3_transport <- per_capita_figure(per_capita,per_capita_world,sector_ghgs_regions,"Transport")
+p3_transport <- p3_transport + ylim(0,7.5)
+p4_transport <- kaya_figure(kaya_rates,"Transport")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.3))
+(wrap_elements(p1_transport) / wrap_elements(p2_transport + p3_transport + p4_transport + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.3))
 
 
 ```
@@ -889,14 +889,28 @@ overall_ghg_regions <- overall_ghg_regions %>%
   mutate(chapter_title="Total")
 
 
-p1 <- trend_figure(overall_ghg_totals,"Total")
-p2 <- fraction_figure(overall_ghg_regions,"Total")
-p2 <- p2 + ylim(0,40)
-p3 <- per_capita_figure(per_capita %>% mutate(chapter_title="Total"),per_capita_world,overall_ghg_regions,"Total")
+p1_total <- trend_figure(overall_ghg_totals,"Total")
+p2_total <- fraction_figure(overall_ghg_regions,"Total")
+p2_total <- p2_total + ylim(0,40)
+p3_total <- per_capita_figure(per_capita %>% mutate(chapter_title="Total"),per_capita_world,overall_ghg_regions,"Total")
 #p3 <- p3 + ylim(0,7.5)
-p4 <- kaya_figure(kaya_rates,"Total")
+p4_total <- kaya_figure(kaya_rates,"Total")
 
-(wrap_elements(p1) / wrap_elements(p2 + p3 + p4 + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.25))
+(wrap_elements(p1_total) / wrap_elements(p2_total + p3_total + p4_total + plot_layout(widths=c(1,1.4,3)))) + plot_layout(heights=c(1,1.25))
+
+
+```
+
+
+## Combined figure
+
+```{r combined_panel_a,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=4.5,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
+
+
+p2_total + p3_total + p4_total + plot_layout(widths=c(1,1.4,3))
+
+
+
 
 
 ```

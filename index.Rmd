@@ -168,29 +168,6 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 
 
 
------------------------------------------------------------------------
-
-### Global carbon emissions in 2020 and the impact of COVID-19 
-
-```{r,out.width="80%",fig.align = 'center',results='asis'}
-cat("<br>")
-include_graphics("Results/Plots/covid_emissions-1.png")
-
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("<span class='figure_title'>",captions$title[captions$plot=="covid"],"</span>")
-cat("<br>")
-cat(captions$caption[captions$plot=="covid"])
-cat("<br>")
-cat("Links: ")
-cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_covid2020.xlsx'>data</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/covid_emissions.Rmd'>code</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/covid_emissions-1.png'>download png</a>")
-
-```
-
 
 Sector emissions trends
 =====================================
@@ -448,6 +425,93 @@ cat("Links: ")
 cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-and-drivers/master/Results/Plots/Sectors/afolu_summary-1.png'>download png</a>")
 ```
 
+
+COVID-19 and 2020 emissions
+=====================================
+
+### COVID-19 and 2020 emissions
+
+Emissions in 2020 dropped substantially compared to the previous year, due to the impacts of lockdowns in response to the COVID-19 pandemic.
+
+The following figure shows the trend in annual CO2 emissions up to 2020, the range of estimates for the 2020 drop in emissions, and compares these to previous global events. Two datasets (Le Quere et al 2021 and Liu et al 2021) also depict the change in 2020 daily emissions relative to 2019.
+
+-----------------------------------------------------------------------
+
+### Global carbon emissions in 2020 and the impact of COVID-19 
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/covid_emissions-1.png")
+
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="covid"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="covid"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_covid2020.xlsx'>data</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/covid_emissions.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/covid_emissions-1.png'>download png</a>")
+
+```
+
+### Emissions change by region and sector in EDGARv6  
+
+Estimates from the EDGARv6 database, which we use across the AR6 report, show varying impacts by sector, subsector and region.
+
+-----------------------------------------------------------------------
+### Regions
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/covid_regions-1.png")
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Public%20data/ipcc_ar6_data_covid.xlsx'>data</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/covid_emissions.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/covid_regions-1.png'>download png</a>")
+
+```
+
+-----------------------------------------------------------------------
+### Sectors
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/covid_sectors-1.png")
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Public%20data/ipcc_ar6_data_covid.xlsx'>data</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/covid_emissions.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/covid_sectors-1.png'>download png</a>")
+
+```
+
+-----------------------------------------------------------------------
+### Subectors
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/covid_subsectors-1.png")
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Public%20data/ipcc_ar6_data_covid.xlsx'>data</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/covid_emissions.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/covid_subsectors-1.png'>download png</a>")
+
+```
 
 Growth rates
 =====================================
