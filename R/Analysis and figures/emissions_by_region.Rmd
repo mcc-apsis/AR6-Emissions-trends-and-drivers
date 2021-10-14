@@ -31,7 +31,6 @@ options(dplyr.summarise.inform = FALSE)
 colors = c("#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#cccccc","#969696","#636363")
 
 
-wb <- openxlsx::createWorkbook(title = "ipcc_ar6_figure_spm2_regions")
 
 ```
 
@@ -364,22 +363,28 @@ regions <- p1 / p2 + plot_layout(heights = c(2, 1))
 regions
 
 
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_figure_spm_regions")
+
 addWorksheet(wb,"info")
-addWorksheet(wb,"panel_a")
-addWorksheet(wb,"panel_b_rates")
-addWorksheet(wb,"overall_growth")
-addWorksheet(wb,"region_per_capita")
+addWorksheet(wb,"panel a")
+addWorksheet(wb,"panel a totals and rates")
+addWorksheet(wb,"panel a shares")
+addWorksheet(wb,"panel b")
+addWorksheet(wb,"overall growth (not in figure)")
+addWorksheet(wb,"region per cap (not in figure)")
 
 
-info = data.frame(x=c("Author","Last update","Code"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_region.Rmd"))
+info = data.frame(x=c("Author","Last update","Code","","Units","Panel a","Panel a totals","Panel a growth rates","Panel a shares","Panel b rates","Panel b emission totals","Panel b mean rates by region or scenario"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_region.Rmd","","","GtCO2eq","GtCO2eq","%/yr","%","%/yr","tCO2eq","%/yr"))
 
 writeData(wb, sheet="info",info,colNames=F,rowNames=F)
-writeData(wb, sheet = "panel_a", spread(region_trend %>% select(-region_ar6_6_short),year,value), colNames = T, rowNames = F)
-writeData(wb, sheet = "panel_b_rates", region_rates, colNames = T, rowNames = F)
-writeData(wb, sheet = "overall_growth", region_growth, colNames = T, rowNames = F)
-writeData(wb, sheet = "region_per_capita", country_ghg, colNames = T, rowNames = F)
+writeData(wb, sheet = "panel a", spread(region_trend %>% select(-region_ar6_6_short),year,value), colNames = T, rowNames = F)
+writeData(wb, sheet = "panel a totals and rates",rates, colNames = T, rowNames = F)
+writeData(wb, sheet = "panel a shares",shares %>% select(-value,-totals) %>% rename(shares=fractions), colNames = T, rowNames = F)
+writeData(wb, sheet = "panel b", region_rates %>% select(-population), colNames = T, rowNames = F)
+writeData(wb, sheet = "overall growth (not in figure)", region_growth, colNames = T, rowNames = F)
+writeData(wb, sheet = "region per cap (not in figure)", country_ghg, colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm2_regions.xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm_regions.xlsx"),overwrite=T)
 
 
 ```

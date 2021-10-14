@@ -566,22 +566,22 @@ wb <- createWorkbook(title = paste("ipcc_ar6_figure_spm1_gases"))
 
 addWorksheet(wb,"info")
 addWorksheet(wb,"panel a")
-addWorksheet(wb,"panel a growth rates")
+addWorksheet(wb,"panel a totals and rates")
 addWorksheet(wb,"panel a shares")
 addWorksheet(wb,"panel b")
 addWorksheet(wb,"panel c")
 addWorksheet(wb,"spm table")
 
-info = data.frame(x=c("Author","Last update","Code"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_gas.Rmd"))
+info = data.frame(x=c("Author","Last update","Code","","Units","Panel a","Panel a totals","Panel a rates","Panel a shares","Panel b","Panel c"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_gas.Rmd","","","GtCO2eq","GtCO2eq","%/yr","%","GtCO2eq","t native units (normalised to 1 in 1990)"))
 
 writeData(wb, sheet="info",info,colNames=F,rowNames=F)
 writeData(wb, sheet = "panel a", table <- spread(table,year,value) %>% arrange(var), colNames = T, rowNames = F)
-writeData(wb, sheet = "panel a growth rates", rates, colNames = T, rowNames = F)
-writeData(wb, sheet = "panel a shares", shares, colNames = T, rowNames = F)
+writeData(wb, sheet = "panel a totals and rates", rates, colNames = T, rowNames = F)
+writeData(wb, sheet = "panel a shares", shares %>% select(-value,-totals) %>% rename(shares=fractions), colNames = T, rowNames = F)
 writeData(wb, sheet = "panel b", waterfall_data, colNames = T, rowNames = F)
 writeData(wb, sheet = "panel c", gas_trend_nogwp, colNames = T, rowNames = F)
 writeData(wb, sheet = "spm table", spm_table, colNames = T, rowNames = T)
 
-saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm1_gases.xlsx"),overwrite=T)
+saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm_gases.xlsx"),overwrite=T)
 
 ```

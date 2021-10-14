@@ -226,13 +226,20 @@ ggarrange(p1,p2,p3,nrow=1,ncol=3,widths=c(0.2,0.2,0.6))
 
 wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_indirect_emissions"))
 
+
+
+info = data.frame(x=c("Author","Last update","Code","","Units","GHG","shares"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/direct_indirect_emissions.Rmd","","","GtCO2eq","%"))
+
+
+openxlsx::addWorksheet(wb,"info")
 openxlsx::addWorksheet(wb,"direct emissions")
 openxlsx::addWorksheet(wb,"indirect emissions")
 openxlsx::addWorksheet(wb,"indirect emissions - subsectors")
 
-openxlsx::writeData(wb,"direct emissions",scope1_sectors, colNames = T, rowNames = F)
-openxlsx::writeData(wb,"indirect emissions",scope2_sectors, colNames = T, rowNames = F)
-openxlsx::writeData(wb,"indirect emissions - subsectors",scope2_subsectors, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet="info",info,colNames=F,rowNames=F)
+openxlsx::writeData(wb,"direct emissions",scope1_sectors %>% rename(shares=fraction), colNames = T, rowNames = F)
+openxlsx::writeData(wb,"indirect emissions",scope2_sectors %>% rename(shares=fraction), colNames = T, rowNames = F)
+openxlsx::writeData(wb,"indirect emissions - subsectors",scope2_subsectors %>% rename(shares=fraction), colNames = T, rowNames = F)
 
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm_sectors",".xlsx"),overwrite=T)
