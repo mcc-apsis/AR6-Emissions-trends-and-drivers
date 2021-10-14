@@ -87,7 +87,7 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 ```
 ```{r,out.width="100%"}
 
-spm_table <- read.xlsx('Results/Plot data/ipcc_ar6_figure_spm1_gases.xlsx',sheet="spm table")
+spm_table <- read.xlsx('Results/Plot data/ipcc_ar6_figure_spm_gases.xlsx',sheet="spm table")
 
 spm_table %>% 
   kbl() %>% 
