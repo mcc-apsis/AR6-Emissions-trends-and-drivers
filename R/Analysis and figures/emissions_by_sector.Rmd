@@ -86,20 +86,20 @@ sum(blarg$CO2)
 
 
 # AFOLU data for Jeremy
-# load('../../Data/edgar6_v4_data_raw.RData')
-# afolu <- edgar_raw %>%
-#   filter(chapter_title=="AFOLU") %>%
-#   group_by(year,chapter_title,subsector_title,gas,gwp100_ar6) %>%
-#   summarise(value=sum(value,na.rm=TRUE)) %>%
-#   arrange(subsector_title,year)
-# sectors <- edgar_raw %>%
-#   filter(year>=1990) %>% 
-#   group_by(year,chapter_title,subsector_title,gas,gwp100_ar6) %>% 
-#   summarise(value=sum(value,na.rm=TRUE)) %>% 
-#   arrange(chapter_title,subsector_title,year)
-# sectors <- spread(sectors,year,value)
-# write.xlsx(afolu,"edgar_afolu_data.xlsx")
-# openxlsx::write.xlsx(sectors,"edgar_sector_data.xlsx")
+load('../../Data/edgar6_v5_data_raw.RData')
+afolu <- edgar_raw %>%
+  filter(chapter_title=="AFOLU") %>%
+  group_by(year,chapter_title,subsector_title,gas,gwp100_ar6) %>%
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  arrange(subsector_title,year)
+sectors <- edgar_raw %>%
+  filter(year>=1990) %>%
+  group_by(year,chapter_title,subsector_title,gas,gwp100_ar6) %>%
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  arrange(chapter_title,subsector_title,year)
+sectors <- spread(sectors,year,value)
+write.xlsx(afolu,"edgar_afolu_data.xlsx")
+openxlsx::write.xlsx(sectors,"edgar_sector_data.xlsx")
 
 
 indirect_CO2_world <- gather(indirect_CO2_world,year,CO2_indirect,`1990`:`2019`) %>% 

@@ -179,7 +179,7 @@ p1
 
 ## import scenario data (NEW VERSION)
 
-scenario_data <- read.csv("../../Data/supplemetary data/emission_reduction_benchmarks_ar6_2021_07_09.csv")
+scenario_data <- read.csv("../../Data/supplemetary data/emission_reduction_benchmarks_ar6_2021_10_07.csv")
 
 scenario_data <- scenario_data %>%
   rename(rate=reduction_rates_2020.2040)
