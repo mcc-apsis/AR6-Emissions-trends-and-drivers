@@ -142,6 +142,30 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 ```
 
 
+-----------------------------------------------------------------------
+
+### Emissions by region with country perspectives
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/regions_countries-1.png")
+
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="regions_countries"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="regions_countries"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_regions_countries.xlsx'>data</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_country_with_crf.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/regions_countries-1.png'>download png</a>")
+
+```
+
+
 
 -----------------------------------------------------------------------
 

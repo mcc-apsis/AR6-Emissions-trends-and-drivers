@@ -349,7 +349,7 @@ p_gas_totals <- gas_trend %>%
   #### text with the rates
   geom_text(data=rates %>% filter(!is.na(total_rate)),inherit.aes = FALSE,
                             aes(x=ifelse(year==2010,year+4.5,year+5),y=60,
-                                label=paste0("+",round(total_rate,1),"%")),size=3.5,colour="#252525") +
+                                label=paste0("+",round(total_rate,1),"%/yr")),size=3.5,colour="#252525") +
   
   #### text with the totals
   geom_text(data=shares %>% filter(gas=="Fgas"),aes(x=year,y=62,label=paste(round(totals,0),  "Gt")),size=3.5,colour="#252525")+

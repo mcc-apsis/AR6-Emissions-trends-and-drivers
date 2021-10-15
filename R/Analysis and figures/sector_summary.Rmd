@@ -520,7 +520,7 @@ trend_figure <- function(trend_data,sector) {
     
     # geom_text(data=labels,aes(x=year+0.5,y=location,label=paste0(round(fractions,0),"%")),hjust=0,size=3.5,colour="#252525") +
     
-    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4,year+5),y=1.072*max(shares$totals),label=paste0(ifelse(total_rate>0,"+","-"),round(abs(total_rate),1),"%")),size=4,colour="#252525") +
+    geom_text(data=shares %>% filter(subsector_title==shares$subsector_title[1]) %>% filter(year<=end_year),aes(x=ifelse(year==2010,year+4.5,year+5),y=1.072*max(shares$totals),label=paste0(ifelse(total_rate>0,"+","-"),round(abs(total_rate),1),"%/yr")),size=4,colour="#252525") +
     
     scale_x_continuous(breaks=c(1990,2000,2010,end_year),limits = c(1990,end_year+2)) +
     scale_y_continuous() +
@@ -906,9 +906,9 @@ p4_total <- kaya_figure(kaya_rates,"Total")
 
 ```{r combined_panel_a,echo=FALSE,warning=FALSE,dpi=300,fig.width=10,fig.height=4.5,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf')}
 
-
-p2_total + p3_total + p4_total + plot_layout(widths=c(1,1.4,3))
-
+# 
+# p2_total + p3_total + p4_total + plot_layout(widths=c(1,1.4,3))
+# 
 
 
 
