@@ -202,7 +202,7 @@ countries <- countries %>%
 # what is 75% of the emissions?
 threshold <- countries %>%
   filter(year==2019)
-threshold <- sum(threshold$GHG,na.rm=T)*0.75
+threshold <- sum(threshold$GHG,na.rm=T)*0.8
 
 
 ## calculate average annual and absolute growth
@@ -229,6 +229,12 @@ countries <- countries %>%
   mutate(cutoff = ifelse(cumulative_GHG<threshold,1,0))# %>% 
   #filter(cutoff==1)
 
+
+# actually we go with the 20 largest emitters instead
+countries <- countries %>% 
+  mutate(cutoff=1:n()) %>% 
+  mutate(cutoff=ifelse(cutoff<=20,1,0))
+
 #countries <- gather(countries,var,value,avg_growth,abs_growth,emissions_pc,emissions_pgdp)#,avg_growth_crf, abs_growth_crf,emissions_pc_crf,emissions_pgdp_crf)
 
 
@@ -250,7 +256,7 @@ p2 <- countries %>%
   coord_flip() +
   plot_theme +
   ylab("%/yr") +
-  ggtitle(str_wrap("b. Avg. annual GHG emissions change",width=38)) +
+  ggtitle(str_wrap("b. Avg. annual GHG emissions change",width=32)) +
   annotate(geom = 'text', label = 'Years: 2010-2019',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
 
@@ -266,7 +272,7 @@ p3 <- countries %>%
   coord_flip() +
   plot_theme +
   ylab(bquote("Gt" ~CO[2]* "eq/yr")) +
-  ggtitle(str_wrap("c. Change in annual GHG emissions",width=35)) +
+  ggtitle(str_wrap("c. Change in annual GHG emission level",width=35)) +
     annotate(geom = 'text', label = 'Years: 2010-2019',
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
 
@@ -307,7 +313,7 @@ p5 <- countries %>%
 
 ```{r regions_countries,echo=FALSE,warning=FALSE,fig.width=8,fig.height=11,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
 
-wrap_elements(p1) / wrap_elements((p2 + p3) / (p4 + p5)) + plot_layout(heights = c(1.1,2))
+wrap_elements(p1) / wrap_elements((p2 + p3) / (p4 + p5)) + plot_layout(heights = c(1,2))
 
 
 ```
