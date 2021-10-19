@@ -24,6 +24,7 @@ load('../../Data/land.RData')
 load('../../Data/ipcc_regions.RData')
 load('../../Data/WDI_gdp_pop.RData')
 load('../../Data/sdgs.RData')
+load('../../Data/cumulative_historical_emissions_by_regions.RData')
 
 options(dplyr.summarise.inform = FALSE)
 
@@ -36,7 +37,7 @@ isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/
 
 ```{r gather_data,include=FALSE}
 
-gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
+gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop,hist_emissions_1750,hist_emissions_1850) {
   
   regions <- ipcc_regions %>% 
     rename_all(gsub, pattern = paste0(region,'$'), replacement = 'region_select') %>% 
@@ -64,21 +65,12 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
     mutate(fraction=(value/total)) %>% 
     mutate(label=paste0(round(total/1e9)," Gt CO2"))
   
-  # cumulative with only countries that have life expectancy data
+  # cumulative
   
   edgar_co2 <- edgar_ghg %>%
     rename_all(gsub, pattern = paste0(region,'$'), replacement = 'region_select') %>% 
     filter(ISO!="AIR") %>%
     filter(ISO!="SEA")
-  
-  edgar_co2 <- left_join(edgar_co2,sdgs %>% 
-                          filter(indicatorID=="Life_expectancy") %>% 
-                          select(ISO=iso3c,year=date,life_expectancy=value) %>% 
-                          mutate(year=as.numeric(year)),by=c("year","ISO"))
-  
-  # filter only countries that have life expectancy values
-  edgar_co2 <- edgar_co2 %>% 
-    filter(!is.na(life_expectancy))
   
   edgar_co2 <- edgar_co2 %>%
     group_by(region_select,year) %>%
@@ -220,78 +212,52 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
     select(-ghg,-co2_land)
   
   
-  ### sdgs
+  ### long time series CO2
   
-  co2_sdgs <- edgar_ghg %>%
+  co2_long_1750 <- hist_emissions_1750 %>% 
     rename_all(gsub, pattern = paste0(region,'$'), replacement = 'region_select') %>% 
-    filter(ISO!="AIR") %>%
-    filter(ISO!="SEA") %>%
-    group_by(ISO,country,region_select,year) %>%
-    summarise(CO2=sum(CO2,na.rm=TRUE)) %>% 
-    filter(year<2019) %>% 
-    filter(year>1969)
-  
-  co2_sdgs <- left_join(co2_sdgs,sdgs %>% 
-                          filter(indicatorID=="Life_expectancy") %>% 
-                          select(ISO=iso3c,year=date,life_expectancy=value) %>% 
-                          mutate(year=as.numeric(year)),by=c("year","ISO"))
-  
-  # filter only countries that have life expectancy values
-  co2_sdgs <- co2_sdgs %>% 
-    filter(!is.na(life_expectancy))
-  
-  sdgs_high <- co2_sdgs %>% 
-    filter(life_expectancy>=75) %>% 
-    group_by(region_select) %>% 
-    summarise(value=sum(CO2,na.rm=TRUE))
-  
-  sdgs_high <- sdgs_high %>% 
-    mutate(total=sum(sdgs_high$value)) %>% 
+    filter(region_select!="Int. Aviation and Shipping") %>% 
+    rename(value=ghg_cum_1750) %>% 
+    mutate(var="Territorial CO2, excl. LULUCF (1750-2019)") %>% 
+    mutate(category="Historical cumulative emissions") %>% 
+    select(-source)
+  co2_long_1750$total <- sum(co2_long_1750$value)
+  co2_long_1750 <- co2_long_1750 %>% 
     mutate(fraction=value/total) %>% 
-    mutate(var="Cumulative CO2 of countries above 75yrs life expectancy (1970-2018)") %>% 
-    mutate(category="Historical cumulative emissions")  %>% 
-    mutate(label=paste0(round(total/1e9)," Gt CO2"))
+    mutate(label=paste0(round(total,0)," Gt CO2eq"))
   
-  sdgs_med <- co2_sdgs %>% 
-    filter(life_expectancy>=65) %>% 
-    filter(life_expectancy<75) %>% 
+  
+  co2_long_1850 <- hist_emissions_1850 %>% 
+    rename_all(gsub, pattern = paste0(region,'$'), replacement = 'region_select') %>% 
+    filter(region_select!="Int. Aviation and Shipping") %>% 
+    rename(value=ghg_cum_1850)
+  
+  co2_long_1850 <- co2_long_1850 %>% 
     group_by(region_select) %>% 
-    summarise(value=sum(CO2,na.rm=TRUE))
+    summarise(value=sum(value))
   
-  sdgs_med <- sdgs_med %>% 
-    mutate(total=sum(sdgs_med$value)) %>% 
+  co2_long_1850$total <- sum(co2_long_1850$value)
+  co2_long_1850 <- co2_long_1850 %>% 
     mutate(fraction=value/total) %>% 
-    mutate(var="Cumulative CO2 of countries between 65 and 75yrs life expectancy (1970-2018)") %>%
-    mutate(category="Historical cumulative emissions")  %>% 
-    mutate(label=paste0(round(total/1e9)," Gt CO2"))
+    mutate(label=paste0(round(total,0)," Gt CO2eq")) %>% 
+    mutate(var="Territorial CO2, incl. LULUCF (1850-2019)") %>% 
+    mutate(category="Historical cumulative emissions")
   
-  sdgs_low <- co2_sdgs %>% 
-    filter(life_expectancy<65) %>% 
-    group_by(region_select) %>% 
-    summarise(value=sum(CO2,na.rm=TRUE))
-  
-  sdgs_low <- sdgs_low %>% 
-    mutate(total=sum(sdgs_low$value)) %>% 
-    mutate(fraction=value/total) %>% 
-    mutate(var="Cumulative CO2 of countries below 65yrs life expectancy (1970-2018)") %>%
-    mutate(category="Historical cumulative emissions")  %>% 
-    mutate(label=paste0(round(total/1e9)," Gt CO2"))
   
   data <- rbind(edgar_co2,edgar_co2_2019)
   data <- rbind(data,land_co2)
   data <- rbind(data,land_co2_2019)
   data <- rbind(data,gcp_consumption_co2)
   data <- rbind(data,pop)
-  data <- rbind(data,sdgs_high)
-  data <- rbind(data,sdgs_med)
-  data <- rbind(data,sdgs_low)
   data <- rbind(data,ghg)
   data <- rbind(data,ghg_lulucf)
+  data <- rbind(data,co2_long_1750)
+  data <- rbind(data,co2_long_1850)
   
   
   data$var <- as.factor(data$var)
   data$category <- as.factor(data$category)
-  data$var <- fct_relevel(data$var,"Population (2019)","Consumption CO2, fossil only (2018)","Territorial GHG, excl. LULUCF (2019)","LULUCF CO2 (2019)","Territorial GHG, incl. LULUCF (2019)","Cumulative CO2 of countries above 75yrs life expectancy (1970-2018)","Cumulative CO2 of countries between 65 and 75yrs life expectancy (1970-2018)","Cumulative CO2 of countries below 65yrs life expectancy (1970-2018)")
+  data$var <- fct_relevel(data$var,"Population (2019)","Consumption CO2, fossil only (2018)","Territorial GHG, excl. LULUCF (2019)","LULUCF CO2 (2019)","Territorial GHG, incl. LULUCF (2019)")
   
   return(data)
 }
@@ -303,7 +269,7 @@ gather_data <- function(region,ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop) {
 
 ```{r equity_perspectives_regions_6,dpi=300,fig.width=9,fig.height=9,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
-data <- gather_data("region_ar6_6",ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop)
+data <- gather_data("region_ar6_6",ipcc_regions,edgar_ghg,land,wdi_data_gdp_pop,hist_emissions_1750,hist_emissions_1850)
 
 
 ##### find positions for each region and % value
@@ -356,16 +322,16 @@ p1 <- data %>%
 
 p2 <- data %>%
   filter(category=="Historical cumulative emissions") %>%
-  filter(!grepl("life",var)) %>% 
+  filter(!grepl("proccess",var)) %>% 
   ggplot(.,aes(x=var,y=fraction,fill=region_select)) +
   geom_bar(stat='identity',color="#737373") +
   geom_text(data=data %>%
               filter(category=="Historical cumulative emissions") %>%
-              filter(!grepl("life",var)) %>% 
+              filter(!grepl("proccess",var)) %>% 
               filter(region_select=="Africa"),aes(x=var,y=1.08,label=label)) +
   geom_text(data=data %>%
               filter(category=="Historical cumulative emissions") %>%
-              filter(!grepl("life",var)),
+              filter(!grepl("proccess",var)),
               aes(x=var,y=position,label=paste0(round(fraction,2)*100,"%")),color="#525252") +
   scale_fill_brewer(palette="Set2") +
   scale_x_discrete(labels=label_wrap_gen(width=25,multi_line = TRUE)) +

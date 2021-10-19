@@ -191,7 +191,7 @@ GCB<-gather(GCB[,c(1:218,232)],country,ghg,Afghanistan:Bunkers)#Zimbabwe)
 GCB<-left_join(GCB,gcb_regions,by=c("country"="V1"))
 
 GCB<-GCB %>%
-  mutate(ghg=(ghg*3.664)/1e3) %>% #the data provided by GCB are in MtC (1MtC = 1 million tonne of carbon = 3.664 million tonnes of CO2)
+  mutate(ghg=(ghg*44/12)/1e3) %>% #the data provided by GCB are in MtC (1MtC = 1 million tonne of carbon = 3.664 million tonnes of CO2)
   mutate(region_ar6_6=ifelse(country=="Bunkers","Int. Aviation and Shipping",region_ar6_6)) %>%
   mutate(region_ar6_10=ifelse(country=="Bunkers","Int. Aviation and Shipping",region_ar6_10))
 
@@ -223,7 +223,7 @@ yugoslavia_shares<-yugoslavia_shares %>%
 
 CDIAC<-CDIAC %>%
   select("country"="Nation","year"="Year","ghg"="Total CO2 emissions from fossil-fuels and cement production (thousand metric tons of C)")%>%
-  mutate(ghg=(ghg*3.667)/1e6)%>%
+  mutate(ghg=(ghg*44/12)/1e6)%>%
   filter(year<1959)
 
 CDIAC<-left_join(CDIAC,cdiac_regions,by=c("country"="cdiac_countries"))
@@ -479,6 +479,8 @@ openxlsx::writeData(wb,"emissions 1850-2019 6 regions",hist_emissions_1850, colN
 openxlsx::writeData(wb,"emissions 1750-2019 6 regions",hist_emissions_1750, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,"../../Results/Plot data/cumulative_historical_emissions_by_region.xlsx",overwrite=T)
+
+save(hist_emissions_1850,hist_emissions_1750,file="../../Data/cumulative_historical_emissions_by_regions.RData")
 
 ```
 

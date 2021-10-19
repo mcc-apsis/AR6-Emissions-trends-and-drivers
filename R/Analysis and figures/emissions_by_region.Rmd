@@ -168,7 +168,7 @@ p1 <- p1 + p_labels + plot_layout(widths=c(5,2.1))
 
 ```{r benchmark_data_and_rates, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
 
-scenario_data <- read.csv("../../Data/supplemetary data/emission_reduction_benchmarks_ar6_2021_10_07.csv")
+scenario_data <- read.csv("../../Data/supplemetary data/ar6_2021_10_14_emission_reduction_benchmarks.csv")
 
 scenario_data <- scenario_data %>%
   rename(rate=reduction_rates_2020.2040)

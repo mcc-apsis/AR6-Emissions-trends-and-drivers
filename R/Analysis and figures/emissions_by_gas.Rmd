@@ -33,6 +33,7 @@ load("../../Data/land.RData")
 uncertainties <- data.frame(gas=c('CO2 FFI','CO2 LULUCF','CH4','N2O','Fgas'),
                             uncertainty=c(0.08,0.7,0.3,0.6,0.3))
 
+
 ```
 
 

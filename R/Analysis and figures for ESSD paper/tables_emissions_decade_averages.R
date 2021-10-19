@@ -154,27 +154,33 @@ GHG_by_gas <- GHG_data %>%
   mutate(decade=ifelse((year>1969 & year<1980),"1970-1979",NA)) %>%
   mutate(decade=ifelse((year>1979 & year<1990),"1980-1989",decade)) %>%
   mutate(decade=ifelse((year>1989 & year<2000),"1990-1999",decade)) %>%
-  mutate(decade=ifelse((year>1999 & year<2010),"2000-2009",decade)) %>%
+  mutate(decade=ifelse((year>1999 & year<2010),"2000-2009",decade)) #%>%
   #mutate(decade=ifelse((year>2009 & year<2020),"2010-2019",decade))
-  mutate(decade=ifelse((year>2008 & year<=2018),"2009-2018",decade))
+  #mutate(decade=ifelse((year>2008 & year<=2018),"2009-2018",decade))
 
+GHG_by_gas_0918 <- GHG_by_gas %>%
+  filter(year>=2009) %>%
+  filter(year<=2018) %>%
+  mutate(decade=ifelse((year>2008 & year<=2018),"2009-2018",decade))
+  
 GHG_by_gas_2018 <- GHG_by_gas %>%
   filter(year==2018) %>%
   mutate(decade="2018")
 
-GHG_by_gas_2017 <- GHG_by_gas %>%
-  filter(year==2017) %>%
-  mutate(decade="2017")
-
-GHG_by_gas_2019 <- GHG_by_gas %>%
-  filter(year==2019) %>%
-  mutate(decade="2019")
+# GHG_by_gas_2017 <- GHG_by_gas %>%
+#   filter(year==2017) %>%
+#   mutate(decade="2017")
+# 
+# GHG_by_gas_2019 <- GHG_by_gas %>%
+#   filter(year==2019) %>%
+#   mutate(decade="2019")
 
 GHG_by_gas_1970 <- GHG_by_gas %>%
   filter(year==1970) %>%
   mutate(decade="1970")
 
-GHG_by_gas<-rbind(GHG_by_gas,GHG_by_gas_1970,GHG_by_gas_2017,GHG_by_gas_2018,GHG_by_gas_2019)
+#GHG_by_gas<-rbind(GHG_by_gas,GHG_by_gas_0918,GHG_by_gas_1970,GHG_by_gas_2017,GHG_by_gas_2018,GHG_by_gas_2019)
+GHG_by_gas<-rbind(GHG_by_gas,GHG_by_gas_0918,GHG_by_gas_1970,GHG_by_gas_2018)
 
 GHG <- GHG_by_gas %>%
   group_by(decade,year) %>%
@@ -244,23 +250,28 @@ GHG_by_region <- GHG_by_region_ext %>%
   mutate(decade=ifelse((year>1969 & year<1980),"1970-1979",NA)) %>%
   mutate(decade=ifelse((year>1979 & year<1990),"1980-1989",decade)) %>%
   mutate(decade=ifelse((year>1989 & year<2000),"1990-1999",decade)) %>%
-  mutate(decade=ifelse((year>1999 & year<2010),"2000-2009",decade)) %>%
+  mutate(decade=ifelse((year>1999 & year<2010),"2000-2009",decade)) #%>%
   #mutate(decade=ifelse((year>2009 & year<2020),"2010-2019",decade))
+  #mutate(decade=ifelse((year>2008 & year<=2018),"2009-2018",decade))
+
+GHG_by_region_0918 <- GHG_by_region %>%
+  filter(year>=2009) %>%
+  filter(year<=2018) %>%
   mutate(decade=ifelse((year>2008 & year<=2018),"2009-2018",decade))
 
 GHG_by_region_2018 <- GHG_by_region %>%
   filter(year==2018) %>%
   mutate(decade="2018")
 
-GHG_by_region_2019 <- GHG_by_region %>%
-  filter(year==2019) %>%
-  mutate(decade="2019")
+# GHG_by_region_2019 <- GHG_by_region %>%
+#   filter(year==2019) %>%
+#   mutate(decade="2019")
 
 GHG_by_region_1970 <- GHG_by_region %>%
   filter(year==1970) %>%
   mutate(decade="1970")
 
-GHG_by_region<-rbind(GHG_by_region,GHG_by_region_1970,GHG_by_region_2018,GHG_by_region_2019)
+GHG_by_region<-rbind(GHG_by_region,GHG_by_region_0918,GHG_by_region_1970,GHG_by_region_2018)#,GHG_by_region_2019)
 
 GHG_by_region_total <- GHG_by_region %>%
   group_by(decade, year) %>%
@@ -309,12 +320,17 @@ GHG_by_sector <- GHG_data_AIRSEA %>%
   mutate(decade=ifelse((year>1969 & year<1980),"1970-1979",NA)) %>%
   mutate(decade=ifelse((year>1979 & year<1990),"1980-1989",decade)) %>%
   mutate(decade=ifelse((year>1989 & year<2000),"1990-1999",decade)) %>%
-  mutate(decade=ifelse((year>1999 & year<2010),"2000-2009",decade)) %>%
+  mutate(decade=ifelse((year>1999 & year<2010),"2000-2009",decade)) #%>%
   #mutate(decade=ifelse((year>2009 & year<2020),"2010-2019",decade))
-  mutate(decade=ifelse((year>2008 & year<=2018),"2009-2018",decade))
+  #mutate(decade=ifelse((year>2008 & year<=2018),"2009-2018",decade))
   #group_by(chapter_title,decade) %>%
   #summarise(value=mean(value,na.rm=TRUE))
 
+  GHG_by_sector_0918 <- GHG_by_sector %>%
+  filter(year>=2009) %>%
+  filter(year<=2018) %>%
+  mutate(decade=ifelse((year>2008 & year<=2018),"2009-2018",decade))
+  
 GHG_by_sector_2018 <- GHG_by_sector %>%
   filter(year==2018) %>%
   mutate(decade="2018")
@@ -323,7 +339,7 @@ GHG_by_sector_1970 <- GHG_by_sector %>%
   filter(year==1970) %>%
   mutate(decade="1970")
 
-GHG_by_sector<-rbind(GHG_by_sector,GHG_by_sector_1970,GHG_by_sector_2018)
+GHG_by_sector<-rbind(GHG_by_sector,GHG_by_sector_0918,GHG_by_sector_1970,GHG_by_sector_2018)
 
 GHG_by_sector <- GHG_by_sector %>%  
   group_by(chapter_title,decade) %>%

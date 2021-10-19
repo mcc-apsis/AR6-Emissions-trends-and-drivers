@@ -177,19 +177,34 @@ saveWorkbook(wb,"../../Results/Public data/ipcc_ar6_data_covid.xlsx",overwrite=T
 
 ```{r annual_gcp, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
 
+carbon_monitor <- read.csv('../../Data/COVID/carbonmonitor-global_datas_2021-08-31.csv')
+carbon_monitor <- carbon_monitor %>% 
+  filter(country=="WORLD") %>% 
+  mutate(date=as.Date(date, "%d/%m/%Y")) %>% 
+  mutate(year=format(date,format="%Y"))
+carbon_monitor <- carbon_monitor %>% 
+  group_by(year) %>% 
+  summarise(value=sum(value)/1000) %>% 
+  mutate(dataset="Carbon Monitor (CM)")
+carbon_monitor <- carbon_monitor %>% 
+  filter(year!=2021) %>% 
+  group_by(dataset) %>% 
+  mutate(change=first(value)-last(value)) %>% 
+  mutate(rate=(change/first(value))*100)
+
 data <- edgar_raw %>% 
   filter(gas=="CO2") %>% 
   filter(year>1969) %>% 
   group_by(year) %>% 
   summarise(value=sum(value,na.rm=TRUE)/1e9) %>% 
   ungroup() %>% 
-  mutate(dataset="EDGARv6")
+  mutate(dataset="EDGAR")
 
 
 #### calculate rate of decline for different crises
 
 crises <- data %>% 
-  filter(dataset=="EDGARv6") %>% 
+  filter(dataset=="EDGAR") %>% 
   filter(year %in% c(1973,1974,1991,1992,2008,2009,2019,2020))
 
 crises <- left_join(crises,data.frame(year=c(1973,1974,1991,1992,2008,2009,2019,2020),
@@ -200,7 +215,7 @@ crises <- left_join(crises,data.frame(year=c(1973,1974,1991,1992,2008,2009,2019,
                                               "2008 Global\nfinancial crisis",
                                               "2020 COVID-19\npandemic",
                                               "2020 COVID-19\npandemic"),
-                                      position=c(16,16,20,20,29,29,33,33)))
+                                      position=c(16,16,20,20,29,29,36,36)))
 crises <- crises %>% 
   group_by(label) %>% 
   mutate(change=first(value)-last(value)) %>% 
@@ -214,25 +229,55 @@ crises <- crises %>%
 
 crises <- crises %>% 
   mutate(label2=paste0(label,"\n","-",rate,"%")) %>% 
-  mutate(label2 = ifelse(year==2020,paste0(label,"\n-",rate,"% (EDGARv6)\n-5.6% (GCB)\n-6.3% (BP)\n-5.8% (IEA)"),label2))
+  mutate(label2 = ifelse(year==2020,paste0(label,"\n-",rate,"% (EDGAR)\n-5.6% (GCB)\n-6.3% (BP)\n-5.8% (IEA)\n-6.0% (CM)"),label2))
 
 # uncertainty bands
 data <- data %>% 
   mutate(high=value+(value*0.08)) %>% 
   mutate(low=value-(value*0.08))
 
+# # regression lines
+# regres <- data %>% 
+#   mutate(event=ifelse(year<=1973 & year>=1971,"Oil crisis",NA)) %>% 
+#   mutate(event=ifelse(year<=1991 & year>=1989,"Soviet Union",event)) %>% 
+#   mutate(event=ifelse(year<=2008 & year>=2006,"Financial crisis",event)) %>% 
+#   mutate(event=ifelse(year<=2019 & year>=2017,"COVID",event)) %>% 
+#   filter(!is.na(event))
+# 
+# growth_rate <- function(years,y) {
+#   
+#   data <- data.frame(years,y)
+#   
+#   fit <- lm(log(y) ~ years,data = data)
+#   
+#   data <- data %>% 
+#     mutate(rate=fit$coefficients[2]) %>% 
+#     mutate(predicted_x = exp(predict(fit,data %>% select(years)))) %>% 
+#     mutate(st_error = sqrt(diag(vcov(fit)))[2])
+#   
+#   newdata <- data.frame(years=c(first(years):(last(years)+3)))
+#   newdata <- newdata %>% 
+#     mutate(predicted_x = exp(predict(fit,newdata %>% select(years))))
+#   
+#   return(newdata)
+# }
+# 
+# regres <- rbind(growth_rate(regres$year[regres$event=="Oil crisis"],regres$value[regres$event=="Oil crisis"]) %>% mutate(event="Oil crisis"),
+#                growth_rate(regres$year[regres$event=="Soviet Union"],regres$value[regres$event=="Soviet Union"]) %>% mutate(event="Soviet Union"),
+#                growth_rate(regres$year[regres$event=="Financial crisis"],regres$value[regres$event=="Financial crisis"]) %>% mutate(event="Financial crisis"),
+#                growth_rate(regres$year[regres$event=="COVID"],regres$value[regres$event=="COVID"]) %>% mutate(event="COVID"))
+
+
 p_annual_gcb <- data %>% 
   ggplot(.,aes(x=year,y=value)) +
   geom_path(aes(group=dataset,color=dataset)) +
   geom_ribbon(aes(ymin=low,ymax=high,fill=dataset),alpha=0.3,) +
   
+  #geom_path(data=regres,aes(group=event,x=years,y=predicted_x)) +
+  
   geom_vline(data=crises,aes(xintercept=year),linetype="dashed") +
   
   geom_text(data=crises,aes(x=year+0.5,y=position,label=label2),vjust=1,hjust=0,size=3.5) +
-  
-  #geom_text(data=crises,aes(x=year+0.65,y=position,label=paste0("-",rate,"%"),hjust=0)) +
-  
-  
   
   ylab(bquote(~CO[2]*" Emissions (Gt" ~CO[2]* "/yr)")) +
   scale_y_continuous(limits=c(10,42)) +
@@ -280,7 +325,7 @@ covid_sectors_cm <- covid_sectors_cm %>%
 
 ### Match other sectors to Le Quere
 covid_sectors_cm <- covid_sectors_cm %>% 
-  mutate(sector=ifelse(sector=="Ground Transport","Transport",sector))
+  mutate(sector=ifelse(sector=="Ground Transport","Land Transport",sector))
 
 
 ## add uncertainty
@@ -346,7 +391,7 @@ covid_sectors_gcp <- covid_sectors_gcp %>%
 covid_sectors_gcp <- covid_sectors_gcp %>% 
   mutate(sector=ifelse(grepl("PWR",key),"Power",NA)) %>% 
   mutate(sector=ifelse(grepl("IND",key),"Industry",sector)) %>% 
-  mutate(sector=ifelse(grepl("TRS",key),"Transport",sector)) %>% 
+  mutate(sector=ifelse(grepl("TRS",key),"Land Transport",sector)) %>% 
   mutate(sector=ifelse(grepl("PUB",key),"Public sector",sector)) %>% 
   mutate(sector=ifelse(grepl("RES",key),"Residential",sector)) %>% 
   mutate(sector=ifelse(grepl("AVI",key),"Aviation",sector)) %>% 
@@ -355,18 +400,6 @@ covid_sectors_gcp <- covid_sectors_gcp %>%
   select(-key,-DATE)
 
 covid_sectors_gcp <- spread(covid_sectors_gcp,estimate,value)
-
-# covid_sectors_gcp %>%
-#   filter(sector!="Total") %>% 
-#   ggplot(.,aes(x=date,y=medium,color=sector)) +
-#   geom_line() +
-#   geom_ribbon(aes(ymin=low,ymax=high,fill=sector),alpha=0.3) +
-#   scale_x_date(breaks= as.Date(c("2020-01-01","2020-04-01","2020-07-01","2020-10-01")),date_labels = "%b") +
-#   facet_grid(.~sector) +
-#   ylab("Change in global daily fossil\n CO2 emissions (MtCO2/day)") +
-#   theme(legend.position="none",
-#         axis.title.x = element_blank())
-
 
 ```
 
@@ -379,14 +412,14 @@ covid_sectors <- rbind(covid_sectors_gcp %>%
                          mutate(dataset="Le Quéré et al. (2021)"),
                        covid_sectors_cm %>% 
                          select(sector,date,value=medium,high,low) %>% 
-                         mutate(dataset="Carbon Monitor"))
+                         mutate(dataset="Carbon Monitor (CM)"))
 
 fake_data_for_legend <- covid_sectors %>% 
-  filter(dataset=="Carbon Monitor") %>% 
+  filter(dataset=="Carbon Monitor (CM)") %>% 
   mutate(value=NA) %>% 
   mutate(high=NA) %>% 
   mutate(low=NA) %>% 
-  mutate(dataset="EDGARv6")
+  mutate(dataset="EDGAR")
 
 covid_sectors <- rbind(covid_sectors,fake_data_for_legend)
 
