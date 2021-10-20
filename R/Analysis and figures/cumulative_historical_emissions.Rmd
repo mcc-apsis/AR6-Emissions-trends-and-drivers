@@ -284,6 +284,13 @@ hist_emissions_1750<-hist_emissions_1750 %>%
 hist_emissions_1850<-left_join(hist_emissions_1850,ussr_shares,by="region_ar6_10")
 hist_emissions_1850<-left_join(hist_emissions_1850,yugoslavia_shares,by="region_ar6_10")
 
+
+```
+
+```{r plot_region_10,echo=FALSE}
+
+
+
 hist_emissions_1850<-hist_emissions_1850 %>%
   group_by(region_ar6_10) %>%
   mutate(ghg_cum_1850=sum(ghg_cum_1850,ghg_ussr_cum_1850,ghg_yugo_cum_1850,na.rm = TRUE)) %>%
