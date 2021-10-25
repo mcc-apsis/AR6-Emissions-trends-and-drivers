@@ -45,7 +45,7 @@ co2_trend$key <- as.factor(co2_trend$key)
 co2_trend$key <- factor(co2_trend$key,levels(co2_trend$key)[c(1,2,3,4,6,5)])
 
 shares <- co2_trend %>% 
-  filter(year %in% c(1850,1900,1950,2000,2019)) %>% 
+  filter(year %in% c(1850,1900,1950,1990,2019)) %>% 
   group_by(year) %>% 
   mutate(totals=sum(value)) %>% 
   ungroup() %>% 
@@ -56,7 +56,11 @@ shares <- co2_trend %>%
 shares <- locate_shares(shares,"key",5)
 
 
-line_data <- data.frame(x=c(1850,1850,1900,1900,1950,1950,2000,2000,2019,2019),y=c(0,45))
+line_data <- data.frame(x=c(1850,1850,1900,1900,1950,1950,1990,1990,2019,2019),y=c(0,45))
+
+shares <- shares %>% 
+  mutate(include=ifelse(fractions<10 & year<2019,0,1))
+
 
 
 p1 <- co2_trend %>% 
@@ -65,23 +69,50 @@ p1 <- co2_trend %>%
   
   geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed") +
   
-  geom_text(data=shares,aes(x=year+3.5,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525")+
+  geom_text(data=shares %>% filter(include==1),aes(x=year+1,y=location,label=paste(round(fractions,0),"%",sep="")),size=3.5,colour="#252525",hjust=0)+
   
   geom_text(data=shares %>% filter(key=="Cement"),
             aes(x=year,y=47,label=paste(round(totals,0),"Gt")),size=3.5,colour="#252525")+
   
-  ylab("Carbon emissions (GtCO2/yr)") +
+  ylab(bquote(~CO[2]*" emissions (Gt" ~CO[2]* "/yr)")) +
   big_trend_theme +
-  scale_x_continuous(breaks=c(1850,1900,1950,2000,2019))  +
+  scale_x_continuous(breaks=c(1850,1900,1950,1990,2019))  +
   theme(legend.position = c(0.15,0.7),
         legend.title = element_blank(),
-        legend.background = element_blank())
+        legend.background = element_blank()) +
+  ggtitle(bquote("a. Long term trend of anthropogenic"~CO[2]* " emissions sources"))
 
 p1
 ```
 
 ```{r historical_budget, echo=FALSE,warning=FALSE,fig.width=4,fig.height=3}
 
+## analysis of how much of the total budget is used up
+
+table_historic <- expand.grid(budget=c("1.5 budget (2020-) 67% [400 GtCO2]","2.0 budget (2020-) 67% [1150 GtCO2]"),budget_uncertainty=c("High (+220 GtCO2)","Med (+0 GtCO2)","Low (-220 GtCO2)"),historic_emissions=c("High (2400+240 GtCO2)","Med (2400 GtCO2)","Low (2400-240 GtCO2)"))
+
+table_historic <- table_historic %>% 
+  mutate(budget_value=ifelse(budget=="1.5 budget (2020-) 67% [400 GtCO2]",400,1150))
+
+table_historic <- table_historic %>% 
+  mutate(budget_value=ifelse(budget_uncertainty=="High (+220 GtCO2)",budget_value+220,budget_value)) %>% 
+  mutate(budget_value=ifelse(budget_uncertainty=="Low (-220 GtCO2)",budget_value-220,budget_value))
+
+table_historic <- table_historic %>% 
+  mutate(historic_emissions_value=2400) %>% 
+  mutate(historic_emissions_value=ifelse(historic_emissions=="High (2400+240 GtCO2)",historic_emissions_value+240,historic_emissions_value)) %>% 
+  mutate(historic_emissions_value=ifelse(historic_emissions=="Low (2400-240 GtCO2)",historic_emissions_value-240,historic_emissions_value))
+
+table_historic <- table_historic %>% 
+  mutate(total_historic_budget=budget_value+historic_emissions_value) %>% 
+  mutate(fraction_used=round(historic_emissions_value/total_historic_budget,2))
+
+table_historic <- table_historic %>% 
+  arrange(budget,fraction_used)
+
+```
+
+```{r historical_budget_plot, echo=FALSE,warning=FALSE,fig.width=4,fig.height=3}
 
 ###### calculate historical cumulative CO2
 
@@ -130,8 +161,8 @@ historical_budget <- historical_budget %>%
 budget <- data.frame(target=c("1.5 budget (2020-)","1.5 budget (2020-)","1.5 budget (2020-)","2.0 budget (2020-)","2.0 budget (2020-)","2.0 budget (2020-)"),category=c("67%","50%","33%","67%","50%","34%"),value=c(400,500,650,1150,1350,1700))
 
 # Above are budgets from 1850-2019. We need to subtract 2019 emissions to get 2020- budgets
-budget <- budget %>% 
-  mutate(value=value-gcb$Total_CO2[gcb$Year==2019])
+#budget <- budget %>% 
+#  mutate(value=value-gcb$Total_CO2[gcb$Year==2019])
 
 # Now we add the medium budgets to our bar plot
 historical_budget <- historical_budget %>% 
@@ -181,6 +212,7 @@ historical_budget$key <- fct_reorder(historical_budget$key,historical_budget$id)
 color_scale <- c("#ffffcc","#a1dab4","#41b6c4","#2c7fb8","#253494")
 
 
+
 p2 <- historical_budget %>% 
   ggplot(.,aes(fill=key)) +
   geom_rect(aes(x=key,
@@ -215,15 +247,16 @@ p2 <- historical_budget %>%
 
   #geom_text(aes(x=id,y=ifelse(!is.na(higher_budget),higher_budget+250,end+250),label=paste(signif(value,2))),size=3.5,color="#737373") +
 
-  ylab('Carbon emissions,\n cumulative (GtCO2)') +
-  #ylab(expression(Carbon~emissions~cumulative~(GtCO^2))) +
+  #ylab('Carbon emissions,\n cumulative (GtCO2)') +
+  ylab(bquote(~CO[2]*" emissions (Gt" ~CO[2]* ")")) +
   
   ylim(0,4400) +
   big_trend_theme +
   scale_fill_manual(values=color_scale) +
   scale_x_discrete(labels=str_wrap(historical_budget$key,8)) +
   theme(legend.position= "none",
-        axis.title.x = element_blank())
+        axis.title.x = element_blank()) +
+  ggtitle(str_wrap("b. Historic emissions vs. future carbon budgets",width=30))
 p2
 
 ```
@@ -298,40 +331,103 @@ table <- left_join(table %>% select(-year_netzero),year_netzero_extract, by = "n
 table <- table %>% 
   arrange(no)
 
+
+# calculate overshoot
 table <- table %>% 
-  mutate(scenario=ifelse(budget_uncertainty=="High (+220 GtCO2)" & current_emissions=="Low (2019 emissions - CO2 uncertainty)" & reduction_rate=="High (-5%/yr)","Best case",NA)) %>% 
-  mutate(scenario=ifelse(budget_uncertainty=="Low (-220 GtCO2)" & current_emissions=="High (2019 emissions + CO2 uncertainty)" & reduction_rate=="None (-0%/yr)","Worst case",scenario)) %>% 
-  mutate(scenario=ifelse(budget_uncertainty=="Med (+0 GtCO2)" & current_emissions=="Med (2019 emissions)" & reduction_rate=="Med (-2%/yr)","Medium case",scenario))
+  mutate(overshoot=ifelse(year>year_exceed & year<year_netzero,current_emissions_value,NA)) %>% 
+  mutate(overshoot=ifelse(year>year_exceed & is.na(year_netzero),current_emissions_value,overshoot))
+
+table <- table %>% 
+  mutate(scenario=ifelse(budget_uncertainty=="High (+220 GtCO2)" & current_emissions=="Low (2019 emissions - CO2 uncertainty)","Best case",NA)) %>% 
+  mutate(scenario=ifelse(budget_uncertainty=="Low (-220 GtCO2)" & current_emissions=="High (2019 emissions + CO2 uncertainty)","Worst case",scenario)) %>% 
+  mutate(scenario=ifelse(budget_uncertainty=="Med (+0 GtCO2)" & current_emissions=="Med (2019 emissions)","Medium case",scenario))
+
+
 
 table <- table %>% 
   select(no,budget,scenario,everything()) %>% 
   arrange(no)
 
-summary_table <- spread(table %>% group_by(no) %>% mutate(reduction_rate_value=last(reduction_rate_value)) %>% select(-current_emissions_value,-cumulative_reduction),year,cumulative_emissions)
+```
+
+```{r summary_table, echo=FALSE,warning=FALSE}
+
+
+summary_table <- table %>% 
+  filter(budget=="1.5 budget (2020-) 67%" | budget=="2.0 budget (2020-) 67%") %>% 
+  filter(!is.na(scenario)) %>%
+  group_by(no,budget,scenario,budget_uncertainty,current_emissions,reduction_rate) %>% 
+  summarise(reduction_rate_value=last(reduction_rate_value),year_exceed=last(year_exceed),year_netzero=last(year_netzero),overshoot=signif(sum(overshoot,na.rm = TRUE),2))
+  
+
+figure_table <- summary_table %>% 
+  arrange(scenario) %>% 
+  group_by(budget,reduction_rate) %>% 
+  summarise(year_netzero=first(year_netzero),
+            year_exceed=paste0(nth(year_exceed,2)," (",nth(year_exceed,3),"-",nth(year_exceed,1),")"),
+            overshoot=paste0(nth(overshoot,2)," (",nth(overshoot,3),"-",nth(overshoot,1),")"))
+
+figure_table <- figure_table %>% mutate(reduction_rate=as.character(reduction_rate))
+figure_table <- figure_table %>% 
+  mutate(reduction_rate=ifelse(reduction_rate=="High (-5%/yr)","-5%/yr reductions",reduction_rate)) %>% 
+  mutate(reduction_rate=ifelse(reduction_rate=="Med (-2%/yr)","-2%/yr reductions",reduction_rate)) %>% 
+  mutate(reduction_rate=ifelse(reduction_rate=="None (-0%/yr)","-0%/yr reductions",reduction_rate))
+
+figure_table <- figure_table %>% 
+  mutate(budget=ifelse(budget=="1.5 budget (2020-) 67%","1.5\u00B0C (67%)",budget)) %>% 
+  mutate(budget=ifelse(budget=="2.0 budget (2020-) 67%","2.0\u00B0C (67%)",budget))
+
+
+
+
+figure_table <- gather(figure_table,var,value,-budget,-reduction_rate)
+figure_table <- spread(figure_table,reduction_rate,value)
+
+figure_table <- figure_table %>% 
+  mutate(var=ifelse(var=="year_exceed","Budget exceedance year",var)) %>% 
+  mutate(var=ifelse(var=="year_netzero","Net zero emissions year",var)) %>% 
+  mutate(var=ifelse(var=="overshoot","Overshoot (GtCO2)",var))
+
+
+
+
+figure_table$var<- as.factor(figure_table$var)
+#figure_table$var <- factor(figure_table$var,levels=levels(figure_table$var)[c(2,3,1)])
+figure_table <- figure_table %>% 
+  arrange(budget,var)
+
+
+figure_table <- figure_table %>% 
+  rename(Budget=budget) %>% 
+  rename(Variable=var)
+
+p4 <- ggtexttable(figure_table, rows = NULL,theme = ttheme("light")) + ggtitle("blarg")
+p4
 
 
 ```
 
+
 ```{r budget_dates_sheet, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3}
 
-future_budget <- summary_table %>% 
-  filter(current_emissions=="Med (2019 emissions)") %>% 
-  filter(budget=="1.5 budget (2020-) 67%" | budget=="2.0 budget (2020-) 67%") %>% 
-  filter(budget_uncertainty=="Med (+0 GtCO2)") %>% 
-  mutate(year_exceed=as.numeric(year_exceed)) %>% 
-  mutate(year_netzero=as.numeric(year_netzero))
-
-p3 <- future_budget %>% ggplot(.,aes(x=year_exceed,y=budget)) +
-  geom_point(color="red") +
-  geom_text(aes(x=year_exceed+1,y=budget,label=year_exceed),hjust=0,size=4) +
-  geom_point(inherit.aes = FALSE,data=future_budget,aes(x=year_netzero,y=budget),colour="blue") +
-  geom_text(aes(x=year_netzero+1,y=budget,label=year_netzero),hjust=0,size=4) +
-  facet_grid(reduction_rate~.) +
-  scale_x_continuous(limits = c(2020,2100)) +
-  theme(legend.position='none',
-         axis.title.y=element_blank()) +
-   xlab('Year of budget exceedance') 
-p3
+# future_budget <- summary_table %>% 
+#   filter(current_emissions=="Med (2019 emissions)") %>% 
+#   filter(budget=="1.5 budget (2020-) 67%" | budget=="2.0 budget (2020-) 67%") %>% 
+#   filter(budget_uncertainty=="Med (+0 GtCO2)") %>% 
+#   mutate(year_exceed=as.numeric(year_exceed)) %>% 
+#   mutate(year_netzero=as.numeric(year_netzero))
+# 
+# p3 <- future_budget %>% ggplot(.,aes(x=year_exceed,y=budget)) +
+#   geom_point(color="red") +
+#   geom_text(aes(x=year_exceed+1,y=budget,label=year_exceed),hjust=0,size=4) +
+#   geom_point(inherit.aes = FALSE,data=future_budget,aes(x=year_netzero,y=budget),colour="blue") +
+#   geom_text(aes(x=year_netzero+1,y=budget,label=year_netzero),hjust=0,size=4) +
+#   facet_grid(reduction_rate~.) +
+#   scale_x_continuous(limits = c(2020,2100)) +
+#   theme(legend.position='none',
+#          axis.title.y=element_blank()) +
+#    xlab('Year of budget exceedance') 
+# p3
 
 
 ```
@@ -344,13 +440,13 @@ wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_plot_CO2"))
 
 openxlsx::addWorksheet(wb,"panel a CO2 trend")
 openxlsx::addWorksheet(wb,"panel b historical budget")
-openxlsx::addWorksheet(wb,"panel c future budget")
+openxlsx::addWorksheet(wb,"panel c table")
 openxlsx::addWorksheet(wb,"budget summary")
 openxlsx::addWorksheet(wb,"budget calculations")
 
 openxlsx::writeData(wb, sheet = "panel a CO2 trend", spread(co2_trend,year,value), colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = "panel b historical budget", historical_budget, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = "panel c future budget", future_budget, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "panel c table", figure_table, colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = "budget summary", summary_table, colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = "budget calculations", table, colNames = T, rowNames = F)
 
@@ -385,7 +481,11 @@ openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_long_t
 
 ```{r long_term_co2, echo=FALSE,warning=FALSE,fig.width=10,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
-p1 / (p2 + p3 + plot_layout(widths = c(1,2.5)))
+#p1 / (p2 + p4 + plot_layout(widths = c(1,3)))
+
+#p1 / (p2 + p4 + plot_layout(widths = c(1,2.5)))
+
+(p1 + p2 + plot_layout(widths=c(2.5,1))) / wrap_elements(p4 + plot_annotation(title="c. Carbon budget exceedance under different assumptions of current emissions, reduction rates and uncertainty") & theme(plot.tag = element_text(size = 8)))
 
 
 ```

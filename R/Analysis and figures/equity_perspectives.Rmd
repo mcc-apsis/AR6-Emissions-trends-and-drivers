@@ -50,79 +50,35 @@ hist_1750_dev <- read.xlsx("../../Results/Plot data/cumulative_historical_emissi
 
 ```{r gather_data,include=FALSE}
 
-### edgar co2
+### edgar co2 2019
 
-edgar_co2 <- edgar_ghg %>%
-  filter(ISO!="AIR") %>%
-  filter(ISO!="SEA") %>%
-  group_by(region_ar6_6,year) %>%
-  summarise(value=sum(CO2,na.rm=TRUE))
-
-# 2019
-
-edgar_co2_2019 <- edgar_co2 %>% 
+co2 <- edgar_ghg %>%
   filter(year==2019) %>% 
-  select(-year) %>% 
-  mutate(var="Territorial CO2, fossil and proccess (2019)") %>% 
-  mutate(category="Current population and emissions")
-
-edgar_co2_2019 <- edgar_co2_2019 %>% 
-  mutate(total=sum(edgar_co2_2019$value)) %>% 
-  mutate(fraction=(value/total)) %>% 
-  mutate(label=paste0(round(total/1e9)," Gt CO2"))
-
-# cumulative
-
-edgar_co2 <- edgar_ghg %>%
-  filter(ISO!="AIR") %>%
-  filter(ISO!="SEA") %>%
-  group_by(region_ar6_6,year) %>%
-  summarise(value=sum(CO2,na.rm=TRUE)) 
-
-edgar_co2 <- edgar_co2 %>% 
-  filter(year<2020) %>% 
-  group_by(region_ar6_6) %>% 
-  summarise(value=sum(value,na.rm=TRUE)) %>% 
-  mutate(var="Territorial CO2, fossil and proccess (1970-2019)") %>% 
-  mutate(category="Historical cumulative emissions")
-
-edgar_co2 <- edgar_co2 %>% 
-  mutate(total=sum(edgar_co2$value)) %>% 
-  mutate(fraction=(value/total))  %>% 
-  mutate(label=paste0(round(total/1e9)," Gt CO2"))
-
-
-### LULUCF CO2
-
-land_co2 <- land %>% 
-  group_by(region_ar6_6,year) %>%
-  summarise(value=sum(mean,na.rm=TRUE))
-
-# 2019
-
-land_co2_2019 <- land_co2 %>% 
-  filter(year==2019) %>% 
-  summarise(value=sum(value,na.rm=TRUE)) %>% 
-  mutate(var="LULUCF CO2 (2019)") %>% 
-  mutate(category="Current population and emissions")
-
-land_co2_2019 <- land_co2_2019 %>% 
-  mutate(total=sum(land_co2_2019$value)) %>% 
-  mutate(fraction=(value/total)) %>% 
-  mutate(label=paste0(round(total/1e9)," Gt CO2"))
-
-# cumulative 1850-2019
-
-land_co2 <- land_co2 %>%
   group_by(region_ar6_6) %>%
-  summarise(value=sum(value,na.rm=TRUE)) %>%
-  mutate(var="LULUCF CO2 (1850-2019)") %>%
-  mutate(category="Historical cumulative emissions")
+  summarise(value=sum(CO2,na.rm=TRUE)) %>% 
+  mutate(var="Territorial CO2, fossil and proccess (2019)") %>% 
+  mutate(category="a. Current population and emissions by region")
 
-land_co2 <- land_co2 %>%
-  mutate(total=sum(land_co2$value)) %>%
-  mutate(fraction=(value/total)) %>%
-  mutate(label=paste0(round(total/1e9)," Gt CO2"))
+co2 <- co2 %>% 
+  mutate(total=sum(co2$value)) %>% 
+  mutate(fraction=(value/total)) %>% 
+  mutate(label=paste0(round(total/1e9)," GtCO2"))
+
+co2_dev <- edgar_ghg %>%
+  filter(year==2019) %>% 
+  group_by(region_ar6_dev) %>%
+  summarise(value=sum(CO2,na.rm=TRUE)) %>% 
+  mutate(var="Territorial CO2, fossil and proccess (2019)") %>% 
+  mutate(category="a. Current population and emissions by region")
+
+co2_dev <- co2_dev %>% 
+  mutate(total=sum(co2_dev$value)) %>% 
+  mutate(fraction=(value/total)) %>% 
+  mutate(label=paste0(round(total/1e9)," GtCO2"))
+
+co2 <- rbind(co2,co2_dev %>% filter(region_ar6_dev=="ldc") %>% rename(region_ar6_6=region_ar6_dev))
+
+
 
 
 # population
@@ -134,12 +90,28 @@ pop <- pop %>%
   group_by(region_ar6_6) %>% 
   summarise(value=sum(population,na.rm=TRUE)) %>% 
   mutate(var="Population (2019)") %>% 
-  mutate(category="Current population and emissions")
+  mutate(category="a. Current population and emissions by region")
 
 pop <- pop %>% 
   mutate(total=sum(pop$value)) %>% 
   mutate(fraction=(value/total)) %>% 
   mutate(label=paste0(round(total/1e9)," billion"))
+
+pop_dev <- left_join(ipcc_regions,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population), by = "ISO")
+
+pop_dev <- pop_dev %>% 
+  filter(year==2019) %>% 
+  group_by(region_ar6_dev) %>% 
+  summarise(value=sum(population,na.rm=TRUE)) %>% 
+  mutate(var="Population (2019)") %>% 
+  mutate(category="a. Current population and emissions by region")
+
+pop_dev <- pop_dev %>% 
+  mutate(total=sum(pop$value)) %>% 
+  mutate(fraction=(value/total)) %>% 
+  mutate(label=paste0(round(total/1e9)," billion"))
+
+pop <- rbind(pop,pop_dev %>% filter(region_ar6_dev=="ldc") %>% rename(region_ar6_6=region_ar6_dev))
 
 # consumption CO2
 
@@ -162,158 +134,204 @@ gcp_consumption_co2 <- gcp_consumption_co2 %>%
   mutate(value=value*(44/12)) %>% 
   mutate(value=value*1e6)
 
-gcp_consumption_co2 <- gcp_consumption_co2 %>% 
+co2_cons <- gcp_consumption_co2 %>% 
   filter(year==2018) %>% 
   group_by(region_ar6_6) %>% 
   summarise(value=sum(value,na.rm=TRUE)) %>% 
   mutate(var="Consumption CO2, fossil only (2018)") %>% 
   filter(!is.na(region_ar6_6)) %>% 
-  mutate(category="Current population and emissions")
+  mutate(category="a. Current population and emissions by region")
 
-gcp_consumption_co2 <- gcp_consumption_co2 %>% 
-  mutate(total=sum(gcp_consumption_co2$value)) %>% 
+co2_cons <- co2_cons %>% 
+  mutate(total=sum(co2_cons$value)) %>% 
   mutate(fraction=(value/total)) %>% 
-  mutate(label=paste0(round(total/1e9)," Gt CO2"))
+  mutate(label=paste0(round(total/1e9)," GtCO2"))
+
+co2_cons_dev <- gcp_consumption_co2 %>% 
+  filter(year==2018) %>% 
+  group_by(region_ar6_dev) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  mutate(var="Consumption CO2, fossil only (2018)") %>% 
+  filter(!is.na(region_ar6_dev)) %>% 
+  mutate(category="a. Current population and emissions by region")
+
+co2_cons_dev <- co2_cons_dev %>% 
+  mutate(total=sum(co2_cons_dev$value)) %>% 
+  mutate(fraction=(value/total)) %>% 
+  mutate(label=paste0(round(total/1e9)," GtCO2"))
+
+co2_cons <- rbind(co2_cons,co2_cons_dev %>% filter(region_ar6_dev=="ldc") %>% rename(region_ar6_6=region_ar6_dev))
+
 
 
 ### ghg excl lulucf emissions 2019
 
 ghg <- edgar_ghg %>%
   filter(year==2019) %>% 
-  filter(ISO!="AIR") %>%
-  filter(ISO!="SEA") %>%
   group_by(region_ar6_6) %>%
-  summarise(value=sum(GHG,na.rm=TRUE))
-
-ghg$total <- sum(ghg$value)
-ghg <- ghg %>% 
-  mutate(fraction = value/total) %>% 
+  summarise(value=sum(GHG,na.rm=TRUE)) %>% 
   mutate(var="Territorial GHG, excl. LULUCF (2019)") %>% 
-  mutate(category="Current population and emissions") %>%  
-  mutate(label=paste0(round(total/1e9)," Gt CO2eq"))
+  mutate(category="a. Current population and emissions by region")
+
+ghg <- ghg %>% 
+  mutate(total= sum(ghg$value)) %>% 
+  mutate(fraction = value/total) %>% 
+  mutate(label=paste0(round(total/1e9)," GtCO2eq"))
+
+ghg_dev <- edgar_ghg %>%
+  filter(year==2019) %>% 
+  group_by(region_ar6_dev) %>%
+  summarise(value=sum(GHG,na.rm=TRUE)) %>% 
+  mutate(var="Territorial GHG, excl. LULUCF (2019)") %>% 
+  mutate(category="a. Current population and emissions by region")
+
+ghg_dev <- ghg_dev %>% 
+  mutate(total= sum(ghg_dev$value)) %>% 
+  mutate(fraction = value/total) %>% 
+  mutate(label=paste0(round(total/1e9)," GtCO2eq"))
+
+ghg <- rbind(ghg,ghg_dev %>% filter(region_ar6_dev=="ldc") %>% rename(region_ar6_6=region_ar6_dev))
+
+
+### LULUCF CO2
+
+co2_land <- land %>% 
+  group_by(region_ar6_6,year) %>%
+  summarise(value=sum(mean,na.rm=TRUE))
+
+# 2019
+
+co2_land <- co2_land %>% 
+  filter(year==2019) %>% 
+  summarise(value=sum(value,na.rm=TRUE)) %>% 
+  mutate(var="LULUCF CO2 (2019)") %>% 
+  mutate(category="a. Current population and emissions by region")
+
+co2_land <- co2_land %>% 
+  mutate(total=sum(co2_land$value)) %>% 
+  mutate(fraction=(value/total)) %>% 
+  mutate(label=paste0(round(total/1e9)," GtCO2"))
 
 
 ### ghg incl lulucf emissions 2019
 
 ghg_lulucf <- edgar_ghg %>%
   filter(year==2019) %>% 
-  filter(ISO!="AIR") %>%
-  filter(ISO!="SEA") %>%
   group_by(region_ar6_6) %>%
   summarise(ghg=sum(GHG,na.rm=TRUE))
 
-ghg_lulucf <- left_join(ghg_lulucf,land_co2_2019 %>% select(region_ar6_6,co2_land=value),by = "region_ar6_6")
+ghg_lulucf <- left_join(ghg_lulucf,co2_land %>% select(region_ar6_6,co2_land=value),by = "region_ar6_6")
 ghg_lulucf <- ghg_lulucf %>% 
   mutate(value = ghg+co2_land)
-ghg_lulucf$total <- sum(ghg_lulucf$value)
 ghg_lulucf <- ghg_lulucf %>% 
+  mutate(total=sum(ghg_lulucf$value,na.rm=TRUE)) %>% 
   mutate(fraction = value/total) %>% 
   mutate(var="Territorial GHG, incl. LULUCF (2019)") %>% 
-  mutate(category="Current population and emissions") %>%  
-  mutate(label=paste0(round(total/1e9)," Gt CO2eq")) %>% 
+  mutate(category="a. Current population and emissions by region") %>%  
+  mutate(label=paste0(round(total/1e9)," GtCO2eq")) %>% 
   select(-ghg,-co2_land)
 
 
 ### long time series CO2
 
-co2_1750 <- hist_1750_6 %>% 
-  filter(region_ar6_6!="Int. Aviation and Shipping") %>% 
-  rename(value=co2_cum) %>% 
-  mutate(var="Territorial CO2, excl. LULUCF (1750-2019)") %>% 
-  mutate(category="Historical cumulative emissions") %>% 
-  select(-source,-share)
-co2_1750$total <- sum(co2_1750$value)
-co2_1750 <- co2_1750 %>% 
-  mutate(fraction=value/total) %>% 
-  mutate(label=paste0(round(total,0)," Gt CO2eq"))
+# co2_1750 <- hist_1750_6 %>% 
+#   rename(value=co2_cum,fraction=share) %>% 
+#   mutate(var="Territorial CO2, excl. LULUCF (1750-2019)") %>% 
+#   mutate(category="b. Historical cumulative emissions by region") %>% 
+#   select(-source)
+# co2_1750 <- co2_1750 %>% 
+#   mutate(total=sum(co2_1750$value)) %>% 
+#   mutate(fraction=fraction/100) %>% 
+#   mutate(label=paste0(round(total,0)," GtCO2eq"))
+# 
+# co2_1750_dev <- hist_1750_dev %>% 
+#   rename(value=co2_cum,fraction=share) %>% 
+#   mutate(var="Territorial CO2, excl. LULUCF (1750-2019)") %>% 
+#   mutate(category="b. Historical cumulative emissions by region") %>% 
+#   select(-source)
+# co2_1750_dev <- co2_1750_dev %>% 
+#   mutate(total=sum(co2_1750_dev$value)) %>% 
+#   mutate(fraction=fraction/100) %>% 
+#   mutate(label=paste0(round(total,0)," GtCO2eq"))
+# 
+# co2_1750 <- rbind(co2_1750,co2_1750_dev %>% filter(region_ar6_dev=="ldc") %>% rename(region_ar6_6=region_ar6_dev))
+
+
 
 # incl LULUCF
 co2_1850 <- hist_1850_6 %>% 
-  filter(region_ar6_6!="Int. Aviation and Shipping") %>% 
-  rename(value=co2_cum) %>% 
   group_by(region_ar6_6) %>% 
-  summarise(value=sum(value))
+  summarise(value=sum(co2_cum),fraction=sum(share))
 
-co2_1850$total <- sum(co2_1850$value)
 co2_1850 <- co2_1850 %>% 
+  mutate(total=sum(co2_1850$value)) %>% 
   mutate(fraction=value/total) %>% 
-  mutate(label=paste0(round(total,0)," Gt CO2eq")) %>% 
+  mutate(label=paste0(round(total,0),"\nGtCO2eq")) %>% 
   mutate(var="Territorial CO2, incl. LULUCF (1850-2019)") %>% 
-  mutate(category="Historical cumulative emissions")
+  mutate(category="b. Historical cumulative emissions by region")
+
 
 ## excl LULUCF
 co2_1850_ex <- hist_1850_6 %>% 
-  filter(region_ar6_6!="Int. Aviation and Shipping") %>% 
-  rename(value=co2_cum) %>% 
+  rename(value=co2_cum,fraction=share) %>% 
   filter(source=="CO2-FFI") %>% 
-  select(-source,-share)
+  select(-source)
 
-co2_1850_ex$total <- sum(co2_1850_ex$value)
 co2_1850_ex <- co2_1850_ex %>% 
+  mutate(total=sum(co2_1850_ex$value)) %>% 
   mutate(fraction=value/total) %>% 
-  mutate(label=paste0(round(total,0)," Gt CO2eq")) %>% 
+  mutate(label=paste0(round(total,0),"\nGtCO2eq")) %>% 
   mutate(var="Territorial CO2, excl. LULUCF (1850-2019)") %>% 
-  mutate(category="Historical cumulative emissions")
+  mutate(category="b. Historical cumulative emissions by region")
 
+co2_1850_dev <- hist_1850_dev %>% 
+  group_by(region_ar6_dev) %>% 
+  summarise(value=sum(co2_cum),fraction=sum(share))
 
-data <- rbind(edgar_co2,edgar_co2_2019)
-data <- rbind(data,land_co2)
-data <- rbind(data,land_co2_2019)
-data <- rbind(data,gcp_consumption_co2)
-data <- rbind(data,pop)
+co2_1850_dev <- co2_1850_dev %>% 
+  mutate(total=sum(co2_1850_dev$value)) %>% 
+  mutate(fraction=value/total) %>% 
+  mutate(label=paste0(round(total,0),"\nGtCO2eq")) %>% 
+  mutate(var="Territorial CO2, excl. LULUCF (1850-2019)") %>% 
+  mutate(category="b. Historical cumulative emissions by region")
+
+co2_1850_ex <- rbind(co2_1850_ex,co2_1850_dev %>% filter(region_ar6_dev=="ldc") %>% rename(region_ar6_6=region_ar6_dev))
+
+data <- rbind(pop,co2)
+data <- rbind(data,co2_cons)
 data <- rbind(data,ghg)
+#data <- rbind(data,co2_land)
 data <- rbind(data,ghg_lulucf)
-data <- rbind(data,co2_1750)
+#data <- rbind(data,co2_1750)
 data <- rbind(data,co2_1850)
 data <- rbind(data,co2_1850_ex)
 
 
+data <- data %>% 
+  #add_row(region_ar6_6="ldc",var="LULUCF CO2 (2019)",category="a. Current population and emissions by region") %>% 
+  add_row(region_ar6_6="ldc",var="Territorial CO2, incl. LULUCF (1850-2019)",category="b. Historical cumulative emissions by region") %>% 
+  add_row(region_ar6_6="ldc",var="Territorial GHG, incl. LULUCF (2019)",category="a. Current population and emissions by region")
+
+
+
 data$var <- as.factor(data$var)
 data$category <- as.factor(data$category)
-data$var <- fct_relevel(data$var,"Population (2019)","Consumption CO2, fossil only (2018)","Territorial GHG, excl. LULUCF (2019)","LULUCF CO2 (2019)","Territorial GHG, incl. LULUCF (2019)","Territorial CO2, excl. LULUCF (1750-2019)","Territorial CO2, excl. LULUCF (1850-2019)","LULUCF CO2 (1850-2019)","Territorial CO2, incl. LULUCF (1850-2019)")
+data$var <- fct_relevel(data$var,"Population (2019)","Consumption CO2, fossil only (2018)","Territorial CO2, fossil and proccess (2019)","Territorial GHG, excl. LULUCF (2019)","Territorial GHG, incl. LULUCF (2019)","Territorial CO2, excl. LULUCF (1850-2019)","Territorial CO2, incl. LULUCF (1850-2019)")
 
-
-##
-co2_dev_1750 <- hist_1750_dev %>% 
-  filter(region_ar6_dev!="Int. Aviation and Shipping") %>% 
-  rename(value=co2_cum) %>% 
-  select(-source,-share)
-co2_dev_1750$total <- sum(co2_dev_1750$value)
-co2_dev_1750 <- co2_dev_1750 %>% 
-  mutate(fraction=value/total) %>% 
-  mutate(label=paste0(round(total,0)," Gt CO2eq")) %>% 
-  mutate(var="Territorial CO2, excl. LULUCF (1750-2019)") %>% 
-  mutate(category="Historical cumulative emissions")
-
-co2_dev_1850 <- hist_1850_dev %>% 
-  filter(region_ar6_dev!="Int. Aviation and Shipping") %>% 
-  rename(value=co2_cum) %>%
-  select(-source,-share)
-co2_dev_1850$total <- sum(co2_dev_1850$value)
-co2_dev_1850 <- co2_dev_1850 %>% 
-  mutate(fraction=value/total) %>% 
-  mutate(label=paste0(round(total,0)," Gt CO2eq")) %>% 
-  mutate(var="Territorial CO2, excl. LULUCF (1850-2019)") %>% 
-  mutate(category="Historical cumulative emissions")
-
-data_dev <- rbind(co2_dev_1750,co2_dev_1850)
-data_dev <- data_dev %>%
-  filter(region_ar6_dev=="ldc") %>% 
-  add_row(value=NA,total=NA,fraction=NA,label=NA,var="Territorial CO2, incl. LULUCF (1850-2019)",category="Historical cumulative emissions") %>% 
-  add_row(value=NA,total=NA,fraction=NA,label=NA,var="LULUCF CO2 (1850-2019)",category="Historical cumulative emissions")
-
-
-data$var <- as.factor(data$var)
-data_dev$var <- fct_relevel(data_dev$var,"Population (2019)","Consumption CO2, fossil only (2018)","Territorial GHG, excl. LULUCF (2019)","LULUCF CO2 (2019)","Territorial GHG, incl. LULUCF (2019)","Territorial CO2, excl. LULUCF (1750-2019)","Territorial CO2, excl. LULUCF (1850-2019)","LULUCF CO2 (1850-2019)","Territorial CO2, incl. LULUCF (1850-2019)")
 
 ```
 
 
-```{r equity_perspectives_regions_6,dpi=300,fig.width=9,fig.height=9,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+```{r find_positions,echo=FALSE,warning=FALSE}
 
 ##### find positions for each region and % value
+data_dev <- data
 
-data <- data %>% 
+data <- data %>%
+  filter(region_ar6_6!="Intl. Shipping") %>% 
+  filter(region_ar6_6!="Intl. Aviation") %>% 
+  filter(region_ar6_6!="Int. Aviation and Shipping") %>% 
+  filter(region_ar6_6!="ldc") %>% 
   arrange(desc(region_ar6_6)) %>% 
   group_by(var) %>% 
   mutate(cumsum=cumsum(fraction)) %>%
@@ -334,49 +352,43 @@ for (i in 1:length(unique(data$var))) {
 
 
 
-p1 <- data %>%
-  filter(category=="Current population and emissions") %>%
-  filter(var!="Territorial CO2, fossil and proccess (2019)") %>%
-  ggplot(.,aes(x=var,y=fraction,fill=region_ar6_6)) +
-  geom_bar(stat='identity',color="#737373") +
-  geom_text(data=data %>%
-              filter(var!="Territorial CO2, fossil and proccess (2019)") %>%
-              filter(category=="Current population and emissions") %>%
-              filter(region_ar6_6=="Africa"),aes(x=var,y=1.08,label=label)) +
-  geom_text(data=data %>%
-              filter(var!="Territorial CO2, fossil and proccess (2019)") %>%
-              filter(category=="Current population and emissions"),
-            aes(x=var,y=position,label=paste0(round(fraction,2)*100,"%")),color="#525252") +
-  scale_fill_brewer(palette="Set2") +
-  scale_x_discrete(labels=label_wrap_gen(width=18,multi_line = TRUE)) +
-  scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1)) +
-  #facet_wrap(.~category,scales="free",nrow=2) +
-  ggtitle("b. Contribution of regions to current population, CO2 and GHG emissions") +
-  theme(legend.title=element_blank(),
-        axis.title = element_blank(),
-        title = element_text(face="plain"),
-        axis.text = element_text(size=10),
-        legend.text = element_text(size=10),
-        legend.position="none")
+```
 
-p2 <- data %>%
-  filter(category=="Historical cumulative emissions") %>%
-  filter(!grepl("proccess",var)) %>% 
+```{r save}
+
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_figure_equity_perspectives")
+
+addWorksheet(wb,"info")
+addWorksheet(wb,"top panels")
+addWorksheet(wb,"lower panels")
+
+data <- data %>% 
+  filter(!grepl("life",var))
+
+info = data.frame(x=c("Author","Last update","Code"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/equity_perspectives.Rmd"))
+
+writeData(wb, sheet="info",info,colNames=F,rowNames=F)
+writeData(wb, sheet = "top panels", data %>% filter(region_ar6_6!="ldc"), colNames = T, rowNames = F)
+writeData(wb, sheet = "lower panels", data_dev %>% filter(region_ar6_6=="ldc"), colNames = T, rowNames = F)
+
+saveWorkbook(wb,"../../Results/Plot data/ipcc_ar6_figure_equity_perspectives.xlsx",overwrite=T)
+
+
+
+```
+
+
+```{r equity_perspectives,dpi=300,fig.width=10,fig.height=5,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+
+p1 <- data %>%
+  filter(region_ar6_6!="ldc") %>% 
   ggplot(.,aes(x=var,y=fraction,fill=region_ar6_6)) +
   geom_bar(stat='identity',color="#737373") +
-  geom_text(data=data %>%
-              filter(category=="Historical cumulative emissions") %>%
-              filter(!grepl("proccess",var)) %>% 
-              filter(region_ar6_6=="Africa"),aes(x=var,y=1.08,label=label)) +
-  geom_text(data=data %>%
-              filter(category=="Historical cumulative emissions") %>%
-              filter(!grepl("proccess",var)),
-            aes(x=var,y=position,label=paste0(round(fraction,2)*100,"%")),color="#525252") +
+  geom_text(data=data %>% filter(region_ar6_6=="Africa"),aes(x=var,y=1.05,label=label),vjust=0,lineheight=0.75,color="#525252") +
+  geom_text(data=data,aes(x=var,y=position,label=paste0(round(fraction,2)*100,"%")),color="#525252") +
   scale_fill_brewer(palette="Set2") +
-  #scale_x_discrete(labels=label_wrap_gen(width=22,multi_line = TRUE)) +
-  scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1)) +
-  #facet_wrap(.~category,scales="free",nrow=2) +
-  ggtitle("a. Contribution of regions to historical cumulative CO2 emissions") +
+  facet_grid(.~category,scales="free",space="free",labeller = (label_wrap_gen(width = 32))) +
+  scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1),limits=c(0,1.12)) +
   theme(legend.title=element_blank(),
         legend.position="none",
         axis.title = element_blank(),
@@ -385,17 +397,15 @@ p2 <- data %>%
         plot.background = element_blank(),
         plot.margin = margin(0,0,0,0,"cm"),
         axis.text = element_text(size=10),
-        legend.text = element_text(size=10))
-
-
+        legend.text = element_text(size=10),
+        strip.text = element_text(size=10)) 
 
 # side panel for the labels
 p_labels <- data %>%
-  filter(category=="Historical cumulative emissions") %>%
-  filter(!grepl("proccess",var)) %>% 
-  filter(var=="Territorial CO2, incl. LULUCF (1850-2019)") %>% 
-  ggplot(.,aes(x=1,y=position,label=str_wrap(region_ar6_6,width=28),color=region_ar6_6)) +
-  geom_text(hjust=0,lineheight=0.65) +
+  filter(region_ar6_6!="ldc") %>% 
+  filter(var=="Territorial CO2, incl. LULUCF (1850-2019)") %>%
+  ggplot(.,aes(x=1,y=position,label=str_wrap(region_ar6_6,width=15),color=region_ar6_6)) +
+  geom_text(hjust=0,lineheight=0.75) +
   xlim(1,1.1) +
   scale_color_brewer(palette="Set2") +
   scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1),limits=c(0,1.08)) +
@@ -408,25 +418,29 @@ p_labels <- data %>%
         plot.margin = margin(0,0,0,0,"cm"),
         legend.position="none")
 
-p3 <- data_dev %>% 
-  filter(category=="Historical cumulative emissions") %>%
-  filter(!grepl("proccess",var)) %>% 
-  ggplot(.,aes(x=var,y="a",label=paste0(round(fraction*100,2),"%"))) +
+
+p2 <- data_dev %>% 
+  filter(region_ar6_6=="ldc") %>%  
+  ggplot(.,aes(x=var,y="a",label=paste0(round(fraction*100,1),"%"))) +
   geom_text() +
-  scale_x_discrete(labels=label_wrap_gen(width=22,multi_line = TRUE)) +
+  facet_grid(.~category,scales="free",space="free") +
+  scale_x_discrete(labels=label_wrap_gen(width=13,multi_line = TRUE)) +
   theme(legend.position="none",
         axis.title = element_blank(),
         title = element_text(face="plain"),
         axis.text.y = element_blank(),
         axis.text = element_text(size=10),
-        legend.text = element_text(size=10))
+        legend.text = element_text(size=10),
+        strip.background = element_blank(),
+        strip.text = element_blank())
+
   
 p_labels_2 <- data_dev %>%
-  filter(category=="Historical cumulative emissions") %>%
-  filter(!grepl("proccess",var)) %>% 
-  filter(var=="Territorial CO2, incl. LULUCF (1850-2019)") %>% 
-  ggplot(.,aes(x=1,y="a",label=str_wrap("Least Developed Countries",width=28))) +
-  geom_text(hjust=0,color="Grey") +
+  filter(region_ar6_6=="ldc") %>% 
+  filter(category=="b. Historical cumulative emissions by region") %>%
+  filter(var=="Territorial GHG, incl. LULUCF (2019)") %>%
+  ggplot(.,aes(x=1,y="a",label=str_wrap("Least Developed Countries",width=15))) +
+  geom_text(hjust=0,color="Grey",lineheight=0.75) +
   xlim(1,1.1) +
   #scale_color_brewer(palette="Set2") +
   #scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1),limits=c(0,1.08)) +
@@ -439,31 +453,6 @@ p_labels_2 <- data_dev %>%
         plot.margin = margin(0,0,0,0,"cm"),
         legend.position="none")
 
-wrap_elements(p2 + p_labels + p3 + p_labels_2 + plot_layout(heights=c(7,1),ncol=2,widths=c(2.9,1))) / wrap_elements(p1)
+(p1 + p_labels + p2 + p_labels_2 + plot_layout(heights=c(7,1),ncol=2,widths=c(4,1)))
 
 ```
-
-
-
-```{r save}
-
-wb <- openxlsx::createWorkbook(title = "ipcc_ar6_figure_equity_perspectives")
-
-addWorksheet(wb,"info")
-addWorksheet(wb,"data")
-
-data <- data %>% 
-  filter(!grepl("life",var))
-
-info = data.frame(x=c("Author","Last update","Code"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/equity_perspectives.Rmd"))
-
-writeData(wb, sheet="info",info,colNames=F,rowNames=F)
-writeData(wb, sheet = "data", data, colNames = T, rowNames = F)
-
-saveWorkbook(wb,"../../Results/Plot data/ipcc_ar6_figure_equity_perspectives.xlsx",overwrite=T)
-
-
-
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

@@ -292,7 +292,7 @@ sectors_indirect <- growth_rates(sectors_indirect)
 ## Sectors (incl. LULUCF, excl. Indirect CO2)
 
 
-```{r sectors, echo=FALSE}
+```{r sectors_1, echo=FALSE}
 
 sectors <- edgar_ghg %>% 
   group_by(chapter_title,year) %>% 
