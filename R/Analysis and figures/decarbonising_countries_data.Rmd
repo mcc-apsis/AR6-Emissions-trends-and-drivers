@@ -24,13 +24,13 @@ library(patchwork)
 library(openxlsx)
 
 load('../../Data/WDI_gdp_pop.RData')
-#load("../../Data/dump/edgar_data_gwp_ar5_late_2020.RData")
-load('../../Data/edgar6_v5_data_ghg_gwp_ar6.RData')
-edgar_GHG_ar6 <- edgar_ghg %>% filter(year<2020)
-
-edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
-  mutate(country=ifelse(country=="Macedonia, FYR","North Macedonia",country)) %>% 
-  mutate(country=ifelse(country=="Slovak Republic","Slovakia",country))
+load("../../Data/dump/edgar_data_gwp_ar5_late_2020.RData")
+#load('../../Data/edgar6_v5_data_ghg_gwp_ar6.RData')
+# edgar_GHG_ar6 <- edgar_ghg %>% filter(year<2020)
+# 
+# edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
+#   mutate(country=ifelse(country=="Macedonia, FYR","North Macedonia",country)) %>% 
+#   mutate(country=ifelse(country=="Slovak Republic","Slovakia",country))
 
 source("growth_rate.R")
 source("small_figures.R")

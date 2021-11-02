@@ -173,7 +173,7 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
-include_graphics("Results/Plots/equity_perspectives_regions_6-1.png")
+include_graphics("Results/Plots/equity_perspectives-1.png")
 
 
 ```
@@ -186,7 +186,7 @@ cat("<br>")
 cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_equity_perspectives.xlsx'>data</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/equity_perspectives.Rmd'>code</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/equity_perspectives_regions_6-1.png'>download png</a>")
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/equity_perspectives-1.png'>download png</a>")
 
 ```
 
