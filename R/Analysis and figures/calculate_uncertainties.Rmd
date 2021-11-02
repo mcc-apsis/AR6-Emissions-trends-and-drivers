@@ -61,7 +61,7 @@ gases <- gases %>%
 gases <- gases %>% 
   mutate(total_uncertainty=sqrt(uncertainty_gas^2 + uncertainty_gwp^2)) %>% 
   mutate(`+/-`=total_uncertainty*value_gwp) %>% 
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   arrange(desc(value_gwp))
 
 

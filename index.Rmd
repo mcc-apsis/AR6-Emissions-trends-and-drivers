@@ -621,7 +621,7 @@ rates %>%
 ```
 
 -----------------------------------------------------------------------
-### Subsectors
+### Subsectors (excl. indirect CO2 emissions)
 
 ```{r}
 

@@ -182,19 +182,32 @@ scenario_data <- scenario_data %>%
 
 scenario_data <- scenario_data %>%
   filter(!is.na(aggregated_category)) %>% 
+  filter(!is.na(rate)) %>% 
   mutate(country="x") %>%
   mutate(ISO="x") %>%
   mutate(facet="Scenario reduction rates (2020-2040)") %>%
   mutate(emissions_total_2019=NA) %>%
   select(country,ISO,model,scenario,aggregated_category,rate,facet,emissions_total_2019)
 
+# select scenarios within the 5 - 95th percentiles
+percentiles <- scenario_data %>% 
+  group_by(aggregated_category) %>%
+  summarise(percentile_5th = quantile(rate, probs = c(0.05)),percentile_95th = quantile(rate, probs = c(0.95)))
 
-# remove the 8 scenarios with positive growth (GCAM!!!!)
-scenario_data <- scenario_data %>%
-  filter(rate<0)
-# remove 1 scenario with -30%/yr !
+scenario_data <- left_join(scenario_data,percentiles,by="aggregated_category")
+
 scenario_data <- scenario_data %>% 
-  filter(rate>-20)
+  filter(rate>percentile_5th) %>% 
+  filter(rate<percentile_95th) %>% 
+  select(-percentile_5th,-percentile_95th)
+# 
+# 
+# # remove the 8 scenarios with positive growth (GCAM!!!!)
+# scenario_data <- scenario_data %>%
+#   filter(rate<0)
+# # remove 1 scenario with -30%/yr !
+# scenario_data <- scenario_data %>% 
+#   filter(rate>-20)
 
 ## calculate rates of change for each country
 

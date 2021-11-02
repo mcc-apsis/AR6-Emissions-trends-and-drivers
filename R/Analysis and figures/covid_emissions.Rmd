@@ -46,12 +46,14 @@ reductions <- function(edgar_raw,group) {
   
   reductions <- rbind(reductions,edgar_raw %>% 
                         filter(year==2019) %>% 
+                        filter(gas=="CO2") %>% 
                         group_by(across(group)) %>%
                         summarise(value=sum(value,na.rm=TRUE)/1e9) %>% 
                         mutate(var="2019"))
   
   reductions <- rbind(reductions,edgar_raw %>% 
                         filter(year==2020) %>% 
+                        filter(gas=="CO2") %>% 
                         group_by(across(group)) %>%
                         summarise(value=sum(value,na.rm=TRUE)/1e9) %>% 
                         mutate(var="2020"))
@@ -467,6 +469,101 @@ p_covid_sectors
 
 p <- p_annual_gcb / p_covid_sectors + plot_layout(heights=c(0.6,0.4))
 p
+```
+
+
+### Total sector reductions
+
+```{r annual_reduction, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
+
+## Carbon Monitor
+covid_sectors_cm <- read.csv(file="../../Data/COVID/carbonmonitor-global_datas_2021-08-31.csv")
+
+covid_sectors_cm <- covid_sectors_cm %>% 
+  filter(country=="WORLD") %>% 
+  mutate(date=as.Date(date, "%d/%m/%Y")) %>% 
+  mutate(year=format(date,format="%Y")) %>%
+  select(year,sector,value)
+
+### sum domestic and intl. aviation
+covid_sectors_cm <- covid_sectors_cm %>% 
+  mutate(sector=ifelse(sector=="Domestic Aviation","Aviation",sector)) %>% 
+  mutate(sector=ifelse(sector=="International Aviation","Aviation",sector))
+
+### Match other sectors to Le Quere
+covid_sectors_cm <- covid_sectors_cm %>% 
+  mutate(sector=ifelse(sector=="Ground Transport","Land Transport",sector))
+
+### sum to annual value
+covid_sectors_cm <- covid_sectors_cm %>%
+  group_by(sector,year) %>%
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  filter(year!=2021)
+
+covid_total_cm <- covid_sectors_cm %>%
+  group_by(year) %>%
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  mutate(sector="Total")
+
+covid_sectors_cm <- rbind(covid_sectors_cm,covid_total_cm)
+
+### calculate change
+covid_sectors_cm <- covid_sectors_cm %>%
+  summarise(annual_reduction_CM=(last(value)/first(value)-1)*100)
+
+
+## Le Quere et al. 2020
+covid_sectors_gcp <- read.xlsx("../../Data/COVID/PublicData_v15_Countries_UNFCCC-accounting-corr.xlsx",sheet="GLOBAL")
+covid_sectors_gcp <- covid_sectors_gcp %>% filter(REGION_ID!="None")
+
+mean_emissions_gcp <- read.xlsx("../../Data/COVID/PublicData_v15_Countries_UNFCCC-accounting-corr.xlsx",sheet="mean")
+
+mean_emissions_gcp <- mean_emissions_gcp %>%
+  filter(REGION_NAME=="Global")
+
+mean_emissions_gcp <- gather(mean_emissions_gcp,sector,mean,TOTAL_CO2:AVIATION) %>%
+  mutate(sector=ifelse(sector=="POWER","Power",sector)) %>% 
+  mutate(sector=ifelse(sector=="INDUSTRY","Industry",sector)) %>% 
+  mutate(sector=ifelse(sector=="SURFACE_TRANSPORT","Land Transport",sector)) %>% 
+  mutate(sector=ifelse(sector=="PUBLIC","Public sector",sector)) %>% 
+  mutate(sector=ifelse(sector=="RESIDENTIAL","Residential",sector)) %>% 
+  mutate(sector=ifelse(sector=="AVIATION","Aviation",sector)) %>% 
+  mutate(sector=ifelse(sector=="TOTAL_CO2","Total",sector))
+
+covid_sectors_gcp <- gather(covid_sectors_gcp,key,value,TOTAL_CO2_MED:AVI_CO2_HIGH) %>% 
+  mutate(value=as.numeric(value))
+
+covid_sectors_gcp <- covid_sectors_gcp %>% 
+  mutate(estimate=ifelse(grepl("MED",key),"medium",NA)) %>% 
+  mutate(estimate=ifelse(grepl("HIGH",key),"high",estimate)) %>% 
+  mutate(estimate=ifelse(grepl("LOW",key),"low",estimate))
+
+covid_sectors_gcp <- covid_sectors_gcp %>% 
+  mutate(sector=ifelse(grepl("PWR",key),"Power",NA)) %>% 
+  mutate(sector=ifelse(grepl("IND",key),"Industry",sector)) %>% 
+  mutate(sector=ifelse(grepl("TRS",key),"Land Transport",sector)) %>% 
+  mutate(sector=ifelse(grepl("PUB",key),"Public sector",sector)) %>% 
+  mutate(sector=ifelse(grepl("RES",key),"Residential",sector)) %>% 
+  mutate(sector=ifelse(grepl("AVI",key),"Aviation",sector)) %>% 
+  mutate(sector=ifelse(grepl("TOTAL",key),"Total",sector)) %>% 
+  mutate(date=convertToDate(DATE)) %>% 
+  mutate(year=format(date,format="%Y")) %>%
+  select(-key,-DATE)
+
+covid_sectors_gcp <-covid_sectors_gcp %>%
+  filter(estimate=="medium") %>%
+  group_by(year,sector) %>%
+  summarise(value=mean(value,na.rm=TRUE))
+
+covid_sectors_gcp <- left_join(covid_sectors_gcp,mean_emissions_gcp %>% select(sector,mean),by="sector")
+
+covid_sectors_gcp <- covid_sectors_gcp %>%
+  mutate(mean=as.numeric(mean)) %>%
+  mutate(annual_reduction_GCP=value/mean*100)
+
+annual_reductions<-left_join(covid_sectors_gcp,covid_sectors_cm) %>%
+  select(-value,-mean)
+
 
 
 
@@ -474,8 +571,13 @@ wb <- openxlsx::createWorkbook(title = "ipcc_ar6_figure_covid2020")
 openxlsx::addWorksheet(wb,"panel a")
 openxlsx::addWorksheet(wb,"panel a reduction rates")
 openxlsx::addWorksheet(wb,"panel b")
+openxlsx::addWorksheet(wb,"percentage annual reductions")
+openxlsx::addWorksheet(wb,"EDGAR reductions")
 openxlsx::writeData(wb,"panel a",data, colNames = T, rowNames = F)
 openxlsx::writeData(wb,"panel a reduction rates",crises, colNames = T, rowNames = F)
 openxlsx::writeData(wb,"panel b",covid_sectors, colNames = T, rowNames = F)
+openxlsx::writeData(wb,"percentage annual reductions",annual_reductions, colNames = T, rowNames = F)
+openxlsx::writeData(wb,"EDGAR reductions",edgar_sectors, colNames = T, rowNames = F)
 openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_covid2020",".xlsx"),overwrite=T)
+
 ```

@@ -26,6 +26,7 @@ options(dplyr.summarise.inform = FALSE)
 
 #load('../../Data/edgar_essd_data_ghg_gwp_ar5.RData')
 load('../../Data/edgar6_v5_data_ghg_gwp_ar6.RData')
+load('../../Data/edgar6_v5_data_raw.RData')
 load("../../Data/land.RData")
 load('../../Data/WDI_gdp_pop.RData')
 
@@ -305,15 +306,15 @@ p_pgdp<-edgar_by_gas %>%
 # facet_wrap(.~gas,nrow=1)
 
 ##save data
-edgar_by_gas<-edgar_by_gas %>%
-  select(-gdp_ppp,-population,-gdp_real)
-edgar_by_gas<-gather(edgar_by_gas,measure,value,absolute:absolute_low)
-edgar_by_gas<-pivot_wider(edgar_by_gas,names_from=year,values_from="value")
-
-openxlsx::addWorksheet(wb,"Emisions by gas")
-openxlsx::writeData(wb, sheet = "Emisions by gas", edgar_by_gas, colNames = T, rowNames = F)
-
-openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_gas_pc_pgdp_data_",Sys.Date(),".xlsx"),overwrite=T)
+# edgar_by_gas<-edgar_by_gas %>%
+#   select(-gdp_ppp,-population,-gdp_real)
+# edgar_by_gas<-gather(edgar_by_gas,measure,value,absolute:absolute_low)
+# edgar_by_gas<-pivot_wider(edgar_by_gas,names_from=year,values_from="value")
+# 
+# openxlsx::addWorksheet(wb,"Emisions by gas")
+# openxlsx::writeData(wb, sheet = "Emisions by gas", edgar_by_gas, colNames = T, rowNames = F)
+# 
+# openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_gas_pc_pgdp_data_",Sys.Date(),".xlsx"),overwrite=T)
 
 ```
 
@@ -321,6 +322,264 @@ openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_gas_pc_pgdp_data_",Sys.D
 
 #(p6_abs + p6_pc + p6_pgdp + p1_abs + p1_pc + p1_pgdp + p2_abs + p2_pc + p2_pgdp + p3_abs + p3_pc + p3_pgdp + p4_abs + p4_pc + p4_pgdp + p5_abs + p5_pc + p5_pgdp) + plot_layout(nrow=6,heights = c(1/3,1/3)) # +facet_grid(rows=6) #
 #pp5 + pp6 + pp7 + pp8
+p_abs+p_pc+p_pgdp
+
+```
+
+```{r plot_ipcc_sm,echo=FALSE,warning=FALSE,include=FALSE}
+
+#edgar_by_gas<-gather(edgar_by_gas,key = "unit",value = "value", "co2_pc":"ghg_pgdp_ppp")
+# edgar_by_gas$gas <- as.factor(edgar_by_gas$gas)
+# edgar_by_gas$gas<-factor(edgar_by_gas$gas,levels(edgar_by_gas$gas)[c(5,2,3,1,6,4)])
+# edgar_by_gas$gas <- factor(edgar_by_gas$gas,levels=levels(edgar_by_gas$gas)[c(2,3,1,4,5)])
+colours = c("#B3B3B3","#a6d854","#66c2a5","#8da0cb","#fc8d62","#e78ac3")
+
+plot_theme <- theme_bw() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 11,color="#252525"),
+        axis.title = element_text(color="#525252"),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        legend.position="none",
+        text = element_text(size=11),
+        plot.background = element_blank())
+
+p_abs<-edgar_by_gas %>%
+          filter(year<=2019) %>%
+  filter(year>=1990) %>%
+    ggplot(.,aes(x=year,y=absolute))+
+    geom_line(aes(color=gas))+
+    geom_ribbon(aes(ymin=absolute_low,ymax=absolute_high,fill=gas),alpha=0.3)+
+  #   geom_rect(aes(
+  #   x = year,
+  #   xmin = 2018,
+  #   xmax = 2019,
+  #   ymin = absolute_low,
+  #   ymax = absolute_high
+  # ),fill = "white",alpha=0.04) +
+    scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    #scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    scale_fill_manual(values=colours) +
+    scale_color_manual(values=colours) +
+    #ylab('GtCO2eq') +
+    facet_grid(gas~.,scales = "free",switch = "y") +
+    ggtitle("Absolute emissions in GtCO2eq") +
+    plot_theme
+
+p_pc<-edgar_by_gas %>%
+          filter(year<=2019) %>%
+  filter(year>=1990) %>%
+    ggplot(.,aes(x=year,y=per_capita))+
+    geom_line(aes(color=gas))+
+    geom_ribbon(aes(ymin=per_capita_low,ymax=per_capita_high,fill=gas),alpha=0.3)+
+  # geom_rect(aes(
+  #   x = year,
+  #   xmin = 2018,
+  #   xmax = 2019,
+  #   ymin = per_capita_low,
+  #   ymax = per_capita_high
+  # ),fill = "white",alpha=0.04) +
+    scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    #scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    scale_fill_manual(values=colours) +
+    scale_color_manual(values=colours) +
+    #ylab('tCO2eq per capita') +
+    facet_grid(gas~.,scales = "free") +
+    ggtitle("Emissions per capita in tCO2eq/cap") +
+    plot_theme+
+    theme(strip.text.y = element_blank())
+
+p_pgdp<-edgar_by_gas %>%
+          filter(year<=2019) %>%
+  filter(year>=1990) %>%
+    ggplot(.,aes(x=year,y=per_gdp_real))+
+    geom_line(aes(color=gas))+
+    geom_ribbon(aes(ymin=per_gdp_low,ymax=per_gdp_high,fill=gas),alpha=0.3)+
+  # geom_rect(aes(
+  #   x = year,
+  #   xmin = 2018,
+  #   xmax = 2019,
+  #   ymin = per_gdp_low,
+  #   ymax = per_gdp_high
+  # ),fill = "white",alpha=0.04) +
+    scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    #scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    scale_fill_manual(values=colours) +
+    scale_color_manual(values=colours) +
+    #ylab('tCO2/GDP') +
+    facet_grid(gas~.,scales = "free") +
+    ggtitle("Emission intensity in kgCO2eq/$") +
+    plot_theme+
+    theme(strip.text.y = element_blank())
+
+
+
+##save data
+# edgar_by_gas<-edgar_by_gas %>%
+#   select(-gdp_ppp,-population,-gdp_real)
+# edgar_by_gas<-gather(edgar_by_gas,measure,value,absolute:absolute_low)
+# edgar_by_gas<-pivot_wider(edgar_by_gas,names_from=year,values_from="value")
+# 
+# openxlsx::addWorksheet(wb,"Emisions by gas")
+# openxlsx::writeData(wb, sheet = "Emisions by gas", edgar_by_gas, colNames = T, rowNames = F)
+# 
+# openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_gas_pc_pgdp_data_",Sys.Date(),".xlsx"),overwrite=T)
+
+```
+
+```{r Chap2_SM_CO2eq,echo=FALSE,warning=FALSE,fig.width=8,fig.height=12,fig.path="Results/Plots/",dev=c('png','pdf')}
+
+p_abs+p_pc+p_pgdp
+
+```
+
+```{r gas_data_raw,echo=FALSE,warning=FALSE,include=FALSE}
+
+edgar_by_gas<-edgar_raw %>%
+  filter(gas %in% c("CH4","N2O")) %>%
+  group_by(year,gas) %>%
+  summarise(value=sum(value,na.rm=TRUE))
+
+edgar_by_gas <- left_join(edgar_by_gas,uncertainties,by = "gas")
+
+edgar_by_gas$gas<-as.factor(edgar_by_gas$gas)
+
+edgar_by_gas<-edgar_by_gas %>%
+  rename("absolute"="value") %>%
+  mutate(absolute=absolute)%>%
+  mutate(uncertainty=absolute*uncertainty)
+
+edgar_by_gas <- edgar_by_gas %>%
+  mutate(absolute_high = absolute+uncertainty) %>% 
+  mutate(absolute_low = absolute-uncertainty)
+
+wdi_world<-wdi_data_gdp_pop%>%
+  filter(iso3c=="WLD")
+
+edgar_by_gas<-left_join(edgar_by_gas,wdi_world,by="year")
+
+edgar_by_gas<-edgar_by_gas %>%
+  mutate(per_capita=absolute/population*1e3) %>%
+  mutate(per_gdp_real=(absolute/gdp_real)*1e6) %>%
+  #mutate(per_gdp_ppp=(absolute/gdp_ppp)*1e3)
+  mutate(per_capita_high = absolute_high/population*1e3) %>% 
+  mutate(per_capita_low = absolute_low/population*1e3) %>% 
+  mutate(per_gdp_high = (absolute_high/gdp_real)*1e6) %>% 
+  mutate(per_gdp_low = (absolute_low/gdp_real)*1e6) %>% 
+ # rename("absolute"="value") %>%
+  mutate(absolute=absolute/1e6)%>%
+  mutate(absolute_high = absolute_high/1e6) %>% 
+  mutate(absolute_low = absolute_low/1e6) %>% 
+  select(-uncertainty)
+
+```
+
+```{r plot_ipcc_sm2,echo=FALSE,warning=FALSE,include=FALSE}
+
+#edgar_by_gas<-gather(edgar_by_gas,key = "unit",value = "value", "co2_pc":"ghg_pgdp_ppp")
+edgar_by_gas$gas <- as.factor(edgar_by_gas$gas)
+#edgar_by_gas$gas<-factor(edgar_by_gas$gas,levels(edgar_by_gas$gas)[c(5,2,3,1,6,4)])
+# edgar_by_gas$gas <- factor(edgar_by_gas$gas,levels=levels(edgar_by_gas$gas)[c(2,3,1,4,5)])
+#colours = c("#B3B3B3","#a6d854","#66c2a5","#8da0cb","#fc8d62","#e78ac3")
+colours = c("#8da0cb","#fc8d62")
+
+plot_theme <- theme_bw() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 11,color="#252525"),
+        axis.title = element_text(color="#525252"),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        legend.position="none",
+        text = element_text(size=11),
+        plot.background = element_blank())
+
+p_abs<-edgar_by_gas %>%
+          filter(year<=2019) %>%
+  filter(year>=1990) %>%
+    ggplot(.,aes(x=year,y=absolute))+
+    geom_line(aes(color=gas))+
+    geom_ribbon(aes(ymin=absolute_low,ymax=absolute_high,fill=gas),alpha=0.3)+
+  #   geom_rect(aes(
+  #   x = year,
+  #   xmin = 2018,
+  #   xmax = 2019,
+  #   ymin = absolute_low,
+  #   ymax = absolute_high
+  # ),fill = "white",alpha=0.04) +
+    scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    #scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    scale_fill_manual(values=colours) +
+    scale_color_manual(values=colours) +
+    #ylab('GtCO2eq') +
+    facet_grid(gas~.,scales = "free",switch = "y") +
+    ggtitle("Absolute emissions in Mt") +
+    plot_theme
+
+p_pc<-edgar_by_gas %>%
+          filter(year<=2019) %>%
+  filter(year>=1990) %>%
+    ggplot(.,aes(x=year,y=per_capita))+
+    geom_line(aes(color=gas))+
+    geom_ribbon(aes(ymin=per_capita_low,ymax=per_capita_high,fill=gas),alpha=0.3)+
+  # geom_rect(aes(
+  #   x = year,
+  #   xmin = 2018,
+  #   xmax = 2019,
+  #   ymin = per_capita_low,
+  #   ymax = per_capita_high
+  # ),fill = "white",alpha=0.04) +
+    scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    #scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    scale_fill_manual(values=colours) +
+    scale_color_manual(values=colours) +
+    #ylab('tCO2eq per capita') +
+    facet_grid(gas~.,scales = "free") +
+    ggtitle("Emissions per capita in kg/cap") +
+    plot_theme+
+    theme(strip.text.y = element_blank())
+
+p_pgdp<-edgar_by_gas %>%
+          filter(year<=2019) %>%
+  filter(year>=1990) %>%
+    ggplot(.,aes(x=year,y=per_gdp_real))+
+    geom_line(aes(color=gas))+
+    geom_ribbon(aes(ymin=per_gdp_low,ymax=per_gdp_high,fill=gas),alpha=0.3)+
+  # geom_rect(aes(
+  #   x = year,
+  #   xmin = 2018,
+  #   xmax = 2019,
+  #   ymin = per_gdp_low,
+  #   ymax = per_gdp_high
+  # ),fill = "white",alpha=0.04) +
+    scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    #scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
+    scale_fill_manual(values=colours) +
+    scale_color_manual(values=colours) +
+    #ylab('tCO2/GDP') +
+    facet_grid(gas~.,scales = "free") +
+    ggtitle("Emission intensity in g/$") +
+    plot_theme+
+    theme(strip.text.y = element_blank())
+
+
+
+##save data
+# edgar_by_gas<-edgar_by_gas %>%
+#   select(-gdp_ppp,-population,-gdp_real)
+# edgar_by_gas<-gather(edgar_by_gas,measure,value,absolute:absolute_low)
+# edgar_by_gas<-pivot_wider(edgar_by_gas,names_from=year,values_from="value")
+# 
+# openxlsx::addWorksheet(wb,"Emisions by gas")
+# openxlsx::writeData(wb, sheet = "Emisions by gas", edgar_by_gas, colNames = T, rowNames = F)
+# 
+# openxlsx::saveWorkbook(wb,paste0("Results/Data/ipcc_ar6_gas_pc_pgdp_data_",Sys.Date(),".xlsx"),overwrite=T)
+
+```
+
+```{r Chap2_SM_nativeunits,echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="Results/Plots/",dev=c('png','pdf')}
+
 p_abs+p_pc+p_pgdp
 
 ```

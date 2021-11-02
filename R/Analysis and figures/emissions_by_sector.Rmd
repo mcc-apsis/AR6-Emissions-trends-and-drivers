@@ -21,6 +21,7 @@ library(ggrepel)
 library(patchwork)
 library(zoo)
 library(lubridate)
+library(openxlsx)
 
 source("small_figures.R")
 
@@ -517,72 +518,6 @@ plot_region_figure <- function(region_data,chapter) {
 
 
 ```
-
-```{r growth_rates,echo=FALSE,warning=FALSE}
-
-# 
-# calculate_growth_rates <- function(trend_data) {
-#   
-#   
-#   ## World, subsector, 1990-2000,2000-2010, 2010-2018, 1990-2018
-#   
-#   trend_data <- trend_data %>% 
-#     ungroup() %>% 
-#     mutate(year=as.numeric(year))
-#   
-#   rates <- trend_data %>% filter(subsector_title=="none")
-#   
-#   for (i in 1:length(unique(trend_data$subsector_title))) {
-#     
-#     temp_data <- trend_data %>% 
-#       filter(subsector_title==unique(trend_data$subsector_title)[i]) %>% 
-#       mutate(rate=NA)
-#     
-#     years = temp_data$year[temp_data$year<2000]
-#     ghg = temp_data$value[temp_data$year<2000]
-#     temp_data$rate[temp_data$year<2000] = growth_rate(years,ghg)$rate*100
-#     
-#     years = temp_data$year[temp_data$year>=2000 & temp_data$year<=2010]
-#     ghg = temp_data$value[temp_data$year>=2000 & temp_data$year<=2010]
-#     temp_data$rate[temp_data$year>=2000 & temp_data$year<2010] = growth_rate(years,ghg)$rate*100
-#     
-#     years = temp_data$year[temp_data$year>=2010 & temp_data$year<=end_year]
-#     ghg = temp_data$value[temp_data$year>=2010 & temp_data$year<=end_year]
-#     temp_data$rate[temp_data$year>=2010 & temp_data$year<=end_year] = growth_rate(years,ghg)$rate*100
-#     
-#     rates <- rbind(rates,temp_data)
-#     
-#   }
-#   
-#   label = data.frame(year=c(1990,2000,2010),rate_period=c("1990-2000","2000-2010",paste("2010-",end_year,sep="")))
-#   
-#   rates <- left_join(rates %>% mutate(year=as.numeric(year)),label,by = "year")
-#   rates <- rates %>% 
-#     filter(!is.na(rate_period)) %>%
-#     mutate(region="World") %>% 
-#     select(region,subsector,subsector_title,rate_period,rate)
-#   
-#   ## World, subsector, 1990-2018
-#   for (i in 1:length(unique(trend_data$subsector_title))) {
-#     
-#     temp_data <- trend_data %>% 
-#       filter(subsector_title==unique(trend_data$subsector_title)[i]) %>% 
-#       mutate(rate=NA)
-#     
-#     years = temp_data$year[temp_data$year>=1990 & temp_data$year<=end_year]
-#     ghg = temp_data$value[temp_data$year>=1990 & temp_data$year<=end_year]
-#     rates <- add_row(rates,region="World",
-#                      subsector=unique(trend_data$subsector)[i],
-#                      subsector_title=unique(trend_data$subsector_title)[i],
-#                      rate_period="1990-2018",
-#                      rate=(growth_rate(years,ghg)$rate*100))
-#   }
-#   
-#   return(rates)
-# }
-
-```
-
 
 # All 5 sectors by 10 regions
 

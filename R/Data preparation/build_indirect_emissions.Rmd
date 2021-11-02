@@ -73,7 +73,7 @@ iea <- iea %>%
 iea <- iea %>% 
   mutate(indirect_CO2=ifelse(flow=="TOTIND",NA,indirect_CO2)) %>% 
   mutate(indirect_CO2=ifelse(flow=="TOTTRANS",NA,indirect_CO2)) %>% 
-  mutate(indirect_CO2=ifelse(flow=="MANUFACT",NA,indirect_CO2))
+  mutate(indirect_CO2=ifelse(flow=="MANUFACT",NA,indirect_CO2)) 
 
 blarg <- iea %>% 
   filter(country=="World") %>% 
@@ -210,7 +210,7 @@ iea <- iea %>%
 
 totals <- iea %>% 
   filter(country=="World") %>% 
-  filter(year==2018) %>% 
+  filter(year==2019) %>% 
   group_by(IPCC_AR6_chapter_title) %>% 
   summarise(adjusted_indirect_CO2=sum(adjusted_indirect_CO2))
 

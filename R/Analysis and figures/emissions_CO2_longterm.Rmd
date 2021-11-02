@@ -15,6 +15,7 @@ library(tidyverse)
 library(ggpubr)
 library(patchwork)
 library(ggplot2); theme_set(theme_bw())
+library(openxlsx)
 
 source("small_figures.R")
 
@@ -112,46 +113,111 @@ table_historic <- table_historic %>%
 
 ```
 
+```{r historical_cumulative, echo=FALSE,warning=FALSE,fig.width=4,fig.height=3}
+
+
+luc_uncertainties <- read.xlsx('../../Data/Land and GCB/Global Carbon Budget uncertainties.xlsx',sheet=1)
+luc_uncertainties <- luc_uncertainties %>% 
+  mutate(uncertainty_LULUCF=uncertainty_LULUCF*(44/12))
+
+
+# how much emissions occurred at different time periods?
+#1970
+cumulative_a <- gcb %>% 
+  select(Year,CO2FFI=Total,LULUCF,value=Total_CO2) %>% 
+  filter(Year>=1850) %>% 
+  mutate(key=NA) %>%
+  mutate(key=ifelse(Year>=1970, '1970- 2019',key)) %>% 
+  filter(!is.na(key))
+
+#1990
+cumulative_b <- gcb %>% 
+  select(Year,CO2FFI=Total,LULUCF,value=Total_CO2) %>% 
+  filter(Year>=1850) %>% 
+  mutate(key=NA) %>%
+  mutate(key=ifelse(Year>=1990,'1990- 2019',key)) %>% 
+  filter(!is.na(key))
+
+#2010
+cumulative_c <- gcb %>% 
+  select(Year,CO2FFI=Total,LULUCF,value=Total_CO2) %>% 
+  filter(Year>=1850) %>% 
+  mutate(key=NA) %>%
+  mutate(key=ifelse(Year>=2010,'2010- 2019',key)) %>% 
+  filter(!is.na(key))
+
+cumulative <- rbind(cumulative_a,cumulative_b)
+cumulative <- rbind(cumulative,cumulative_c)
+
+
+# get uncertainties for FFI and LUC
+cumulative <- left_join(cumulative,luc_uncertainties,by=c("Year"="year"))
+cumulative <- cumulative %>% 
+  mutate(uncertainty_CO2FFI=0.05*CO2FFI)
+
+cumulative <- cumulative %>% 
+  mutate(key=as.factor(key))%>% 
+  group_by(key) %>% 
+  summarise(value=sum(value),CO2FFI=sum(CO2FFI),LULUCF=sum(LULUCF),uncertainty_CO2FFI=sum(uncertainty_CO2FFI),uncertainty_LULUCF=sum(uncertainty_LULUCF))
+
+
+gcb_total <- gcb %>%  
+  filter(Year>=1850)
+
+cumulative <- cumulative %>% 
+  mutate(ag_uncertainty=sqrt((uncertainty_CO2FFI^2)+(uncertainty_LULUCF^2))) %>% 
+  mutate(fraction_since_1850=round(value/sum(gcb_total$Total_CO2),2))
+
+
+```
+
+
+
 ```{r historical_budget_plot, echo=FALSE,warning=FALSE,fig.width=4,fig.height=3}
 
+
+
+
 ###### calculate historical cumulative CO2
+
+
 
 historical_budget <- gcb %>% 
   select(Year,CO2FFI=Total,LULUCF,value=Total_CO2) %>% 
   filter(Year>=1850) %>% 
   mutate(key=NA) %>%
-  #mutate(key=ifelse(Year>=1850,'1850- 2019',key)) %>% 
   mutate(key=ifelse(Year>=1850 & Year < 1990,'1850- 1989',key)) %>% 
   mutate(key=ifelse(Year>=1990 & Year < 2010,'1990- 2009',key)) %>% 
   mutate(key=ifelse(Year>=2010,'2010- 2019',key)) %>% 
   filter(!is.na(key))
 
-# get uncertainties by year for the 2019 estimate
+# get uncertainties for FFI and LUC
+historical_budget <- left_join(historical_budget,luc_uncertainties,by=c("Year"="year"))
+historical_budget <- historical_budget %>% 
+  mutate(uncertainty_CO2FFI=0.05*CO2FFI)
+
 emissions_uncertainty <- historical_budget %>% 
-  mutate(uncertainty_CO2FFI=CO2FFI*0.08) %>% 
-  mutate(uncertainty_LULUCF=LULUCF*0.7) %>%
-  mutate(ag_uncertainty=sqrt((uncertainty_CO2FFI^2)+(uncertainty_LULUCF^2))) %>% 
   filter(Year==2019)
+
+# get uncertainties by year for the 2019 estimate
+# emissions_uncertainty <- historical_budget %>% 
+#   mutate(uncertainty_CO2FFI=CO2FFI*0.08) %>% 
+#   mutate(uncertainty_LULUCF=LULUCF*0.7) %>%
+#   mutate(ag_uncertainty=sqrt((uncertainty_CO2FFI^2)+(uncertainty_LULUCF^2))) %>% 
+#   filter(Year==2019)
 
 # sum to cumulative totals and calculate cumulative uncertainty
 historical_budget <- historical_budget %>% 
-  mutate(key=as.factor(key)) %>% 
+  mutate(key=as.factor(key))%>% 
   group_by(key) %>% 
-  summarise(value=sum(value),CO2FFI=sum(CO2FFI),LULUCF=sum(LULUCF))
+  summarise(value=sum(value),CO2FFI=sum(CO2FFI),LULUCF=sum(LULUCF),uncertainty_CO2FFI=sum(uncertainty_CO2FFI),uncertainty_LULUCF=sum(uncertainty_LULUCF))
+
+## readjust LULUCF uncertainty based on Julia Pongratz's sheet (see 'Global Carbon Budget uncertainties.xlsx' 1850-1989)
 historical_budget <- historical_budget %>% 
-  mutate(uncertainty_CO2FFI=CO2FFI*0.08) %>% 
-  mutate(uncertainty_LULUCF=LULUCF*0.7) %>%
+  mutate(uncertainty_LULUCF=ifelse(key=="1850- 1989",51.535*(44/12),uncertainty_LULUCF))
+
+historical_budget <- historical_budget %>% 
   mutate(ag_uncertainty=sqrt((uncertainty_CO2FFI^2)+(uncertainty_LULUCF^2)))
-
-
-# uncertainty bands for the historical emissions. According to AR6 WG1 Ch5 (Table 5.8), this is 2390+/-240 for 1850-2019.
-# we need to split this into the individual time periods though. we use table 6 in Friedlingstein 2020
-historical_budget <- historical_budget %>% 
-  mutate(ag_uncertainty_gcb = ifelse(key=="1850- 1989",123,NA)) %>% 
-  mutate(ag_uncertainty_gcb = ifelse(key=="1990- 2009",(0.8+0.8)*(44/12)*20,ag_uncertainty_gcb)) %>% 
-  mutate(ag_uncertainty_gcb = ifelse(key=="2010- 2019",0.9*(44/12)*10,ag_uncertainty_gcb)) 
-  
-
 
 
 ###### contrast historical cumulative CO2 with future 1.5C and 2C budgets
@@ -191,15 +257,19 @@ historical_budget <- historical_budget %>%
 #   mutate(higher_budget=ifelse(key=="2.0 budget (2020-)",start+(budget$value[budget$target=="2.0 budget (2020-)" & budget$category=="high"]),higher_budget))
 
 
-# add additional budget uncertainty of +-220 GtCO2 (dont do this any more as we switched to WG3 budgets)
+# add additional budget uncertainty of +-220 GtCO2
 historical_budget <- historical_budget %>%
   mutate(ag_uncertainty=ifelse(id>3,220,ag_uncertainty))
 
 
 # add uncertainty in the historical budgets
+
 historical_budget <- historical_budget %>% 
   mutate(lower_uncertainty=end-ag_uncertainty) %>% 
   mutate(higher_uncertainty=end+ag_uncertainty)
+
+
+
 
 
 historical_budget <- historical_budget %>%
@@ -243,7 +313,7 @@ p2 <- historical_budget %>%
     ymax = higher_uncertainty
   ),colour = "#232323") +
   
-  geom_text(aes(x=id,y=higher_uncertainty+400,label=paste(signif(value,2),"\n±",signif(ag_uncertainty,2))),size=3.5,color="#737373",lineheight=0.85) +
+  geom_text(aes(x=id,y=higher_uncertainty+400,label=paste(signif(value,2),"\n±",plyr::round_any(ag_uncertainty,5))),size=3.5,color="#737373",lineheight=0.85) +
 
   #geom_text(aes(x=id,y=ifelse(!is.na(higher_budget),higher_budget+250,end+250),label=paste(signif(value,2))),size=3.5,color="#737373") +
 
@@ -443,12 +513,14 @@ openxlsx::addWorksheet(wb,"panel b historical budget")
 openxlsx::addWorksheet(wb,"panel c table")
 openxlsx::addWorksheet(wb,"budget summary")
 openxlsx::addWorksheet(wb,"budget calculations")
+openxlsx::addWorksheet(wb,"cumulative co2 different years")
 
 openxlsx::writeData(wb, sheet = "panel a CO2 trend", spread(co2_trend,year,value), colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = "panel b historical budget", historical_budget, colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = "panel c table", figure_table, colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = "budget summary", summary_table, colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = "budget calculations", table, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "cumulative co2 different years", cumulative, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_long_term_co2.xlsx"),overwrite=T)
 
@@ -479,13 +551,13 @@ openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_long_t
 
 ```
 
-```{r long_term_co2, echo=FALSE,warning=FALSE,fig.width=10,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+```{r long_term_co2, echo=FALSE,warning=FALSE,fig.width=10,fig.height=3.5,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
 #p1 / (p2 + p4 + plot_layout(widths = c(1,3)))
 
 #p1 / (p2 + p4 + plot_layout(widths = c(1,2.5)))
 
-(p1 + p2 + plot_layout(widths=c(2.5,1))) / wrap_elements(p4 + plot_annotation(title="c. Carbon budget exceedance under different assumptions of current emissions, reduction rates and uncertainty") & theme(plot.tag = element_text(size = 8)))
+(p1 + p2 + plot_layout(widths=c(2.5,1))) #/ wrap_elements(p4 + plot_annotation(title="c. Carbon budget exceedance under different assumptions of current emissions, reduction rates and uncertainty") & theme(plot.tag = element_text(size = 8)))
 
 
 ```
