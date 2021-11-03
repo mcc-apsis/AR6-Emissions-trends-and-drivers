@@ -191,8 +191,6 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 ```
 
 
-
-
 Sector emissions trends
 =====================================
 
@@ -210,7 +208,9 @@ Consolidated data files are available for the figures here:
 
 * <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_sectors.xlsx">Emissions by sector</a>
 
+
 -----------------------------------------------------------------------
+
 ### All sectors - regional trends
 
 
@@ -231,6 +231,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### All sectors - Kaya trends and per capita emissions
 
 
@@ -251,6 +252,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### Energy sector - regional trends
 
 
@@ -271,6 +273,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### Energy sector - Kaya trends and per capita emissions
 
 
@@ -291,6 +294,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### Industry sector - regional trends
 
 
@@ -311,6 +315,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### Industry sector - Kaya trends and per capita emissions
 
 
@@ -331,6 +336,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### Building sector - regional trends
 
 
@@ -351,6 +357,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### Building sector - Kaya trends and per capita emissions
 
 
@@ -371,6 +378,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### Transport sector - regional trends
 
 
@@ -391,6 +399,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### Transport sector - Kaya trends and per capita emissions
 
 
@@ -411,6 +420,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### AFOLU sector - regional trends
 
 
@@ -431,6 +441,7 @@ cat("<a href='https://raw.githubusercontent.com/mcc-apsis/AR6-Emissions-trends-a
 
 
 -----------------------------------------------------------------------
+
 ### AFOLU sector - Kaya trends and per capita emissions
 
 
@@ -482,12 +493,10 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 
 ```
 
-### Emissions change by region and sector in EDGARv6  
-
-Estimates from the EDGARv6 database, which we use across the AR6 report, show varying impacts by sector, subsector and region.
-
 -----------------------------------------------------------------------
-### Regions
+
+### Emissions change by region in EDGARv6
+
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
@@ -504,7 +513,8 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 ```
 
 -----------------------------------------------------------------------
-### Sectors
+
+### Emissions change by sector in EDGARv6
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
@@ -521,7 +531,8 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 ```
 
 -----------------------------------------------------------------------
-### Subectors
+
+### Emissions change by subsector in EDGARv6
 
 ```{r,out.width="80%",fig.align = 'center',results='asis'}
 cat("<br>")
@@ -537,9 +548,9 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 
 ```
 
+
 Growth rates
 =====================================
-
 
 ### Growth rates
 
@@ -555,6 +566,7 @@ A spreadsheet is also available: <a href="https://github.com/mcc-apsis/AR6-Emiss
 
 
 -----------------------------------------------------------------------
+
 ### Gases
 
 
@@ -571,6 +583,7 @@ rates %>%
 ```
 
 -----------------------------------------------------------------------
+
 ### Regions (IPCC 6 Regions)
 
 
@@ -589,6 +602,7 @@ rates %>%
 ```
 
 -----------------------------------------------------------------------
+
 ### Sectors (excl. indirect CO2)
 
 ```{r}
@@ -605,6 +619,7 @@ rates %>%
 ```
 
 -----------------------------------------------------------------------
+
 ### Sectors (incl. indirect CO2)
 
 ```{r}
@@ -621,6 +636,7 @@ rates %>%
 ```
 
 -----------------------------------------------------------------------
+
 ### Subsectors (excl. indirect CO2 emissions)
 
 ```{r}
@@ -639,6 +655,7 @@ rates %>%
 ```
 
 -----------------------------------------------------------------------
+
 ### Countries
 
 ```{r}
@@ -657,11 +674,8 @@ rates %>%
 ```
 
 
-
-
 Decarbonising countries
 =====================================
-
 
 ### Decarbonising countries
 
@@ -672,6 +686,7 @@ As shown in the individual plots by country, most reductions were made in the el
 Please note: this analysis is based on EDGAR v5 and is not currently up to date.
 
 -----------------------------------------------------------------------
+
 ### 24 countries have reduced CO2 and GHG emissions for longer than a decade
 
 ```{r,out.width="75%",fig.align = 'center',results='asis'}
