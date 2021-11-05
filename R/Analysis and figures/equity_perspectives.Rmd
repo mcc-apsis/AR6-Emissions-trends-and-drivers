@@ -56,7 +56,7 @@ co2 <- edgar_ghg %>%
   filter(year==2019) %>% 
   group_by(region_ar6_6) %>%
   summarise(value=sum(CO2,na.rm=TRUE)) %>% 
-  mutate(var="Territorial CO2, fossil and proccess (2019)") %>% 
+  mutate(var="Production CO2 FFI (2019)") %>% 
   mutate(category="a. Current population and emissions by region")
 
 co2 <- co2 %>% 
@@ -68,7 +68,7 @@ co2_dev <- edgar_ghg %>%
   filter(year==2019) %>% 
   group_by(region_ar6_dev) %>%
   summarise(value=sum(CO2,na.rm=TRUE)) %>% 
-  mutate(var="Territorial CO2, fossil and proccess (2019)") %>% 
+  mutate(var="Production CO2 FFI (2019)") %>% 
   mutate(category="a. Current population and emissions by region")
 
 co2_dev <- co2_dev %>% 
@@ -138,7 +138,7 @@ co2_cons <- gcp_consumption_co2 %>%
   filter(year==2018) %>% 
   group_by(region_ar6_6) %>% 
   summarise(value=sum(value,na.rm=TRUE)) %>% 
-  mutate(var="Consumption CO2, fossil only (2018)") %>% 
+  mutate(var="Consumption CO2 FFI (2018)") %>% 
   filter(!is.na(region_ar6_6)) %>% 
   mutate(category="a. Current population and emissions by region")
 
@@ -151,7 +151,7 @@ co2_cons_dev <- gcp_consumption_co2 %>%
   filter(year==2018) %>% 
   group_by(region_ar6_dev) %>% 
   summarise(value=sum(value,na.rm=TRUE)) %>% 
-  mutate(var="Consumption CO2, fossil only (2018)") %>% 
+  mutate(var="Consumption CO2 FFI (2018)") %>% 
   filter(!is.na(region_ar6_dev)) %>% 
   mutate(category="a. Current population and emissions by region")
 
@@ -170,7 +170,7 @@ ghg <- edgar_ghg %>%
   filter(year==2019) %>% 
   group_by(region_ar6_6) %>%
   summarise(value=sum(GHG,na.rm=TRUE)) %>% 
-  mutate(var="Territorial GHG, excl. LULUCF (2019)") %>% 
+  mutate(var="Production GHG, excl. LULUCF (2019)") %>% 
   mutate(category="a. Current population and emissions by region")
 
 ghg <- ghg %>% 
@@ -182,7 +182,7 @@ ghg_dev <- edgar_ghg %>%
   filter(year==2019) %>% 
   group_by(region_ar6_dev) %>%
   summarise(value=sum(GHG,na.rm=TRUE)) %>% 
-  mutate(var="Territorial GHG, excl. LULUCF (2019)") %>% 
+  mutate(var="Production GHG, excl. LULUCF (2019)") %>% 
   mutate(category="a. Current population and emissions by region")
 
 ghg_dev <- ghg_dev %>% 
@@ -226,7 +226,7 @@ ghg_lulucf <- ghg_lulucf %>%
 ghg_lulucf <- ghg_lulucf %>% 
   mutate(total=sum(ghg_lulucf$value,na.rm=TRUE)) %>% 
   mutate(fraction = value/total) %>% 
-  mutate(var="Territorial GHG, incl. LULUCF (2019)") %>% 
+  mutate(var="Production GHG, incl. LULUCF (2019)") %>% 
   mutate(category="a. Current population and emissions by region") %>%  
   mutate(label=paste0(round(total/1e9)," GtCO2eq")) %>% 
   select(-ghg,-co2_land)
@@ -267,7 +267,7 @@ co2_1850 <- co2_1850 %>%
   mutate(total=sum(co2_1850$value)) %>% 
   mutate(fraction=value/total) %>% 
   mutate(label=paste0(round(total,0),"\nGtCO2eq")) %>% 
-  mutate(var="Territorial CO2, incl. LULUCF (1850-2019)") %>% 
+  mutate(var="Production CO2, incl. LULUCF (1850-2019)") %>% 
   mutate(category="b. Historical cumulative emissions by region")
 
 
@@ -281,7 +281,7 @@ co2_1850_ex <- co2_1850_ex %>%
   mutate(total=sum(co2_1850_ex$value)) %>% 
   mutate(fraction=value/total) %>% 
   mutate(label=paste0(round(total,0),"\nGtCO2eq")) %>% 
-  mutate(var="Territorial CO2, excl. LULUCF (1850-2019)") %>% 
+  mutate(var="Production CO2, excl. LULUCF (1850-2019)") %>% 
   mutate(category="b. Historical cumulative emissions by region")
 
 co2_1850_dev <- hist_1850_dev %>% 
@@ -292,7 +292,7 @@ co2_1850_dev <- co2_1850_dev %>%
   mutate(total=sum(co2_1850_dev$value)) %>% 
   mutate(fraction=value/total) %>% 
   mutate(label=paste0(round(total,0),"\nGtCO2eq")) %>% 
-  mutate(var="Territorial CO2, excl. LULUCF (1850-2019)") %>% 
+  mutate(var="Production CO2, excl. LULUCF (1850-2019)") %>% 
   mutate(category="b. Historical cumulative emissions by region")
 
 co2_1850_ex <- rbind(co2_1850_ex,co2_1850_dev %>% filter(region_ar6_dev=="ldc") %>% rename(region_ar6_6=region_ar6_dev))
@@ -309,14 +309,14 @@ data <- rbind(data,co2_1850_ex)
 
 data <- data %>% 
   #add_row(region_ar6_6="ldc",var="LULUCF CO2 (2019)",category="a. Current population and emissions by region") %>% 
-  add_row(region_ar6_6="ldc",var="Territorial CO2, incl. LULUCF (1850-2019)",category="b. Historical cumulative emissions by region") %>% 
-  add_row(region_ar6_6="ldc",var="Territorial GHG, incl. LULUCF (2019)",category="a. Current population and emissions by region")
+  add_row(region_ar6_6="ldc",var="Production CO2, incl. LULUCF (1850-2019)",category="b. Historical cumulative emissions by region") %>% 
+  add_row(region_ar6_6="ldc",var="Production GHG, incl. LULUCF (2019)",category="a. Current population and emissions by region")
 
 
 
 data$var <- as.factor(data$var)
 data$category <- as.factor(data$category)
-data$var <- fct_relevel(data$var,"Population (2019)","Consumption CO2, fossil only (2018)","Territorial CO2, fossil and proccess (2019)","Territorial GHG, excl. LULUCF (2019)","Territorial GHG, incl. LULUCF (2019)","Territorial CO2, excl. LULUCF (1850-2019)","Territorial CO2, incl. LULUCF (1850-2019)")
+data$var <- fct_relevel(data$var,"Population (2019)","Consumption CO2 FFI (2018)","Production CO2 FFI (2019)","Production GHG, excl. LULUCF (2019)","Production GHG, incl. LULUCF (2019)","Production CO2, excl. LULUCF (1850-2019)","Production CO2, incl. LULUCF (1850-2019)")
 
 
 ```
@@ -403,7 +403,7 @@ p1 <- data %>%
 # side panel for the labels
 p_labels <- data %>%
   filter(region_ar6_6!="ldc") %>% 
-  filter(var=="Territorial CO2, incl. LULUCF (1850-2019)") %>%
+  filter(var=="Production CO2, incl. LULUCF (1850-2019)") %>%
   ggplot(.,aes(x=1,y=position,label=str_wrap(region_ar6_6,width=15),color=region_ar6_6)) +
   geom_text(hjust=0,lineheight=0.75) +
   xlim(1,1.1) +
@@ -438,7 +438,7 @@ p2 <- data_dev %>%
 p_labels_2 <- data_dev %>%
   filter(region_ar6_6=="ldc") %>% 
   filter(category=="b. Historical cumulative emissions by region") %>%
-  filter(var=="Territorial GHG, incl. LULUCF (2019)") %>%
+  filter(var=="Production GHG, incl. LULUCF (2019)") %>%
   ggplot(.,aes(x=1,y="a",label=str_wrap("Least Developed Countries",width=15))) +
   geom_text(hjust=0,color="Grey",lineheight=0.75) +
   xlim(1,1.1) +

@@ -350,7 +350,9 @@ country_ghg <- edgar_ghg %>%
 country_ghg <- left_join(country_ghg,wdi_data_gdp_pop %>% select(year,ISO=iso3c,population),by=c("ISO","year"))
 
 country_ghg <- country_ghg %>% 
-  mutate(per_capita=ghg/population)
+  filter(population!=0) %>% 
+  mutate(per_capita=ghg/population) %>% 
+  filter(population>=1e6)
 
 country_ghg <- country_ghg %>% 
   group_by(year,region_ar6_6) %>% 
