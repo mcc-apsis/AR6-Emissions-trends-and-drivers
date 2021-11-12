@@ -165,6 +165,22 @@ p1 <- p1 + p_labels + plot_layout(widths=c(5,2.1))
 
 ```
 
+```{r scenario_data, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
+
+# New script as of 11.11.2021 using data provided directly by Ed Byers to match scenario categories with other SPM figures
+
+scenario_data <- read.xlsx("../../Data/supplemetary data/ar6_full_metadata_indicators2021_10_14_v7.xlsx",
+                          sheet=4)
+
+# constrain scenarios
+
+
+# calculate growth rates
+
+
+
+
+```
 
 ```{r benchmark_data_and_rates, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
 

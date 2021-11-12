@@ -170,6 +170,7 @@ p1 <- p1 + p_labels + plot_layout(widths=c(5,2.1))
 ```{r country_changes,echo=FALSE,warning=FALSE,include=FALSE,fig.width=8,fig.height=6}
 
 time_start=2010
+#time_start=1990
 
 ## get country level data
 
@@ -257,7 +258,7 @@ p2 <- countries %>%
   plot_theme +
   ylab("%/yr") +
   ggtitle(str_wrap("b. Avg. annual GHG emissions change",width=32)) +
-  annotate(geom = 'text', label = 'Years: 2010-2019',
+  annotate(geom = 'text', label = paste0('Years: ',time_start,'-2019'),
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
 
 #absolute
@@ -273,7 +274,7 @@ p3 <- countries %>%
   plot_theme +
   ylab(bquote("Gt" ~CO[2]* "eq/yr")) +
   ggtitle(str_wrap("c. Change in annual GHG emission level",width=35)) +
-    annotate(geom = 'text', label = 'Years: 2010-2019',
+    annotate(geom = 'text', label = paste0('Years: ',time_start,'-2019'),
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
 
 #pc

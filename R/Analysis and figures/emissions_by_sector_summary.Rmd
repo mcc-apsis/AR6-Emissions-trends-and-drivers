@@ -280,6 +280,8 @@ p2
 
 ```{r subsector_trends,echo=FALSE,warning=FALSE,results='asis',fig.width=8,fig.height=6,fig.path="../../Results/Plots/Sectors/",dev=c('png','pdf','svg')}
 
+time_start = 1990;
+
 ## growth by subsector
 subsector_data <- edgar_ghg %>%
   filter(year>=1990) %>%
@@ -313,17 +315,12 @@ threshold <- sum(threshold$value,na.rm=T)*0.9
 ## calculate average annual and absolute growth
 
 subsector_data <- subsector_data %>%
-  # filter(year>=1990) %>%
-  # group_by(subsector,subsector_title) %>%
-  # mutate(avg_growth_1990=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>%
-  # mutate(abs_growth_1990=last(value)-first(value)) %>%
-  filter(year>=2010 & year<=2019) %>%
+  filter(year>=time_start & year<=2019) %>%
   group_by(subsector,subsector_title) %>%
-  mutate(avg_growth_2010=(last(value)/first(value))^(1/(last(year)-2010))-1) %>%
-  mutate(abs_growth_2010=last(value)-first(value)) %>%
+  mutate(avg_growth=(last(value)/first(value))^(1/(last(year)-time_start))-1) %>%
+  mutate(abs_growth=last(value)-first(value)) %>%
   filter(year==2019) %>%
-  #mutate(avg_growth_1990=avg_growth_1990*100) %>%
-  mutate(avg_growth_2010=avg_growth_2010*100)
+  mutate(avg_growth=avg_growth*100)
 
 ## remove subsectors below absolute emissions threshold
 
@@ -334,7 +331,7 @@ subsector_data <- subsector_data %>%
   mutate(cutoff = ifelse(cumulative_GHG<threshold,1,0)) %>%
   select(-cumulative_GHG)
 
-subsector_data <- gather(subsector_data,var,value,avg_growth_2010,abs_growth_2010)
+subsector_data <- gather(subsector_data,var,value,avg_growth,abs_growth)
 
 
 plot_theme <- theme_bw() +
@@ -350,32 +347,45 @@ plot_theme <- theme_bw() +
 #rate
 p3 <- subsector_data %>%
   filter(cutoff==1) %>%
-  filter(var=="avg_growth_2010") %>%
+  filter(var=="avg_growth") %>%
   ggplot(.,aes(x = reorder(subsector_title,value),y = value, fill=chapter_title)) +
   geom_bar(stat='identity',colour="#737373") +
   coord_flip() +
   plot_theme +
   scale_fill_brewer(type = "qual",palette="Set2") +
   ylab("%") +
-  ggtitle(str_wrap("c. Avg. annual GHG emissions growth by subsector",width=38)) +
-  annotate(geom = 'text', label = 'Years: 2010-2019',
+  ggtitle(str_wrap("c. Avg. annual GHG emissions change by subsector",width=38)) +
+  annotate(geom = 'text', label = paste0('Years: ',time_start,'-2019'),
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.4,size=3.5,color="#525252")
 
 #absolute
 p4 <- subsector_data %>%
   filter(cutoff==1) %>%
-  filter(var=="abs_growth_2010") %>%
+  filter(var=="abs_growth") %>%
   ggplot(.,aes(x = reorder(subsector_title,value),y = value, fill=chapter_title)) +
   geom_bar(stat='identity',colour="#737373") +
   coord_flip() +
   plot_theme +
   scale_fill_brewer(type = "qual",palette="Set2") +
   ylab("Gt CO2eq/yr") +
-  ggtitle(str_wrap("d. Absolute GHG emissions growth by subsector",width=35)) +
-    annotate(geom = 'text', label = 'Years: 2010-2019',
+  ggtitle(str_wrap("d. Change in annual GHG emissions level by subsector",width=35)) +
+    annotate(geom = 'text', label = paste0('Years: ',time_start,'-2019'),
              x = -Inf, y = Inf, hjust = 1.05, vjust = -0.3,size=3.5,color="#525252")
 
 
+```
+
+
+
+```{r sector_trends_1990,echo=FALSE,warning=FALSE,results='asis',dpi=300,fig.width=10,fig.height=12,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
+
+
+wrap_elements(p1) / wrap_elements(p2) / wrap_elements(p3 + p4)
+
+
+```
+
+```{r save,echo=FALSE,warning=FALSE}
 
 wb <- openxlsx::createWorkbook(title = paste("sector summary"))
 
@@ -388,18 +398,7 @@ openxlsx::writeData(wb, sheet = "emissions by sector and region", spread(region_
 openxlsx::writeData(wb, sheet = "emissions by subsector", subsector_data, colNames = T, rowNames = F)
 
 
-openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_sector_summary.xlsx"),overwrite=T)
-
-```
-
-
-
-```{r sector_trends,echo=FALSE,warning=FALSE,results='asis',dpi=300,fig.width=10,fig.height=12,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
-
-
-wrap_elements(p1) / wrap_elements(p2) / wrap_elements(p3 + p4)
-
-
+openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_sector_summary_1990.xlsx"),overwrite=T)
 
 
 ```
