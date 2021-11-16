@@ -173,60 +173,99 @@ scenario_data <- read.xlsx("../../Data/supplemetary data/ar6_full_metadata_indic
                           sheet=4)
 
 # constrain scenarios
-
-
-# calculate growth rates
-
-
-
-
-```
-
-```{r benchmark_data_and_rates, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
-
-scenario_data <- read.csv("../../Data/supplemetary data/ar6_2021_10_14_emission_reduction_benchmarks.csv")
-
-scenario_data <- scenario_data %>%
-  rename(rate=reduction_rates_2020.2040)
-
 scenario_data <- scenario_data %>% 
-  mutate(aggregated_category=NA) %>% 
-  mutate(aggregated_category=ifelse(grepl("C1",Category_name),"Below 1.5\u00B0C with no or low overshoot (C1)",aggregated_category)) %>% 
-  mutate(aggregated_category=ifelse(grepl("C3",Category_name),"Likely below 2\u00B0C (C3)",aggregated_category)) %>% 
-  mutate(aggregated_category=ifelse(grepl("C4",Category_name),"Below 2\u00B0C (C4)",aggregated_category))
+  mutate(aggregated_category=ifelse(Category=="C3" & policy_category=="P2","C3a: Immediate action",NA)) %>%
+  mutate(aggregated_category=ifelse(Category=="C3" & policy_category=="P2a","C3a: Immediate action",aggregated_category)) %>%
+  mutate(aggregated_category=ifelse(Category=="C3" & policy_category=="P2b","C3a: Immediate action",aggregated_category)) %>%
+  mutate(aggregated_category=ifelse(Category=="C3" & policy_category=="P2c","C3a: Immediate action",aggregated_category)) %>%
+  mutate(aggregated_category=ifelse(Category=="C3" & policy_category=="P4","C3a: Immediate action",aggregated_category)) %>% 
+  mutate(aggregated_category=ifelse(Category=="C3" & policy_category=="P0_2","C3a: Immediate action",aggregated_category)) %>% 
+  mutate(aggregated_category=ifelse(Category=="C3" & grepl(c('P3b'),policy_category),"C3b: NDCs",aggregated_category)) %>%  
+  mutate(aggregated_category=ifelse(Category=="C1","C1: Below 1.5\u00B0C with no or low overshoot",aggregated_category))
 
 
 scenario_data <- scenario_data %>%
   filter(!is.na(aggregated_category)) %>% 
-  filter(!is.na(rate)) %>% 
+  select(model,scenario,aggregated_category,ghg_2020=`GHG.emissions.2020.Gt.CO2-equiv/yr`,ghg_2040=`GHG.emissions.2040.Gt.CO2-equiv/yr`)
+
+# calculate growth rates
+scenario_data <- scenario_data %>% 
+  mutate(rate=((((ghg_2040/ghg_2020)^(1/(2040-2020)))-1))*100)
+
+# scenario summary
+scenario_summary <- scenario_data %>% 
+  group_by(aggregated_category) %>% 
+  summarise(min=min(rate),max=max(rate),n=n())
+
+
+# match country data frame
+scenario_data <- scenario_data %>%
   mutate(country="x") %>%
   mutate(ISO="x") %>%
   mutate(facet="Scenario reduction rates (2020-2040)") %>%
   mutate(emissions_total_2019=NA) %>%
   select(country,ISO,model,scenario,aggregated_category,rate,facet,emissions_total_2019)
 
+
 # select scenarios within the 5 - 95th percentiles
 percentiles <- scenario_data %>% 
   group_by(aggregated_category) %>%
   summarise(percentile_5th = quantile(rate, probs = c(0.05)),percentile_95th = quantile(rate, probs = c(0.95)))
 
-scenario_data <- left_join(scenario_data,percentiles,by="aggregated_category")
 
-scenario_data <- scenario_data %>% 
-  filter(rate>percentile_5th) %>% 
-  filter(rate<percentile_95th) %>% 
+scenario_data <- left_join(scenario_data,percentiles,by="aggregated_category")
+scenario_data <- scenario_data %>%
+  filter(rate>percentile_5th) %>%
+  filter(rate<percentile_95th) %>%
   select(-percentile_5th,-percentile_95th)
+
+
+
+
+```
+
+```{r scenario_rates_old, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
+
+# scenario_data <- read.csv("../../Data/supplemetary data/ar6_2021_10_14_emission_reduction_benchmarks.csv")
 # 
 # 
-# # remove the 8 scenarios with positive growth (GCAM!!!!)
-# scenario_data <- scenario_data %>%
-#   filter(rate<0)
-# # remove 1 scenario with -30%/yr !
+# scenario_data <- scenario_data %>% rename(rate=reduction_rates_2020.2040)
+# 
+# 
 # scenario_data <- scenario_data %>% 
-#   filter(rate>-20)
+#   mutate(aggregated_category=NA) %>% 
+#   mutate(aggregated_category=ifelse(grepl("C1",Category_name),"Below 1.5\u00B0C with no or low overshoot (C1)",aggregated_category)) %>% 
+#   mutate(aggregated_category=ifelse(grepl("C3",Category_name),"Likely below 2\u00B0C (C3)",aggregated_category)) %>% 
+#   mutate(aggregated_category=ifelse(grepl("C4",Category_name),"Below 2\u00B0C (C4)",aggregated_category))
+# 
+# 
+# scenario_data <- scenario_data %>%
+#   filter(!is.na(aggregated_category)) %>% 
+#   filter(!is.na(rate)) %>% 
+#   mutate(country="x") %>%
+#   mutate(ISO="x") %>%
+#   mutate(facet="Scenario reduction rates (2020-2040)") %>%
+#   mutate(emissions_total_2019=NA) %>%
+#   select(country,ISO,model,scenario,aggregated_category,rate,facet,emissions_total_2019)
+# 
+# 
+# # select scenarios within the 5 - 95th percentiles
+# percentiles <- scenario_data %>% 
+#   group_by(aggregated_category) %>%
+#   summarise(percentile_5th = quantile(rate, probs = c(0.05)),percentile_95th = quantile(rate, probs = c(0.95)))
+# 
+# 
+# scenario_data <- left_join(scenario_data,percentiles,by="aggregated_category")
+# scenario_data <- scenario_data %>% 
+#   filter(rate>percentile_5th) %>% 
+#   filter(rate<percentile_95th) %>% 
+#   select(-percentile_5th,-percentile_95th)
+
+```
+
+```{r country_rates, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3}
 
 ## calculate rates of change for each country
-
 region_rates <- edgar_ghg %>% 
   filter(region_ar6_6_short!="AIR") %>% 
   filter(region_ar6_6_short!="SEA") %>% 
@@ -266,7 +305,7 @@ region_rates <- rbind(region_rates,scenario_data)
 
 ```
 
-```{r estimate_rates, echo=FALSE,warning=FALSE}
+```{r estimate_mean_rates, echo=FALSE,warning=FALSE}
 
 # calculate mean rates for the scenario categories
 
@@ -310,7 +349,7 @@ region_rates <- region_rates %>%
 region_rates <- region_rates %>% 
   mutate(aggregated_category = as.factor(aggregated_category))
 
-region_rates$aggregated_category <- factor(region_rates$aggregated_category,levels= levels(region_rates$aggregated_category)[c(1,2,5,6,7,9,4,8,3)])
+region_rates$aggregated_category <- factor(region_rates$aggregated_category,levels= levels(region_rates$aggregated_category)[c(1,2,6,7,8,9,4,5,3)])
 
 
 region_summary <- region_rates %>% 
@@ -378,6 +417,32 @@ country_ghg <- country_ghg %>%
   filter(population!=0)
   
 
+
+country_co2 <- edgar_ghg %>% 
+  filter(year %in% c(1990,2010,2019)) %>% 
+  group_by(ISO,country,region_ar6_6,region_ar6_dev,year) %>% 
+  summarise(co2=sum(CO2,na.rm=TRUE))
+
+country_co2 <- left_join(country_co2,wdi_data_gdp_pop %>% select(year,ISO=iso3c,population),by=c("ISO","year"))
+
+country_co2 <- country_co2 %>% 
+  filter(region_ar6_6!="Intl. Aviation") %>% 
+  filter(region_ar6_6!="Intl. Shipping") %>% 
+  mutate(per_capita=co2/population)
+
+country_co2_averages <- country_co2 %>% 
+  group_by(year,region_ar6_6) %>% 
+  summarise(pop_total=sum(population,na.rm=TRUE)/1e9,
+            co2_total=sum(co2,na.rm=TRUE)/1e9,
+            per_capita=sum(co2,na.rm=TRUE)/sum(population,na.rm=TRUE))
+
+country_co2 <- country_co2 %>% 
+  group_by(year,region_ar6_6) %>% 
+  filter(population>=1e6) %>% 
+  summarise(`min (pop>1e6)`=min(per_capita,na.rm=TRUE),`max (pop>1e6)`=max(per_capita,na.rm=TRUE))
+
+country_co2 <- left_join(country_co2,country_co2_averages, by = c("year", "region_ar6_6"))
+
 ```
 
 ```{r region_trends_spm, echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
@@ -408,7 +473,7 @@ writeData(wb, sheet = "panel a totals and rates",rates, colNames = T, rowNames =
 writeData(wb, sheet = "panel a shares",shares %>% select(-value,-totals) %>% rename(shares=fractions), colNames = T, rowNames = F)
 writeData(wb, sheet = "panel b", region_rates %>% select(-population), colNames = T, rowNames = F)
 writeData(wb, sheet = "overall growth (not in figure)", region_growth, colNames = T, rowNames = F)
-writeData(wb, sheet = "region per cap (not in figure)", country_ghg, colNames = T, rowNames = F)
+writeData(wb, sheet = "region per cap (not in figure)", country_co2, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm_regions.xlsx"),overwrite=T)
 

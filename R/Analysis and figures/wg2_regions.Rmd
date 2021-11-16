@@ -339,14 +339,7 @@ gas_sector_plot <- function(data,region) {
   
 ```
 
-``` {r save}
 
-openxlsx::addWorksheet(wb,"Region per capita")
-openxlsx::writeData(wb, sheet = "Region per capita",boxplot_data, colNames = T, rowNames = F)
-openxlsx::addWorksheet(wb,"Region trend")
-openxlsx::writeData(wb, sheet = "Region trend",spread(trend_data,year,GHG), colNames = T, rowNames = F)
-
-```
 
 
 # Africa
@@ -365,159 +358,29 @@ p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
 
 wrap_plots(p1,p2,countries$plot,p4)
 
-openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
-openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
-openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
-
-```
-
-# Asia
-
-```{r Asia, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-
-region="Asia"
-
-
-countries <- country_plot(data,region)
-gas_sector <- gas_sector_plot(data,region)
-
-countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Asia)")
-gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Asia)")
-
-p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
-
-wrap_plots(p1,p2,countries$plot,p4)
-
-openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
-openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
-openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
-
-```
-
-# Australasia
-
-```{r Australasia,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-
-region="Australasia"
-
-
-countries <- country_plot(data,region)
-gas_sector <- gas_sector_plot(data,region)
-
-countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Australasia)")
-gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Australasia)")
-
-p4 <- (gas_sector$gas_plot + gas_sector$sector_plot) 
-
-wrap_plots(p1,p2,countries$plot,p4)
-
-openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
-openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
-openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
-
-```
-
-# Central and South America
-
-```{r Central and South America,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-
-region="Central and\nS. America"
-
-
-countries <- country_plot(data,region)
-gas_sector <- gas_sector_plot(data,region)
-
-countries$plot <- countries$plot + ggtitle("c. Country emissions growth (C.& S. America)")
-gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (C.& S. America)")
-
-p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
-
-wrap_plots(p1,p2,countries$plot,p4)
-
-openxlsx::addWorksheet(wb,"C. & S. Am. emissions growth")
-openxlsx::addWorksheet(wb,"C. & S. Am. gas and sector")
-openxlsx::writeData(wb, "C. & S. Am. emissions growth",countries$data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, "C. & S. Am. gas and sector",gas_sector$data, colNames = T, rowNames = F)
-
-```
-
-# Europe
-
-```{r Europe, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-
-region="Europe"
-
-countries <- country_plot(data,region)
-gas_sector <- gas_sector_plot(data,region)
-
-countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Europe)")
-gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Europe)")
-
-p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
-
-wrap_plots(p1,p2,countries$plot,p4)
-
-openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
-openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
-openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
-
-```
-
-# North America
-
-```{r North America, echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
-
-region="North America"
-
-countries <- country_plot(data,region)
-gas_sector <- gas_sector_plot(data,region)
-
-countries$plot <- countries$plot + ggtitle("c. Country emissions growth (North America)")
-gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (North America)")
-
-p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
-
-wrap_plots(p1,p2,countries$plot,p4)
-
-openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
-openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
-openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
 
 
 ```
 
-# Small Islands
+``` {r save}
 
-```{r Small Islands,echo=FALSE,warning=FALSE,fig.width=10,fig.height=8,fig.path="../../Results/Plots/WG2_regions/",dev=c('png','pdf')}
+openxlsx::addWorksheet(wb,"Info")
 
-region="Small Islands"
+info = data.frame(x=c("Author","Last update","Code","","Units","Panel a","Panel b","Panel c","Panel d"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/wg2_regions.Rmd","","","tCO2eq/capita","GtCO2eq","MtCO2eq","GtCO2eq"))
 
-countries <- country_plot(data,region)
-gas_sector <- gas_sector_plot(data,region)
-
-countries$plot <- countries$plot + ggtitle("c. Country emissions growth (Small Islands)")
-gas_sector$gas_plot <- gas_sector$gas_plot + ggtitle("d. Emissions by gas and sector (Small Islands)")
-
-p4 <- (gas_sector$gas_plot + gas_sector$sector_plot)
-
-wrap_plots(p1,p2,countries$plot,p4)
-
-openxlsx::addWorksheet(wb,paste0(region," emissions growth"))
-openxlsx::addWorksheet(wb,paste0(region," gas and sector"))
-openxlsx::writeData(wb, sheet = paste0(region," emissions growth"),countries$data, colNames = T, rowNames = F)
-openxlsx::writeData(wb, sheet = paste0(region," gas and sector"),gas_sector$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "Info",info, colNames = F, rowNames = F)
 
 
-```
+openxlsx::addWorksheet(wb,"Panel a")
+openxlsx::writeData(wb, sheet = "Panel a",boxplot_data, colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,"Panel b")
+openxlsx::writeData(wb, sheet = "Panel b",spread(trend_data,year,GHG), colNames = T, rowNames = F)
+openxlsx::addWorksheet(wb,"Panel c")
+openxlsx::addWorksheet(wb,"Panel d")
+openxlsx::writeData(wb, sheet = "Panel c",countries$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "Panel d",gas_sector$data, colNames = T, rowNames = F)
 
-```{r write,echo=FALSE,warning=FALSE}
-
-openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_wg2_region_data_",Sys.Date(),".xlsx"),overwrite=T)
+openxlsx::saveWorkbook(wb,"../../Results/Data/ipcc_wg2_africa_emissions.xlsx",overwrite=T)
 
 ```
 
@@ -527,20 +390,20 @@ openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_wg2_region_data_",Sys.
 
 
 ```{r contributions,echo=FALSE,warning=FALSE}
-
-contributions <- data %>% 
-  filter(year==2019) %>% 
-  group_by(wg2_region) %>% 
-  summarise(GHG=sum(GHG,na.rm=TRUE))
-
-total <- edgar_ghg %>% 
-  group_by(year) %>% 
-  summarise(GHG=sum(GHG,na.rm=TRUE)) %>% 
-  filter(year==2019)
-
-contributions <- contributions %>% 
-  mutate(GHG_total = total$GHG[1]) %>% 
-  mutate((fraction=GHG/GHG_total)*100)
+# 
+# contributions <- data %>% 
+#   filter(year==2019) %>% 
+#   group_by(wg2_region) %>% 
+#   summarise(GHG=sum(GHG,na.rm=TRUE))
+# 
+# total <- edgar_ghg %>% 
+#   group_by(year) %>% 
+#   summarise(GHG=sum(GHG,na.rm=TRUE)) %>% 
+#   filter(year==2019)
+# 
+# contributions <- contributions %>% 
+#   mutate(GHG_total = total$GHG[1]) %>% 
+#   mutate((fraction=GHG/GHG_total)*100)
 
 ```
 
