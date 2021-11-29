@@ -220,7 +220,12 @@ scenario_data <- scenario_data %>%
   select(-percentile_5th,-percentile_95th)
 
 
+# only c1a and c3
+scenario_data <- scenario_data %>% 
+  filter(aggregated_category!="C3b: NDCs")
 
+scenario_data <- scenario_data %>% 
+  mutate(aggregated_category=ifelse(aggregated_category=="C3a: Immediate action","C3a: Likely below 2\u00B0C with immediate action",aggregated_category))
 
 ```
 
@@ -361,11 +366,14 @@ region_summary <- region_rates %>%
 
 ```{r regions_scenarios, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
 
+
+
 p2 <- region_rates %>% 
+    mutate(facet=ifelse(facet=="Scenario reduction rates (2020-2040)","Scenario reduction rates\n (2020-2040)",facet)) %>% 
   ggplot(.,aes(x=aggregated_category,rate,fill=aggregated_category,color=aggregated_category,size=emissions_total_2019)) +
   geom_hline(yintercept=0,color="#636363") +
   geom_point(shape=21,color="#636363") +
-  stat_summary(data = region_summary, geom = "crossbar",
+  stat_summary(data = region_summary %>% mutate(facet=ifelse(facet=="Scenario reduction rates (2020-2040)","Scenario reduction rates\n (2020-2040)",facet)), geom = "crossbar",
                  width = .7,aes(color=aggregated_category),size=0.4) +
   scale_fill_manual(values=alpha(colors,0.5)) +
   scale_color_manual(values=colors) +
@@ -444,6 +452,38 @@ country_co2 <- country_co2 %>%
 country_co2 <- left_join(country_co2,country_co2_averages, by = c("year", "region_ar6_6"))
 
 ```
+
+```{r per_capita_fraction,echo=FALSE,include=FALSE,warning=FALSE}
+
+fraction <- edgar_ghg %>%
+  filter(year==2019) %>% 
+  group_by(year,country,ISO) %>% 
+  summarise(CO2=sum(CO2,na.rm=TRUE))
+
+fraction <- left_join(fraction,wdi_data_gdp_pop %>% select(iso3c,year,population),by=c("ISO"="iso3c","year"))
+
+fraction <- fraction %>% 
+  mutate(CO2_pc=CO2/population) %>% 
+  mutate(threshold=ifelse(CO2_pc>12,">12tCO2/cap",NA)) %>% 
+  mutate(threshold=ifelse(CO2_pc<3,"<3tCO2/cap",threshold)) 
+
+summary <- fraction %>% 
+  group_by(threshold) %>% 
+  summarise(population=sum(population,na.rm=TRUE)/sum(fraction$population,na.rm=TRUE),emissions=sum(CO2)/sum(fraction$CO2))
+
+wb2 <- openxlsx::createWorkbook(title = "per_capita_summary")
+
+addWorksheet(wb2,"data")
+addWorksheet(wb2,"summary")
+
+writeData(wb2, sheet="data",fraction,colNames=T,rowNames=F)
+writeData(wb2, sheet="summary",summary,colNames=T,rowNames=F)
+
+openxlsx::saveWorkbook(wb2,paste0("../../Results/Data/per_capita_summary.xlsx"),overwrite=T)
+
+
+```
+
 
 ```{r region_trends_spm, echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
 

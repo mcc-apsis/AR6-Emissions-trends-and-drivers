@@ -38,7 +38,7 @@ load('../../Data/sdgs.RData')
 
 options(dplyr.summarise.inform = FALSE)
 
-isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
+isos <- openxlsx::read.xlsx("C:/Users/lamw/ownCloud/Projects/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
 
 hist_1850_6 <- read.xlsx("../../Results/Plot data/cumulative_historical_emissions_by_region_2.xlsx",sheet="emissions 1850-2019 6 regions")
 hist_1750_6 <- read.xlsx("../../Results/Plot data/cumulative_historical_emissions_by_region_2.xlsx",sheet="emissions 1750-2019 6 regions")

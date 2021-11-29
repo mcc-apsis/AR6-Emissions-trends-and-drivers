@@ -176,7 +176,9 @@ openxlsx::addWorksheet(wb2,"data")
 openxlsx::writeData(wb2, sheet = "metadata",meta, colNames = T, rowNames = F)
 openxlsx::writeData(wb2, sheet = "data",country_kaya_data %>% filter(sector!="AFOLU"), colNames = T, rowNames = F)
 
-
+blarg <- kaya_data %>% 
+  filter(region_ar6_10=="World") %>% 
+  filter(year==2018)
 ```
 
 

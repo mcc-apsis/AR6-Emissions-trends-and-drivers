@@ -27,16 +27,15 @@ load('../../Data/WDI_gdp_pop.RData')
 load("../../Data/dump/edgar_data_gwp_ar5_late_2020.RData")
 #load('../../Data/edgar6_v5_data_ghg_gwp_ar6.RData')
 # edgar_GHG_ar6 <- edgar_ghg %>% filter(year<2020)
-# 
-# edgar_GHG_ar6 <- edgar_GHG_ar6 %>% 
-#   mutate(country=ifelse(country=="Macedonia, FYR","North Macedonia",country)) %>% 
-#   mutate(country=ifelse(country=="Slovak Republic","Slovakia",country))
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>%
+  mutate(country=ifelse(country=="Macedonia, FYR","North Macedonia",country)) %>%
+  mutate(country=ifelse(country=="Slovak Republic","Slovakia",country))
 
 source("growth_rate.R")
 source("small_figures.R")
 
 
-isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
+isos <- openxlsx::read.xlsx("C:/Users/lamw/ownCloud/Projects/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
 
 colours_sectors <- c(`AFOLU` = "#66c2a5",
                      `Buildings` = "#fc8d62",
@@ -470,7 +469,7 @@ data <- data %>% mutate(country=ifelse(country=="Swaziland","Eswatini",country))
 
 
 fsi <- openxlsx::read.xlsx('../../Data/supplemetary data/fsi-2019.xlsx')
-isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
+isos <- openxlsx::read.xlsx("C:/Users/lamw/ownCloud/Projects/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
 fsi <- left_join(fsi %>% mutate(Country=tolower(Country)),isos,by=c("Country"="alternative.name"))
 fsi$Rank <- gsub("st","",fsi$Rank)
 fsi$Rank <- gsub("nd","",fsi$Rank)
@@ -734,7 +733,7 @@ jamaica <- jamaica %>%
 
 table = data.frame(x=c("GHG emissions + LULUCF CO2","Consumption-based CO2 emissions only"),y=c(LULUCF_incl_countries,cons_incl_countries),z=c(LULUCF_excl_countries,cons_excl_countries))
 
-write.xlsx(table,"../../Results/Data/decarbonising_countries_incl_excl.xlsx")
+write.xlsx(table,"../../Results/Data/decarbonising_countries_incl_excl.xlsx",overwrite=TRUE)
 
 
 save(data,excluded,file="../../Data/decarbonising_countries.RData")

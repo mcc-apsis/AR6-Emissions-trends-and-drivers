@@ -35,7 +35,7 @@ edgar_GHG_ar6 <- edgar_GHG_ar6 %>%
 load('../../Data/WDI_gdp_pop.RData')
 cluster_data <- openxlsx::read.xlsx('../../Data/Codes and classifications/decarbonising_country_clusters.xlsx','clusters')
 
-isos <- openxlsx::read.xlsx("C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
+isos <- openxlsx::read.xlsx("C:/Users/lamw/ownCloud/Projects/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
 
 colours_sectors <- c(`AFOLU` = "#66c2a5",
                      `Buildings` = "#fc8d62",
@@ -54,7 +54,7 @@ openxlsx::writeData(wb, sheet = "info", info, colNames = F, rowNames = F)
 ```
 
 
-```{r all_countries_trend_co2,echo=FALSE,warning=FALSE,fig.width=12,fig.height=14,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r all_countries_trend_co2,echo=FALSE,warning=FALSE,fig.width=12,fig.height=14,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 ## set facet labels and order by cluster and growth rate
 
@@ -100,7 +100,7 @@ decarbonising_countries
 
 ```
 
-```{r all_countries_trend_ghg,echo=FALSE,warning=FALSE,fig.width=12,fig.height=14,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r all_countries_trend_ghg,echo=FALSE,warning=FALSE,fig.width=12,fig.height=14,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 ## set facet labels and order by cluster and growth rate
 
@@ -147,7 +147,7 @@ decarbonising_countries
 
 ```
 
-```{r all_countries_trend_lulucf,echo=FALSE,warning=FALSE,fig.width=10,fig.height=11,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r all_countries_trend_lulucf,echo=FALSE,warning=FALSE,fig.width=10,fig.height=11,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 
 # set facet labels and order by growth rate
@@ -213,7 +213,7 @@ plot_data %>%
 ```
 
 
-```{r cluster_summary,echo=FALSE,warning=FALSE,include=FALSE,fig.width=8,fig.height=2}
+```{r cluster_summary,echo=FALSE,warning=FALSE,include=FALSE,dpi=300,fig.width=8,fig.height=2}
 
 clusters <- data %>% 
   group_by(cluster,year) %>% 
@@ -251,7 +251,7 @@ p1
 
 ```
 
-```{r map,echo=FALSE,warning=FALSE,include=FALSE,fig.width=8,fig.height=3}
+```{r map,echo=FALSE,warning=FALSE,include=FALSE,dpi=300,fig.width=8,fig.height=3}
 
 
 world <- map_data("world") %>% 
@@ -377,7 +377,7 @@ cluster_table <- cluster_table %>%
 
 ```
 
-```{r cluster_stats,echo=FALSE,warning=FALSE,fig.width=8,fig.height=2,include=FALSE}
+```{r cluster_stats,echo=FALSE,warning=FALSE,dpi=300,fig.width=8,fig.height=2,include=FALSE}
 
 plot_data <- gather(cluster_table,var,value,GHG_fraction:pop_fraction) %>% 
   filter(!is.na(cluster)) %>% 
@@ -405,7 +405,7 @@ p3
 
 ```
 
-```{r cluster_abs_rel_reductions,echo=FALSE,warning=FALSE,include=FALSE,fig.width=6,fig.height=2}
+```{r cluster_abs_rel_reductions,echo=FALSE,warning=FALSE,dpi=300,include=FALSE,fig.width=6,fig.height=2}
 
 # for each country, for each year, find the emissions difference to the previous year
 
@@ -432,7 +432,7 @@ p4
 
 ```
 
-```{r cluster_plot,echo=FALSE,warning=FALSE,fig.width=6.5,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r cluster_plot,echo=FALSE,warning=FALSE,fig.width=6.5,dpi=300,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 p5 <- plot_data %>% select(cluster_name,cluster) %>% distinct() %>% 
   ggplot(.,aes(x=1,y=1,label=cluster_name,color=cluster)) +
@@ -456,7 +456,7 @@ country_clusters
 
 ```
 
-```{r country_rates,echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r country_rates,echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 rate_data <- data %>% 
   mutate(absolute_reduction_CO2_peak=round((absolute_reduction_CO2_peak/1e6),0)) %>% 
@@ -612,7 +612,7 @@ sector_data <- sector_data %>%
 
 ```
 
-```{r country_sectors_GHG,echo=FALSE,warning=FALSE,fig.width=6.5,fig.height=7,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r country_sectors_GHG,echo=FALSE,warning=FALSE,fig.width=6.5,fig.height=7,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 # factorise countries, rank by absolute reduction
 
@@ -645,7 +645,7 @@ sector_data %>% filter(country!="Uzbekistan") %>%
 
 ```
 
-```{r calc_subsectors_clusters,echo=FALSE,warning=FALSE,fig.width=7,fig.height=6,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r calc_subsectors_clusters,echo=FALSE,warning=FALSE,fig.width=7,fig.height=6,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 
 # get sector data for countries
@@ -699,7 +699,7 @@ subsector_data_clusters <- subsector_data_clusters %>%
 
 ```
 
-```{r cluster_subsectors_GHG,echo=FALSE,warning=FALSE,fig.width=9,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r cluster_subsectors_GHG,echo=FALSE,warning=FALSE,fig.width=9,fig.height=8,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 
 plot_data <- subsector_data_clusters %>% 
@@ -811,7 +811,7 @@ scenario_data$aggregated_category <- as.factor(scenario_data$aggregated_category
 scenario_data$aggregated_category <- factor(scenario_data$aggregated_category, levels=levels(scenario_data$aggregated_category)[c(1,3,2)])
 ```
 
-```{r rates_over_time,echo=FALSE,warning=FALSE,fig.width=7,fig.height=9,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r rates_over_time,echo=FALSE,warning=FALSE,fig.width=7,fig.height=9,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 rolling_rates <- rolling_rates %>% 
   mutate(threshold_CO2=ifelse(rate_rolling_CO2>-1,"> -1%/yr","< -1%/yr")) %>% 
@@ -898,7 +898,7 @@ country_rolling_rates
 
 ```
 
-```{r gases,echo=FALSE,warning=FALSE,fig.width=7,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r gases,echo=FALSE,warning=FALSE,fig.width=7,fig.height=8,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 gases <- gather(data,gas,value,CO2:Fgas)
 gases$gas <- as.factor(gases$gas)
@@ -942,7 +942,7 @@ gases %>%
 ```
 
 
-```{r kaya,echo=FALSE,warning=FALSE,fig.width=7,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
+```{r kaya,echo=FALSE,warning=FALSE,fig.width=7,fig.height=8,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/",dev=c('png','pdf')}
 
 load('../../Data/kaya/kaya.RData')
 kaya_data <- kaya_data %>% 
@@ -1083,7 +1083,7 @@ openxlsx::saveWorkbook(wb,paste0("../../Results/Data/decarbonising_countries.xls
 
 ```
 
-```{r countries,echo=FALSE,warning=FALSE,fig.width=7,fig.height=8,fig.path="../../Results/Plots/Decarbonising countries/countries/",dev=c('png','pdf')}
+```{r countries,echo=FALSE,warning=FALSE,fig.width=7,fig.height=8,dpi=300,fig.path="../../Results/Plots/Decarbonising countries/countries/",dev=c('png','pdf')}
 
 country_plot <- function(country_handle,edgar_GHG_ar6,data,subsector_data_countries,kaya_data_countries) {
   
