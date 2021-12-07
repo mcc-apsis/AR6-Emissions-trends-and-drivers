@@ -1,0 +1,90 @@
+---
+title: "additional_data_files"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+
+rm(list = ls())
+library(tidyverse)
+library(openxlsx)
+
+options(dplyr.summarise.inform = FALSE)
+knitr::opts_chunk$set(echo = FALSE)
+
+
+```
+
+
+```{r historic_emissions_for_synthesis_report}
+
+
+gcb_hist<-read_csv('../../Data/supplemetary data/GCB2020v18_MtCO2_flat.csv') %>%
+  filter(Country!="Global")
+
+load("../../Data/ipcc_regions.RData")
+load("../../Data/land.RData")
+
+gcb_hist<-gcb_hist %>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Panama Canal Zone","PAN",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="French Equatorial Africa","TCD",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="French West Africa","NER",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Kosovo","MNE",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Kuwaiti Oil Fires","KWT",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Leeward Islands","GLP",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Pacific Islands (Palau)","PLW",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Ryukyu Islands","JPN",`ISO 3166-1 alpha-3`))
+
+gcb_hist<-left_join(gcb_hist,ipcc_regions,by=c("ISO 3166-1 alpha-3"="ISO")) %>%
+  mutate(region_ar6_6=ifelse(Country=="International Transport","Int. Aviation and Shipping",region_ar6_6)) %>%
+  mutate(region_ar6_10=ifelse(Country=="International Transport","Int. Aviation and Shipping",region_ar6_10)) %>%
+  mutate(region_ar6_dev=ifelse(Country=="International Transport","Int. Aviation and Shipping",region_ar6_dev)) %>%
+  filter(!is.na(region_ar6_10))
+
+gcb_hist<-gcb_hist %>%
+  filter(Year>=1850) %>%
+  group_by(Year,region_ar6_6) %>%
+  summarise(co2=sum(Total,na.rm=TRUE)/1000) %>%
+  mutate(source="CO2-FFI") %>%
+  rename("year"="Year")
+
+gcb_hist <- rbind(gcb_hist,land %>% 
+                    group_by(year,region_ar6_6) %>% 
+                    summarise(co2=sum(mean,na.rm=TRUE)/1e9) %>% 
+                    mutate(source="CO2_LULUCF"))
+
+gcb_hist <- gcb_hist %>% 
+  mutate(cut=ifelse(year<=1899,"1850-1899",NA)) %>% 
+  mutate(cut=ifelse(year>=1900 & year<=1949,"1900-1949",cut)) %>% 
+  mutate(cut=ifelse(year>=1950 & year<=1969,"1950-1969",cut)) %>% 
+  mutate(cut=ifelse(year>=1970 & year<=1989,"1970-1989",cut)) %>% 
+  mutate(cut=ifelse(year>=1990 & year<=2009,"1990-2009",cut)) %>% 
+  mutate(cut=ifelse(year>=2010 & year<=2019,"2010-2019",cut))
+
+
+gcb_hist <- gcb_hist %>%
+  group_by(cut,region_ar6_6,source) %>% 
+  summarise(co2=sum(co2,na.rm=TRUE)) %>% 
+  select(year=cut,region_ar6_6,source,co2)
+
+## sum of co2 should equal 2410 GtCO2
+sum(gcb_hist$co2)
+
+
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_synthesis_cumulative_co2")
+
+addWorksheet(wb,"info")
+addWorksheet(wb,"data")
+
+info = data.frame(x=c("Author","Last update","Code","Source (CO2_FFI)","Source (CO2_LULUCF)","Units"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/additional_data_files.Rmd","Global carbon budget v2020, see https://folk.universitetetioslo.no/roberan/GCB2020.shtml","Mean of 3 bookkeeping models (Houghton & Nassikas; BLUE; OSCAR), see https://essd.copernicus.org/articles/13/5213/2021/essd-13-5213-2021.html","GtCO2"))
+
+writeData(wb, sheet="info",info,colNames=F,rowNames=F)
+writeData(wb, sheet = "data",gcb_hist, colNames = T, rowNames = F)
+
+saveWorkbook(wb,"../../Results/Plot data/ipcc_ar6_synthesis_cumulative_co2.xlsx",overwrite=T)
+
+
+
+
+```
