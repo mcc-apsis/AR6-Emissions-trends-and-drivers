@@ -1,0 +1,278 @@
+---
+title: "Kaya decomposition of sectoral CO2 emissions"
+author: "William F. Lamb"
+date: "7 6 2020"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(openxlsx)
+library(ggplot2); theme_set(theme_bw())
+library(data.table)
+library(janitor)
+
+load('../../Data/data_kaya.RData')
+
+wb <- openxlsx::createWorkbook(title = paste("kaya"))
+
+```
+
+```{r plot_function,include=FALSE,fig.width=9,fig.height=9}
+
+sector_label ="Energy systems"
+
+kaya_plots <- function(kaya,sector_label) {
+  
+  kaya_plot_data <- kaya_data %>% 
+    filter(sector_title==sector_label) %>% 
+    filter(year>1989)
+  rates <- gather(kaya_plot_data,var,value,CO2:GDP_POP)
+  
+  rates <- rates %>% 
+    filter(year %in% c(2010,2019)) %>% 
+    group_by(region_ar6_10,sector_title,var) %>% 
+    mutate(rate=((last(value)/first(value))^(1/(last(year)-first(year)))-1)*100) %>% 
+    filter(year==2019)
+  
+  output_data <- gather(kaya_plot_data,var,value,CO2:GDP_POP)
+  output_data <- spread(output_data,year,value)
+  
+  output_data <- left_join(output_data,rates %>% select(-value,-year),by = c("region_ar6_10","sector_title", "var"))
+  output_data <- output_data %>% 
+    select(region_ar6_10,sector_title,var,rate_2010_2017=rate,everything())
+  
+  kaya_plot_data <- gather(kaya_plot_data %>% select(-GDP),var,value,GDP_POP,POP,CO2,energy,CO2_energy,energy_GDP)
+  
+  kaya_plot_data <- kaya_plot_data %>% 
+    group_by(region_ar6_10,var) %>% 
+    mutate(value=value/first(value))
+  
+  kaya_plot_data <- left_join(kaya_plot_data,rates %>% select(-value),by = c("region_ar6_10", "year", "sector_title", "var"))
+  
+  p <- kaya_plot_data %>%
+    ggplot(.,aes(x=year,y=value,group=var,colour=var)) +
+    geom_hline(yintercept=1) +
+    geom_vline(xintercept=2010,alpha=0.3,linetype="dashed") +
+    geom_path(size = 1.5) +
+    geom_point(size = 0.75,colour="white") +
+    geom_text(data=kaya_plot_data %>% filter(year==2019),
+              aes(x=year+1,y=value,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,show.legend = FALSE) +
+    theme_bw() +
+    scale_colour_brewer(type = "qual",palette="Set2",labels=c("CO2 Emissions","CO2/Energy","Energy","Energy/GDP","GDP/Population","Population")) +
+    scale_x_continuous(breaks=c(1990,2000,2010,2019),limits=c(1990,2024.5)) + 
+    facet_wrap(.~region_ar6_10,ncol=3,scales="free") +
+    theme(legend.position = c(0.75,0.1),
+          axis.title = element_blank(),
+          legend.title = element_blank(),
+          panel.grid.minor = element_blank())
+  
+  return(list("plot"=p,"data"=output_data,"normalised_data"=spread(kaya_plot_data %>% select(-rate),year,value)))
+}
+
+```
+
+```{r total,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots(kaya,"Total")
+p$p
+
+
+openxlsx::addWorksheet(wb,"all_sectors")
+openxlsx::addWorksheet(wb,"all_sectors_normalised")
+openxlsx::writeData(wb, sheet = "all_sectors",p$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "all_sectors_normalised",p$normalised_data, colNames = T, rowNames = F)
+
+
+
+```
+# Energy systems
+
+```{r energy_systems,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots(kaya,"Energy systems")
+p$p
+
+
+openxlsx::addWorksheet(wb,"energy_systems")
+openxlsx::addWorksheet(wb,"energy_systems_normalised")
+openxlsx::writeData(wb, sheet = "energy_systems",p$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "energy_systems_normalised",p$normalised_data, colNames = T, rowNames = F)
+
+
+
+
+```
+
+# Buildings
+
+```{r buildings,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots(kaya,"Buildings")
+p$p
+
+
+openxlsx::addWorksheet(wb,"buildings")
+openxlsx::addWorksheet(wb,"buildings_normalised")
+openxlsx::writeData(wb, sheet = "buildings",p$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "buildings_normalised",p$normalised_data, colNames = T, rowNames = F)
+
+```
+
+# Transport
+
+```{r transport,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots(kaya,"Transport")
+p$p
+
+
+openxlsx::addWorksheet(wb,"transport")
+openxlsx::addWorksheet(wb,"transport_normalised")
+openxlsx::writeData(wb, sheet = "transport",p$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "transport_normalised",p$normalised_data, colNames = T, rowNames = F)
+
+
+```
+
+# Industry
+
+```{r industry,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf')}
+
+p <- kaya_plots(kaya,"Industry")
+p$p
+
+
+openxlsx::addWorksheet(wb,"industry")
+openxlsx::addWorksheet(wb,"industry_normalised")
+openxlsx::writeData(wb, sheet = "industry",p$data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "industry_normalised",p$normalised_data, colNames = T, rowNames = F)
+
+
+```
+
+# AFOLU (Hong et al. decomposition)
+
+```{r AFOLU_hong,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf','svg')}
+
+
+## calculate rates
+rates <- gather(kaya_data_afolu,var,value,-region_ar6_10,-year)
+rates <- rates %>%
+  filter(year %in% c(2010,2017)) %>%
+  group_by(region_ar6_10,var) %>%
+  mutate(rate=((last(value)/first(value))^(1/(last(year)-first(year)))-1)*100) %>%
+  filter(year==2017)
+
+output_data <- gather(kaya_data_afolu,var,value,-region_ar6_10,-year)
+output_data <- spread(output_data,year,value)
+output_data <- left_join(output_data,rates %>% select(-value,-year),by = c("region_ar6_10", "var"))
+output_data <- output_data %>%
+  mutate(sector_title="AFOLU") %>%
+  select(region_ar6_10,sector_title,var,rate_2010_2017=rate,everything())
+
+
+######################## plot
+
+kaya_data_afolu <- gather(kaya_data_afolu,var,value,GHG,POP,production_percap,land_production,ghg_land)
+kaya_data_afolu <- kaya_data_afolu %>% 
+  group_by(region_ar6_10,var) %>% 
+  mutate(value=value/first(value))
+                    
+kaya_data_afolu <- left_join(kaya_data_afolu,rates %>% select(-value),by = c("region_ar6_10", "year", "var"))
+
+kaya_data_afolu %>%
+  ggplot(.,aes(x=year,y=value,group=var,colour=var)) +
+  geom_hline(yintercept=1) +
+  geom_vline(xintercept=2010,alpha=0.3,linetype="dashed") +
+  geom_path(size = 1.5) +
+  geom_point(size = 0.75,colour="white") +
+  geom_text(data=kaya_data_afolu %>% filter(year==2017),
+            aes(x=year+1,y=value,label=paste0(ifelse(rate>0,"+","-"),round(abs(rate),1),"%")),hjust=0,show.legend = FALSE) +
+  theme_bw() +
+  scale_colour_brewer(type = "qual",palette="Set2",labels=c("GHG Emissions","GHG/Land area","Land area/Agricultural output","Population","Agricultural output/Population")) +
+  scale_x_continuous(breaks=c(1990,2000,2010,2017),limits=c(1990,2022.5)) + 
+  facet_wrap(.~region_ar6_10,ncol=3,scales="free") +
+  theme(legend.position = c(0.8,0.1),
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.minor = element_blank())
+
+
+openxlsx::addWorksheet(wb,"AFOLU")
+openxlsx::addWorksheet(wb,"AFOLU_normalised")
+openxlsx::writeData(wb, sheet = "AFOLU",output_data, colNames = T, rowNames = F)
+openxlsx::writeData(wb, sheet = "AFOLU_normalised",spread(kaya_data_afolu %>% select(-rate),year,value), colNames = T, rowNames = F)
+
+
+
+
+```
+
+``` {r write,include=TRUE,warning=FALSE}
+
+openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_sector_kaya.xlsx"),overwrite=T)
+
+```
+
+
+
+``` {r checks,include=FALSE}
+
+# Do regions add up to global totals each year?
+
+region_test <- kaya_data %>%
+  filter(region_ar6_10!="World") %>%
+  filter(sector_title=="Total") %>%
+  group_by(year) %>%
+  summarise_at(vars(CO2,energy,GDP,POP),sum,na.rm=TRUE)
+
+region_test <- gather(region_test,var,region_value,-year)
+
+world <- kaya_data %>%
+  filter(region_ar6_10=="World") %>%
+  filter(sector_title=="Total") %>%
+  group_by(year) %>%
+  summarise_at(vars(CO2,energy,GDP,POP),sum,na.rm=TRUE)
+
+world <- gather(world,var,world_value,-year)
+
+region_test <- left_join(region_test,world,by = c("year", "var"))
+
+#wb <- openxlsx::createWorkbook(title = "kaya_tests")
+#openxlsx::addWorksheet(wb,"region_totals")
+#openxlsx::writeData(wb, sheet = "region_totals", region_test, colNames = T, rowNames = F)
+
+
+# Do sectors add up to the total sector each year?
+
+sector_test <- kaya_data %>%
+  filter(region_ar6_10=="World") %>%
+  filter(sector_title!="Total") %>% 
+  group_by(year) %>%
+  summarise_at(vars(CO2,energy),sum,na.rm=TRUE)
+
+sector_test <- gather(sector_test,var,sector_value,-year)
+
+total <- kaya_data %>%
+  filter(region_ar6_10=="World") %>%
+  filter(sector_title=="Total") %>%
+  group_by(year) %>%
+  summarise_at(vars(CO2,energy),sum,na.rm=TRUE)
+
+total <- gather(total,var,total_value,-year)
+
+sector_test <- left_join(sector_test,total,by = c("year", "var"))
+
+#openxlsx::addWorksheet(wb,"sector_totals")
+#openxlsx::writeData(wb, sheet = "sector_totals", sector_test, colNames = T, rowNames = F)
+#openxlsx::saveWorkbook(wb,"../../Results/Data/kaya_tests.xlsx",overwrite=T)
+
+
+```

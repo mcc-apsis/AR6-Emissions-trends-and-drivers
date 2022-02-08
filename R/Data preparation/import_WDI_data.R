@@ -33,4 +33,4 @@ wdi_data_gdp_pop <- right_join(wdi_data_gdp_pop,wdi_gdp_usd, by=c("iso3c","year"
 
 
 #save data
-save(wdi_data_gdp_pop,file="WDI_gdp_pop.RData")
+save(wdi_data_gdp_pop,file="Data/data_WDI_gdp_pop.RData")

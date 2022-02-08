@@ -1,0 +1,276 @@
+---
+title: "Comparison of EDGAR data with CRF data from PRIMAP"
+author: "Niklas Döbbeling"
+date: "12 4 2021"
+output: word_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results") })
+---
+
+```{r loading data, echo=FALSE,warning=FALSE,include=FALSE}
+rm(list = ls())
+library(tidyverse)
+library(openxlsx)
+library(ggplot2)
+library(patchwork)
+library(ggplot2); theme_set(theme_bw())
+library(ggpubr)
+
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+
+
+load('../../Data/Not public/IPCC data versions/edgar6_v4_data_ghg_gwp_ar6.RData')
+load('../../Data/gwps.RData')
+
+####################
+crf_data<-read_csv("../../Data/Supplementary datasets/Guetschow-et-al-2021-PRIMAP-crf96_2021-v1.csv")
+
+crf_total_sector<-crf_data %>%
+  filter(`category (IPCC1996)`=="M.0.EL") %>%  #excludes LULUCF
+  mutate(unit1=substring(unit,1,1))
+
+crf_methane_adjustment<-crf_data %>%
+  filter(entity=="CH4") %>%
+  filter(`category (IPCC1996)` %in% c("1.B.2","2.C.2","2.B.5"))
+
+match<-openxlsx::read.xlsx("../../Data/Codes and classifications/PRIMAP_gases_matching.xlsx") %>%
+  select(-Description.PRIMAP)
+
+match$Code.PRIMAP<-gsub(" ","",match$Code.PRIMAP)
+
+gwps<-left_join(match,gwps,by=c("Code.gwps"="gas")) %>%
+  select(Code.PRIMAP,Code.gwps,gwp100_ar5,gwp100_ar6)
+
+gwps[1,4]<-27 #we first use the factor 27 for all CH4 and adjust in a second step
+
+crf_total_sector<-left_join(crf_total_sector,gwps,by=c("entity"="Code.PRIMAP"))
+
+crf_total_sector<-crf_total_sector %>%
+  filter(`area (ISO3)`!="EU27BX") %>%
+  filter(`area (ISO3)`!="EU28") %>%
+  filter(!is.na(gwp100_ar6))
+
+crf_total_sector<-gather(crf_total_sector,key = "year", value = "value", "1986":"2019") %>%
+  mutate(value=ifelse(unit1=="k",value/1e6,value/1e9)) %>%   #transforming kt to Gt
+  mutate(unit="Gt") %>%
+  select(-unit1) %>%
+  mutate(year=as.numeric(year))
+
+crf_total_sector<-crf_total_sector %>% 
+  #mutate(GHG_crf=value*gwp_ar6) %>%
+  mutate(gwp_crf_ar5=value*gwp100_ar5) %>%
+  mutate(gwp_crf_ar6=value*gwp100_ar6) %>%
+  rename("gas"="Code.gwps") %>%
+  select(-gwp100_ar5,-gwp100_ar6)
+
+##adjusting for fugitive methane
+crf_methane_adjustment<-gather(crf_methane_adjustment,key = "year", value = "value", "1986":"2019") %>%
+  mutate(value=value/1e6) %>%   #transforming kt to Gt
+  mutate(unit="Gt") %>%
+  mutate(year=as.numeric(year)) %>%
+  mutate(gwp_crf_ar6=value*(29.8-27)) %>%         #in the first step all methane emissions were factored by 27.2; for those sectors, where the higher factor of 29.8 should be used, this is added
+  mutate(gwp_crf_ar5=value*(30-28)) %>%
+  mutate(gas="CH4")
+  
+crf_total_sector<-rbind(crf_total_sector,crf_methane_adjustment) 
+
+crf_total_sector<-crf_total_sector %>%
+  filter(!is.na(gwp_crf_ar6)) %>%
+  group_by(`area (ISO3)`,year,gas) %>%
+  summarise_at(c("gwp_crf_ar5","gwp_crf_ar6"),sum,na.rm = TRUE)
+
+crf_GHG<-crf_total_sector %>%
+  group_by(`area (ISO3)`,year) %>%
+  summarise_at(c("gwp_crf_ar5","gwp_crf_ar6"),sum,na.rm = TRUE) %>%
+  mutate(gas="GHG")
+
+crf_total_sector<-rbind(crf_total_sector,crf_GHG) %>%
+  rename("ISO"="area (ISO3)") %>%
+  ungroup()
+
+crf_ghg<-crf_total_sector
+save(crf_ghg,file='../../Data/data_primap_ghg.RData')
+
+####################
+
+# crf_total_sector<-crf_data %>%
+#   #filter(category=="IPC0")
+#   filter(category=="IPCM0EL")
+# 
+# match<-openxlsx::read.xlsx("C:/Users/doen/Documents/IPCC data/PRIMAP_gases_matching.xlsx") %>%
+#   select(-Description.PRIMAP)
+# 
+# match$Code.PRIMAP<-gsub(" ","",match$Code.PRIMAP)
+# 
+# gwps<-left_join(match,gwps,by=c("Code.gwps"="gas")) %>% #CH4 will be a problem here
+#   select(Code.PRIMAP,Code.gwps,gwp_ar5,gwp_ar6)
+# gwps2<-gwps %>% 
+#   mutate(Code.gwps=ifelse(Code.PRIMAP=="NF3","NF3", Code.gwps)) %>%  #NF3 was not included in the gwps dataset, but it was listed in the list we received from WG I
+#   mutate(gwp_ar6=ifelse(Code.PRIMAP=="NF3",17162, gwp_ar6))
+# 
+# crf_total_sector<-left_join(crf_total_sector,gwps,by=c("entity"="Code.PRIMAP"))
+# crf_total_sector<-crf_total_sector %>%
+#   filter(unit=="kt") %>%
+#   filter(country!="EU27BX") %>%
+#   filter(country!="EU28")
+# 
+# anti_join(unique(crf_total_sector[,"country"]),as_tibble(unique(edgar_GHG[,"ISO"])),by=c("country"="value"))
+#           #LIE: Liechtenstein
+#           #MCO: Monaco
+# #unique(edgar_GHG[,c("ISO","country")])
+# #Liechtenstein and Monaco are not in the EDGAR database
+# 
+# crf_total_sector<-gather(crf_total_sector,key = "year", value = "value", "1986":"2018") %>%
+#   mutate(value=value/1e6) %>%
+#   mutate(unit="Gt") %>%
+#   mutate(year=as.numeric(year))
+# 
+# crf_total_sector<-crf_total_sector %>% filter(!is.na(Code.gwps))
+
+#### prepare EDGAR data for comparison
+edgar_data<-edgar_ghg
+
+#methane <- edgar_data %>% 
+#  filter(!is.na(CH4)) 
+
+edgar_data<-edgar_data %>%
+  group_by(year,ISO,country) %>%
+  summarise_at(vars(CH4:GHG),sum,na.rm=TRUE) %>% 
+  mutate_at(vars(CH4:GHG),list(~./1e9))
+
+edgar_data <- gather(edgar_data,gas,value,CH4:GHG)
+
+#edgar_data <- left_join(edgar_data,gwps,by = c("gas"="Code.gwps")) %>%
+#  mutate(gwp_ar6=gwp_ar6*value) %>%
+#  select(-value)
+
+# recalculate methane in AR6 using biogenic / non-biogenic methane GWPs
+# methane <- methane %>% 
+#   group_by(year,ISO,country,sector_code) %>% 
+#   summarise(CH4=sum(CH4,na.rm=TRUE))
+# 
+# methane <- left_join(methane,gwps_ch4,by = "sector_code")
+# 
+# methane <- methane %>% 
+#   mutate(CH4_adjusted=CH4*value) %>%
+#   group_by(year,gas,ISO,country) %>%
+#   summarise(CH4_adjusted=sum(CH4_adjusted)/1e9) %>% 
+#   mutate(gas="CH4")
+# 
+# edgar_data <- left_join(edgar_data,methane,by = c("year", "gas","ISO","country"))
+# 
+# edgar_data <- edgar_data %>% 
+#   mutate(gwp_ar6=ifelse(!is.na(CH4_adjusted),CH4_adjusted,gwp_ar6)) %>% 
+#   select(-CH4_adjusted)
+
+### comparison
+#edgar_data %>% filter(gas!="CH4") %>% filter(ISO %in% crf_total_sector$country)
+
+```
+
+```{r comparison graphs, echo=FALSE,warning=FALSE,include=FALSE}
+
+
+combined_crf_edgar <- left_join(crf_total_sector,edgar_data,by=c("ISO","year","gas")) %>%
+  rename("EDGAR"="value","CRF"="gwp_crf_ar6") %>%
+  filter(year>=1990 & year<=2018) %>%
+  filter(gas %in% c("CO2","CH4","N2O","GHG")) %>%
+  filter(!is.na(EDGAR)) %>%
+  mutate(gas=ifelse(gas=="CO2","CO2-FFI",gas))
+
+combined_crf_edgar <- combined_crf_edgar %>%
+  mutate(diff=CRF-EDGAR) %>%
+  mutate(diff_p=(CRF-EDGAR)/EDGAR*100)
+
+plot_theme <- theme_bw() +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 11,color="#252525"),
+        axis.title = element_text(color="#525252"),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        legend.position=c(0.15,0.6),
+        legend.title = element_blank(),
+        legend.text = element_text(size=8),
+        #legend.key.size = unit(0.1,"cm"),
+        text = element_text(size=11),
+        plot.background = element_blank(),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+plot_diff<-function(GAS){
+  dat<- combined_crf_edgar %>%
+    filter(year==2018) %>%
+    filter(gas==GAS)
+  
+  dat<-gather(dat,key="data",value = "value", c("EDGAR","CRF"))
+  p<-ggplot(dat, aes(x=country,y=value,fill=data)) + geom_bar(stat = "identity", position=position_dodge()) +
+    #theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))+
+    ylab("emissions in GtCO2eq/yr")+
+    ggtitle(paste("2018", GAS, "data in GtCO2eq/yr", sep=" ")) +
+    plot_theme
+  return(p)
+}
+
+p1<-plot_diff("CO2-FFI")
+p2<-plot_diff("CH4")
+p3<-plot_diff("N2O")
+
+box_diff<-function(GAS){
+  dat<- combined_crf_edgar %>%
+    filter(gas==GAS)
+  
+  #dat<-gather(dat,key="data",value = "value", c("GHG_edgar","GHG_crf"))
+  p<-ggplot(dat, aes(x=country,goup=country,y=diff_p)) + geom_boxplot() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))+
+    ylab("percentage difference")+
+    ggtitle(paste("Differences between EDGARv6 and CRF data for", GAS, "(in %)", sep=" ")) +
+    plot_theme
+  return(p)
+}
+
+p4<-box_diff("CO2-FFI")
+p5<-box_diff("CH4")
+p6<-box_diff("N2O")
+
+pGHG<-plot_diff("GHG")
+pGHGbox<-box_diff("GHG")
+```
+
+
+```{r edgar_vs_crf, echo=FALSE,warning=FALSE,fig.width=10,fig.height=14,fig.path="../../Results/Plots",dev=c('png','pdf')}
+
+(pGHG + pGHGbox) / (p1 + p4) / (p2 + p5) / (p3 + p6)
+
+```
+
+```{r checking data, echo=FALSE,warning=FALSE,include=FALSE}
+
+# co2eq<-crf_data %>%
+#   filter(unit=="ktCO2eq")
+# 
+# unique(co2eq$entity)
+# 
+# fgas_co2eq_crf<-co2eq %>%
+#   filter(entity=="FGASESAR5") %>%
+#   filter(category=="IPC0") %>%
+#   filter(country!="EU27BX") %>%
+#   filter(country!="EU28")
+# 
+# fgas_co2eq_crf<-gather(fgas_co2eq_crf,key = year, value="gwp_ar5","1986":"2018") %>%
+#   mutate(gwp_ar5=gwp_ar5/1e6) %>%
+#   mutate(unit="GtCO2eq") %>%
+#   mutate(year=as.numeric(year))
+# 
+# fgas_co2eq_own_calc<-crf_total_sector %>%
+#   filter(!Code.gwps %in% c("CO2","CH4","N2O")) %>%
+#   mutate(gwp_ar5=gwp_ar5*value) %>%
+#   select(-gwp_ar6)
+# 
+# fgas_co2eq_own_calc<-fgas_co2eq_own_calc %>%
+#   group_by(country,year) %>%
+#   summarise(gwp_ar5=sum(gwp_ar5,na.rm = TRUE))
+# 
+# fgas<-left_join(fgas_co2eq_own_calc,fgas_co2eq_crf,by=c("country","year"))
+# 
+# fgas<-fgas %>% mutate(diff=(gwp_ar5.x-gwp_ar5.y)/gwp_ar5.x*100)
+```

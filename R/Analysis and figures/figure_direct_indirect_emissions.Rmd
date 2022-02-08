@@ -1,0 +1,245 @@
+---
+title: "Direct and indirect emissions"
+author: "William F. Lamb"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results/knitr") })
+
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(ggplot2); theme_set(theme_bw())
+library(RColorBrewer)
+
+load('../../Data/data_edgar_ghg.RData')
+load('../../Data/data_indirect_co2.RData')
+
+data <- edgar_ghg %>% 
+  filter(year==2019) %>% 
+  group_by(sector_title,subsector_title) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE)/1e9,CO2=sum(CO2,na.rm=TRUE)/1e9)
+
+
+########## add land CO2 data
+
+load('../../Data/data_land_co2.RData')
+
+land <- land %>%
+  filter(year==2019) %>%  
+  mutate(sector_title="AFOLU") %>% 
+  mutate(subsector_title="LULUCF CO2") %>%
+  group_by(sector_title,subsector_title) %>% 
+  summarise(GHG=sum(mean)/1e9,CO2=0)
+
+data <- rbind(data,land)
+data <- data %>% arrange(sector_title)
+
+indirect <- indirect_CO2_world %>% 
+  filter(year==2019) %>% 
+  group_by(sector_title,subsector_title) %>% 
+  summarise(CO2_indirect=sum(CO2_indirect,na.rm=TRUE))
+
+
+### scope 1
+
+scope1_sectors <- data %>% 
+  ungroup() %>% 
+  mutate(sector_title=ifelse(subsector_title=="Electricity & heat",subsector_title,sector_title))
+
+scope1_sectors <- scope1_sectors %>% 
+  group_by(sector_title) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+# fractions
+
+scope1_sectors <- scope1_sectors %>% 
+  mutate(fraction=signif(((GHG/sum(data$GHG))*100),digits = 2))
+
+### scope 2 subsectors
+
+scope2_subsectors <- left_join(data,indirect,by = c("sector_title", "subsector_title"))
+scope2_subsectors <- scope2_subsectors %>% 
+  mutate(GHG=ifelse(!is.na(CO2_indirect),GHG+CO2_indirect,GHG)) %>% 
+  select(-CO2_indirect,-CO2) %>% 
+  filter(subsector_title!="Electricity & heat")
+
+# fractions
+
+scope2_subsectors <- scope2_subsectors %>% 
+  mutate(fraction=signif(((GHG/sum(data$GHG))*100),digits = 2))
+
+### scope 2 sectors
+
+indirect <- indirect %>% 
+  group_by(sector_title) %>% 
+  summarise(CO2_indirect=sum(CO2_indirect,na.rm=TRUE))
+
+scope2_sectors <- left_join(scope1_sectors %>% select(-fraction),indirect,by = "sector_title")
+
+scope2_sectors <- scope2_sectors %>% 
+  filter(sector_title!="Electricity & heat") %>% 
+  mutate(total=GHG+CO2_indirect) %>% 
+  mutate(total=ifelse(sector_title=="AFOLU",GHG,total))
+
+scope2_sectors <- gather(scope2_sectors,var,GHG,GHG:CO2_indirect)
+scope2_sectors <- scope2_sectors %>% 
+  select(sector_title,var,GHG,total)
+
+# fractions
+
+scope2_sectors <- scope2_sectors %>% 
+  mutate(fraction=signif(((total/sum(data$GHG))*100),2))
+
+```
+
+```{r set_levels,echo=FALSE,warning=FALSE,fig.width=3,fig.height=6}
+
+
+scope1_sectors$sector_title <- as.factor(scope1_sectors$sector_title)
+scope1_sectors$sector_title <- factor(scope1_sectors$sector_title,levels=levels(scope1_sectors$sector_title)[c(4,3,5,1,6,2)])
+
+
+scope2_sectors$sector_title <- as.factor(scope2_sectors$sector_title)
+scope2_sectors$sector_title <- factor(scope2_sectors$sector_title,levels=levels(scope2_sectors$sector_title)[c(3,4,1,5,2)])
+
+
+scope2_subsectors$sector_title <- as.factor(scope2_subsectors$sector_title)
+scope2_subsectors$sector_title <- factor(scope2_subsectors$sector_title,levels=levels(scope2_subsectors$sector_title)[c(3,4,1,5,2)])
+
+
+```
+
+```{r bars,echo=FALSE,warning=FALSE,fig.width=5,fig.height=6}
+
+blarg <- scope1_sectors %>% 
+  arrange(desc(sector_title)) %>% 
+  ungroup() %>% 
+  mutate(label_position = cumsum(GHG) - GHG/2)
+
+p1 <- scope1_sectors %>% ggplot(.,aes(x=1,y=GHG,fill=sector_title)) +
+  geom_bar(stat="identity",colour="white",width=1) +
+  geom_text(data=blarg,aes(x=1.6,y=label_position,label=paste0(fraction,"%"),color=sector_title),hjust=0) +
+  scale_fill_manual(values=c("#66c2a5","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854")) +
+  scale_color_manual(values=c("#66c2a5","#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854")) +
+  ylim(0,60) +
+  xlim(0,2) +
+  theme(legend.position = "none",
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        panel.background = element_blank())
+p1
+
+scope2_sectors$var <- as.factor(scope2_sectors$var)
+
+scope2_sectors <- scope2_sectors %>% 
+  arrange(sector_title,desc(var))
+
+blarg <- scope2_sectors %>% 
+  filter(var=="GHG") %>% 
+  arrange(desc(sector_title),desc(total)) %>% 
+  ungroup() %>% 
+  mutate(label_position = cumsum(total) - total/2)
+
+
+
+p2 <- scope2_sectors %>% ggplot(.,aes(x=1,y=GHG,fill=sector_title)) +
+  geom_bar(stat="identity",colour="white",width=1) +
+  geom_text(data=blarg,aes(x=1.6,y=label_position,label=paste0(fraction,"%"),color=sector_title),hjust=0) +
+  scale_fill_brewer(palette="Set2") +
+  scale_color_brewer(palette="Set2") +
+  ylim(0,60) +
+  xlim(0,2) +
+  theme(legend.position = "none",
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        panel.background = element_blank())
+p2
+
+
+scope2_subsectors <- scope2_subsectors %>% 
+  arrange(sector_title,GHG) %>% 
+  mutate(label=paste0(subsector_title," (",fraction,"%)"))
+
+
+library(ggrepel)
+
+blarg <- scope2_subsectors %>% 
+  arrange(desc(sector_title),GHG) %>% 
+  ungroup() %>% 
+  mutate(label_position = cumsum(GHG) - GHG/2)
+
+
+p3 <- scope2_subsectors %>% ggplot(.,aes(x=1,y=GHG,fill=sector_title)) +
+  geom_bar(stat="identity",colour="white",width=1) +
+  geom_text_repel(inherit.aes = FALSE,data=blarg,aes(x=1.6,y=label_position,label=label,color=sector_title),
+    nudge_x      = 1,
+    direction    = "y",
+    hjust        = 0,
+    segment.size = 0.2,
+    ylim = c(-1,62)
+  ) +
+  xlim(0,8) +
+  ylim(0,60) +
+  scale_fill_brewer(palette="Set2") +
+  scale_color_brewer(palette="Set2") +
+  theme(legend.position = "none",
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        panel.background = element_blank(),)
+p3
+
+```
+
+
+```{r direct_indirect_emissions,echo=FALSE,warning=FALSE,fig.width=9,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
+
+ggarrange(p1,p2,p3,nrow=1,ncol=3,widths=c(0.2,0.2,0.6))
+
+
+# save data for soapbox
+
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_indirect_emissions"))
+
+
+
+info = data.frame(x=c("Author","Last update","Code","","Units","GHG","shares"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/direct_indirect_emissions.Rmd","","","GtCO2eq","%"))
+
+
+openxlsx::addWorksheet(wb,"info")
+openxlsx::addWorksheet(wb,"direct emissions")
+openxlsx::addWorksheet(wb,"indirect emissions")
+openxlsx::addWorksheet(wb,"indirect emissions - subsectors")
+
+openxlsx::writeData(wb, sheet="info",info,colNames=F,rowNames=F)
+openxlsx::writeData(wb,"direct emissions",scope1_sectors %>% rename(shares=fraction), colNames = T, rowNames = F)
+openxlsx::writeData(wb,"indirect emissions",scope2_sectors %>% rename(shares=fraction), colNames = T, rowNames = F)
+openxlsx::writeData(wb,"indirect emissions - subsectors",scope2_subsectors %>% rename(shares=fraction), colNames = T, rowNames = F)
+
+
+openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_direct_indirect_emissions",".xlsx"),overwrite=T)
+
+
+#p1 + p2 + p3 + plot_layout(widths=c(0.2,0.2,0.6))
+
+```

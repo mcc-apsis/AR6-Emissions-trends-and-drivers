@@ -5,7 +5,7 @@ library(openxlsx)
 
 ########### load up EDGAR version 6
 
-edgar_GHG <- openxlsx::read.xlsx('Data/EDGAR/EDGAR_v6.0_emissions_GHG_1970_2018-2020_IPCC contribution_2021.xlsx',
+edgar_GHG <- openxlsx::read.xlsx('Data/Not public/EDGAR/EDGAR_v6.0_emissions_GHG_1970_2018-2020_IPCC contribution_2021.xlsx',
                                  sheet='EDGAR emissions',startRow=5)
 
 edgar_GHG <- gather(edgar_GHG,year,value,Y_1970:Y_2020)
@@ -15,7 +15,7 @@ edgar_GHG <- edgar_GHG %>% mutate(value=as.numeric(value))
 
 ########## load up Jos Fgas emissions
 
-edgar_fgas <- openxlsx::read.xlsx('Data/EDGAR/21-09-17-EDGAR_v6.0_GHG =final= CO2 (1970-2020), CH4,N2O, incl Savanna Burning, Fgas (1970-2018) for UNEP.xls.xlsx',
+edgar_fgas <- openxlsx::read.xlsx('Data/Not public/EDGAR/21-09-17-EDGAR_v6.0_GHG =final= CO2 (1970-2020), CH4,N2O, incl Savanna Burning, Fgas (1970-2018) for UNEP.xls.xlsx',
                                   sheet="Fgas",startRow=5,cols = 1:56)
 
 
@@ -32,7 +32,7 @@ edgar_fgas <- gather(edgar_fgas,year,value,`1970`:`2020`)
 
 ############ apply the last minute EDGARv6 N2O emissions fix
 
-edgar_n2o_fix <- openxlsx::read.xlsx('Data/EDGAR/EDGAR_v6.0_emissions_N2O_1970-2018_06102021_CHN_update.xlsx')
+edgar_n2o_fix <- openxlsx::read.xlsx('Data/Not public/EDGAR/EDGAR_v6.0_emissions_N2O_1970-2018_06102021_CHN_update.xlsx')
 
 edgar_n2o_fix <- gather(edgar_n2o_fix,year,value,Y_1970:Y_2018)
 edgar_n2o_fix$year <- gsub("Y_","",edgar_n2o_fix$year)
@@ -98,14 +98,14 @@ edgar_GHG <- edgar_GHG %>%
 ############### SOME SECTORS / COUNTRIES WILL NOT HAVE GROWTH RATES, SO WE ASSUME CONSTANT GROWTH
 ########### load Jos fast track data for 2019
 
-jos_CO2 <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 FT2019, Part A- CO2 (by JRC).xlsx',
+jos_CO2 <- openxlsx::read.xlsx('Data/Not public/EDGAR/EDGAR v5.0 FT2019, Part A- CO2 (by JRC).xlsx',
                                sheet='CO2',startRow=10)
 jos_CO2 <- gather(jos_CO2,year,value,'1970':'2019')
 jos_CO2 <- jos_CO2 %>%
   select(ISO,year,EDGAR_country=Country,sector_code=IPCC_for_std_report_detailed,EDGAR_description=IPCC_source_detailed_desc,CO2=value)
 
 
-jos_CH4 <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 FT2019, Part B- CH4 and N2O (by PBL).xlsx',
+jos_CH4 <- openxlsx::read.xlsx('Data/Not public/EDGAR/EDGAR v5.0 FT2019, Part B- CH4 and N2O (by PBL).xlsx',
                                sheet='CH4',startRow=10)
 jos_CH4 <- jos_CH4[1:59]
 jos_CH4 <- gather(jos_CH4,year,value,'1970':'2019')
@@ -113,7 +113,7 @@ jos_CH4 <- jos_CH4 %>%
   select(ISO,year,EDGAR_country=Country,sector_code=IPCC,EDGAR_description=IPCC_source,CH4=value)
 
 
-jos_N2O <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 FT2019, Part B- CH4 and N2O (by PBL).xlsx',
+jos_N2O <- openxlsx::read.xlsx('Data/Not public/EDGAR/EDGAR v5.0 FT2019, Part B- CH4 and N2O (by PBL).xlsx',
                                sheet='N2O',startRow=10)
 jos_N2O <- jos_N2O[1:59]
 jos_N2O <- gather(jos_N2O,year,value,'1970':'2019')
@@ -123,7 +123,7 @@ jos_N2O <- jos_N2O %>%
   mutate(N2O=as.numeric(N2O))
 
 
-jos_Fgas <- openxlsx::read.xlsx('Data/EDGAR/EDGAR v5.0 FT2019, Part C- F-gases (by PBL).xlsx',
+jos_Fgas <- openxlsx::read.xlsx('Data/Not public/EDGAR/EDGAR v5.0 FT2019, Part C- F-gases (by PBL).xlsx',
                                 sheet='Fgas',startRow=10)
 jos_Fgas <- jos_Fgas[1:59]
 jos_Fgas <- gather(jos_Fgas,year,value,'1970':'2019')
@@ -265,7 +265,7 @@ missing_codes <- edgar_GHG %>%
 #country_codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'ISO_master')
 country_codes <- openxlsx::read.xlsx('Data/Codes and classifications/ISOcodes.xlsx',sheet = 'ISO_master')
 
-edgar_country_names <- openxlsx::read.xlsx('Data/EDGAR/EDGAR_v6.0_emissions_GHG_1970_2018-2020_IPCC contribution_2021.xlsx',
+edgar_country_names <- openxlsx::read.xlsx('Data/Not public/EDGAR/EDGAR_v6.0_emissions_GHG_1970_2018-2020_IPCC contribution_2021.xlsx',
                                            sheet='country definition')
 
 edgar_country_ISOs <- edgar_GHG %>% select(ISO) %>% distinct()
@@ -346,53 +346,58 @@ load('Data/gwps.RData')
 gwps <- gwps %>% 
   filter(gas!="CH4")
 
-edgar_GHG <- left_join(edgar_GHG,gwps %>% select(gas,gwp_ar6,gwp_ar5,gwp_ar5_feedbacks,gwp_ar4,gwp_ar2),by="gas")
+edgar_GHG <- left_join(edgar_GHG,gwps %>% select(gas,gwp100_ar6,gwp100_ar5,gwp100_ar5_feedbacks,gwp100_ar4,gwp100_ar2),by="gas")
 
 # any gases now missing ?
-missing_gases_ar6 <- anti_join(gwps %>% select(gas,gwp_ar6),edgar_GHG,by="gas")
-missing_gases_ar5_feedbacks <- anti_join(gwps %>% select(gas,gwp_ar5_feedbacks),edgar_GHG,by="gas")
-missing_gases_ar5 <- anti_join(gwps %>% select(gas,gwp_ar5),edgar_GHG,by="gas")
-missing_gases_ar4 <- anti_join(gwps %>% select(gas,gwp_ar4),edgar_GHG,by="gas")
-missing_gases_ar2 <- anti_join(gwps %>% select(gas,gwp_ar2),edgar_GHG,by="gas")
+missing_gases_ar6 <- anti_join(gwps %>% select(gas,gwp100_ar6),edgar_GHG,by="gas")
+missing_gases_ar5_feedbacks <- anti_join(gwps %>% select(gas,gwp100_ar5_feedbacks),edgar_GHG,by="gas")
+missing_gases_ar5 <- anti_join(gwps %>% select(gas,gwp100_ar5),edgar_GHG,by="gas")
+missing_gases_ar4 <- anti_join(gwps %>% select(gas,gwp100_ar4),edgar_GHG,by="gas")
+missing_gases_ar2 <- anti_join(gwps %>% select(gas,gwp100_ar2),edgar_GHG,by="gas")
 
 # do we have all the non-CH4 gases?
 
-missing_gwps_ar6 <- edgar_GHG %>% filter(is.na(gwp_ar6)) %>% select(sector_code,gas) %>% distinct()
-missing_gwps_ar5_feedbacks <- edgar_GHG %>% filter(is.na(gwp_ar5_feedbacks)) %>% select(sector_code,gas) %>% distinct()
-missing_gwps_ar5 <- edgar_GHG %>% filter(is.na(gwp_ar5)) %>% select(sector_code,gas) %>% distinct()
-missing_gwps_ar4 <- edgar_GHG %>% filter(is.na(gwp_ar4)) %>% select(sector_code,gas) %>% distinct()
-missing_gwps_ar2 <- edgar_GHG %>% filter(is.na(gwp_ar2)) %>% select(sector_code,gas) %>% distinct()
+missing_gwps_ar6 <- edgar_GHG %>% filter(is.na(gwp100_ar6)) %>% select(sector_code,gas) %>% distinct()
+missing_gwps_ar5_feedbacks <- edgar_GHG %>% filter(is.na(gwp100_ar5_feedbacks)) %>% select(sector_code,gas) %>% distinct()
+missing_gwps_ar5 <- edgar_GHG %>% filter(is.na(gwp100_ar5)) %>% select(sector_code,gas) %>% distinct()
+missing_gwps_ar4 <- edgar_GHG %>% filter(is.na(gwp100_ar4)) %>% select(sector_code,gas) %>% distinct()
+missing_gwps_ar2 <- edgar_GHG %>% filter(is.na(gwp100_ar2)) %>% select(sector_code,gas) %>% distinct()
 
 ## get CH4 gwps based on a more detailed breakdown of sources
 
-gwps_ch4 <- gwps_ch4 %>% select(sector_code,fossil_bio,ch4_gwp_ar6=gwp_ar6,ch4_gwp_ar5=gwp_ar5,ch4_gwp_ar5_fb=gwp_ar5_feedbacks,ch4_gwp_ar4=gwp_ar4,ch4_gwp_ar2=gwp_ar2)
+gwps_ch4 <- gwps_ch4 %>% select(sector_code,fossil_bio,
+                                ch4_gwp100_ar6=gwp100_ar6,
+                                ch4_gwp100_ar5=gwp100_ar5,
+                                ch4_gwp100_ar5_fb=gwp100_ar5_feedbacks,
+                                ch4_gwp100_ar4=gwp100_ar4,
+                                ch4_gwp100_ar2=gwp100_ar2)
 edgar_GHG <- left_join(edgar_GHG,gwps_ch4,by = c("sector_code","fossil_bio"))
 
 # do we have all the CH4 gases?
 
 ch4_gwps <- edgar_GHG %>% 
   filter(gas=="CH4") %>% 
-  select(sector_code,fossil_bio,description,gas,ch4_gwp_ar6,ch4_gwp_ar5,ch4_gwp_ar5_fb,ch4_gwp_ar4,ch4_gwp_ar2) %>% 
+  select(sector_code,fossil_bio,description,gas,ch4_gwp100_ar6,ch4_gwp100_ar5,ch4_gwp100_ar5_fb,ch4_gwp100_ar4,ch4_gwp100_ar2) %>% 
   distinct()
 
 edgar_GHG <- edgar_GHG %>% 
-  mutate(gwp_ar6=ifelse(gas=="CH4",ch4_gwp_ar6,gwp_ar6)) %>% 
-  mutate(gwp_ar5_feedbacks=ifelse(gas=="CH4",ch4_gwp_ar5_fb,gwp_ar5_feedbacks)) %>% 
-  mutate(gwp_ar5=ifelse(gas=="CH4",ch4_gwp_ar5,gwp_ar5)) %>% 
-  mutate(gwp_ar4=ifelse(gas=="CH4",ch4_gwp_ar4,gwp_ar4)) %>% 
-  mutate(gwp_ar2=ifelse(gas=="CH4",ch4_gwp_ar2,gwp_ar2)) %>% 
-  select(-ch4_gwp_ar6,-ch4_gwp_ar5,-ch4_gwp_ar2,-ch4_gwp_ar4,-ch4_gwp_ar5_fb)
+  mutate(gwp100_ar6=ifelse(gas=="CH4",ch4_gwp100_ar6,gwp100_ar6)) %>% 
+  mutate(gwp100_ar5_feedbacks=ifelse(gas=="CH4",ch4_gwp100_ar5_fb,gwp100_ar5_feedbacks)) %>% 
+  mutate(gwp100_ar5=ifelse(gas=="CH4",ch4_gwp100_ar5,gwp100_ar5)) %>% 
+  mutate(gwp100_ar4=ifelse(gas=="CH4",ch4_gwp100_ar4,gwp100_ar4)) %>% 
+  mutate(gwp100_ar2=ifelse(gas=="CH4",ch4_gwp100_ar2,gwp100_ar2)) %>% 
+  select(-ch4_gwp100_ar6,-ch4_gwp100_ar5,-ch4_gwp100_ar2,-ch4_gwp100_ar4,-ch4_gwp100_ar5_fb)
 
 ## apply all gwps
-edgar_GHG_ar6 <- edgar_GHG %>% mutate(value_gwp=value*gwp_ar6)
-edgar_GHG_ar5 <- edgar_GHG %>% mutate(value_gwp=value*gwp_ar5)
-edgar_GHG_ar4 <- edgar_GHG %>% mutate(value_gwp=value*gwp_ar4)
+edgar_GHG_ar6 <- edgar_GHG %>% mutate(value_gwp=value*gwp100_ar6)
+edgar_GHG_ar5 <- edgar_GHG %>% mutate(value_gwp=value*gwp100_ar5)
+edgar_GHG_ar4 <- edgar_GHG %>% mutate(value_gwp=value*gwp100_ar4)
 
 ## merge all Fgases into a single variable
 
-edgar_GHG_ar6 <- edgar_GHG_ar6 %>% select(-value,-gwp_ar6,-gwp_ar5,-gwp_ar4,-gwp_ar2,-gwp_ar5_feedbacks)
-edgar_GHG_ar5 <- edgar_GHG_ar5 %>% select(-value,-gwp_ar6,-gwp_ar5,-gwp_ar4,-gwp_ar2,-gwp_ar5_feedbacks)
-edgar_GHG_ar4 <- edgar_GHG_ar4 %>% select(-value,-gwp_ar6,-gwp_ar5,-gwp_ar4,-gwp_ar2,-gwp_ar5_feedbacks)
+edgar_GHG_ar6 <- edgar_GHG_ar6 %>% select(-value,-gwp100_ar6,-gwp100_ar5,-gwp100_ar4,-gwp100_ar2,-gwp100_ar5_feedbacks)
+edgar_GHG_ar5 <- edgar_GHG_ar5 %>% select(-value,-gwp100_ar6,-gwp100_ar5,-gwp100_ar4,-gwp100_ar2,-gwp100_ar5_feedbacks)
+edgar_GHG_ar4 <- edgar_GHG_ar4 %>% select(-value,-gwp100_ar6,-gwp100_ar5,-gwp100_ar4,-gwp100_ar2,-gwp100_ar5_feedbacks)
 
 edgar_GHG_ar6 <- spread(edgar_GHG_ar6,gas,value_gwp)
 edgar_GHG_ar5 <- spread(edgar_GHG_ar5,gas,value_gwp)
@@ -440,13 +445,10 @@ edgar_GHG_ar4 <- edgar_GHG_ar4 %>%
   ungroup() %>% 
   mutate(GHG = ifelse(is.na(CO2) & is.na(CH4) & is.na(N2O) & is.na(Fgas),NA,GHG))
 
-## rename gwps for authors
+## value to end & relevel gases
 
 edgar_GHG <- edgar_GHG %>% 
-  select(everything(),gwp100_ar6=gwp_ar6,gwp100_ar5=gwp_ar5,gwp100_ar5_fb=gwp_ar5_feedbacks,gwp100_ar4=gwp_ar4,gwp100_ar2=gwp_ar2) %>% 
   relocate(value,.after=gwp100_ar2)
-
-## relevel the gases
 
 edgar_GHG$gas <- as.factor(edgar_GHG$gas) 
 edgar_GHG$gas <- fct_relevel(edgar_GHG$gas,c("CO2","CH4","N2O"))
@@ -455,24 +457,24 @@ edgar_GHG$gas <- fct_relevel(edgar_GHG$gas,c("CO2","CH4","N2O"))
 ## save both files
 
 edgar_raw <- edgar_GHG
-save(edgar_raw,file='Data/edgar6_v5_data_raw.RData')
+save(edgar_raw,file='Data/Not public/IPCC data versions/edgar6_v5_data_raw.RData')
 
 edgar_ghg <- edgar_GHG_ar6
-save(edgar_ghg,file='Data/edgar6_v5_data_ghg_gwp_ar6.RData')
+save(edgar_ghg,file='Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp100_ar6.RData')
 
 edgar_ghg <- edgar_GHG_ar5
-save(edgar_ghg,file='Data/edgar6_v5_data_ghg_gwp_ar5.RData')
+save(edgar_ghg,file='Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp100_ar5.RData')
 
 edgar_ghg <- edgar_GHG_ar4
-save(edgar_ghg,file='Data/edgar6_v5_data_ghg_gwp_ar4.RData')
+save(edgar_ghg,file='Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp100_ar4.RData')
 
 
 #### how much of 2019 is projected vs stable?
 
-projected <- left_join(projected,gwps %>% select(gas,gwp_ar6))
+projected <- left_join(projected,gwps %>% select(gas,gwp100_ar6))
 projected <- projected %>%
-  mutate(gwp_ar6=ifelse(gas=="CH4",29,gwp_ar6)) %>%
-  mutate(value_gwp=value*gwp_ar6)
+  mutate(gwp100_ar6=ifelse(gas=="CH4",29,gwp100_ar6)) %>%
+  mutate(value_gwp=value*gwp100_ar6)
 
 projected <- projected %>% 
   mutate(fgas=ifelse(gas=="CO2" | gas=="CH4" | gas=="N2O",gas,"fgas")) %>% 

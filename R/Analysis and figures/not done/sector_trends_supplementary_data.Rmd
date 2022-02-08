@@ -1,0 +1,424 @@
+---
+title: "Sector trends supplementary data"
+author: "William F. Lamb"
+output: 
+  word_document:
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results/activity") })
+  
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggpubr)
+library(openxlsx)
+library(ggplot2); theme_set(theme_bw())
+library(data.table)
+library(janitor)
+library(patchwork)
+
+load('../../Data/edgar_data_gwp_ar6.RData')
+load('../../Data/land.RData')
+load('../../Data/basic.RData')
+
+# edgar_land <- left_join(blue %>% filter(year>1969),edgar_GHG_ar6 %>% select(ISO:year) %>% filter(year>1969) %>%  distinct(),by = c("ISO", "year"))
+#   
+# edgar_land <- edgar_land %>%
+#   mutate(chapter=7,
+#          chapter_title="AFOLU",
+#          sector_code="land_CO2",
+#          description="Land CO2 from BLUE",
+#          subsector=7.7,
+#          subsector_title="Land CO2 (BLUE)",
+#          CO2=value,
+#          CH4=NA,N2O=NA,Fgas=NA,GHG=value) %>% 
+#   select(-value)
+# 
+# edgar_land <- edgar_land[names(edgar_GHG_ar6)]
+# edgar_GHG_ar6 <- rbind(edgar_GHG_ar6,edgar_land)
+load('../../Data/activity.RData')
+
+wb <- openxlsx::createWorkbook(title = paste("ipcc_activity_data_",Sys.Date()))
+
+
+
+
+
+```
+
+``` {r buildings_CO2_fraction, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3.5,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+buildings <- edgar_GHG_ar6 %>% 
+  filter(chapter_title=="Buildings") %>% 
+  filter(year>1989) %>% 
+  group_by(year,region_ar6_10) %>% 
+  summarise_at(vars(CO2,GHG),sum,na.rm=TRUE)
+
+buildings <- buildings %>%
+  mutate(nonCO2=GHG-CO2) %>% 
+  mutate(CO2_fraction=CO2/GHG*100) %>% 
+  mutate(nonCO2_fraction=nonCO2/GHG*100)
+
+buildings %>% 
+  ggplot(.,aes(x=year,y=CO2_fraction,group=region_ar6_10,colour=region_ar6_10)) +
+  geom_path(size=1) +
+  geom_text(data=buildings %>% filter(year==2018),
+            aes(x=year+1,y=CO2_fraction,label=region_ar6_10,hjust=0),
+            position=position_jitter(width=0,height=3)) +
+  theme(legend.position="none",
+        axis.title.x = element_blank(),
+        panel.grid.minor = element_blank()) +
+  scale_x_continuous(limits=c(1990,2050),breaks=c(1990,2000,2010,2018)) +
+  ylab("%") +
+  ggtitle("Fraction of CO2 in total GHG emissions (Buildings)")
+
+```
+
+``` {r afolu_CO2_fraction, echo=FALSE,warning=FALSE,fig.width=6,fig.height=3.5,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+# 
+# afolu <- edgar_GHG_ar6 %>% 
+#   filter(chapter_title=="AFOLU") %>% 
+#   filter(subsector!="7.9") %>% 
+#   filter(year>1989) %>% 
+#   group_by(year,region_ar6_10) %>% 
+#   summarise_at(vars(CO2,GHG),sum,na.rm=TRUE)
+# 
+# afolu <- afolu %>%
+#   mutate(nonCO2=GHG-CO2) %>% 
+#   mutate(CO2_fraction=CO2/GHG*100) %>% 
+#   mutate(nonCO2_fraction=nonCO2/GHG*100)
+# 
+# afolu %>% 
+#   filter(region_ar6_10!="Eurasia") %>% 
+#   ggplot(.,aes(x=year,y=CO2_fraction,group=region_ar6_10,colour=region_ar6_10)) +
+#   geom_path(size=1) +
+#   geom_text(data=afolu %>% filter(year==2018),
+#             aes(x=year+1,y=CO2_fraction,label=region_ar6_10,hjust=0),
+#             position=position_jitter(width=0,height=15)) +
+#   theme(legend.position="none",
+#         axis.title.x = element_blank(),
+#         panel.grid.minor = element_blank()) +
+#   scale_x_continuous(limits=c(1990,2050),breaks=c(1990,2000,2010,2018)) +
+#   ylab("%") +
+#   ggtitle("Fraction of CO2 in total GHG emissions (AFOLU)")
+
+```
+
+
+``` {r energy_fossil_share, echo=FALSE,warning=FALSE,fig.width=6,fig.height=4,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+
+
+fossil_share <- read.csv("../../Data/kaya/kaya_data_fossil_share.csv",header=FALSE)
+handle <- as.character(fossil_share$V1[1])
+handle <- strsplit(handle,",")
+handle <- as.data.frame(handle) %>% 
+  select(var=c..Year......AGO_POP........ALB_POP........ARE_POP........ARG_POP.....)
+handle <- handle %>% 
+  mutate(var=as.character(var))
+
+fossil_share <- t(fossil_share)
+fossil_share <- data.frame(fossil_share,stringsAsFactors=FALSE, keep.rownames = FALSE)
+
+
+fossil_share <- setDT(fossil_share)[]
+fossil_share$X1[1] <- NA
+fossil_share <- fossil_share %>% 
+  select(-X1)
+
+fossil_share <-cbind(fossil_share,handle)
+
+fossil_share <- fossil_share %>% 
+  select(var,everything())
+
+fossil_share <- fossil_share %>% 
+  row_to_names(row_number = 1)
+
+fossil_share <- fossil_share %>%
+  separate(Year,c("country","var"),"_",extra="merge")
+fossil_share$country <- gsub('[\"]', '', fossil_share$country)
+fossil_share$var <- gsub('[\"]', '', fossil_share$var)
+
+fossil_share <- fossil_share %>% 
+  filter(var=="fossilshare" | var=="elecheat")
+
+fossil_share <- gather(fossil_share,year,value,`1971`:`2019`)
+fossil_share <- spread(fossil_share,var,value)
+
+fossil_share <- fossil_share %>% 
+  filter(year %in% c(1990,2000,2010,2018)) %>% 
+  select(-`FALSE`,ISO=country) %>% 
+  mutate(year=as.numeric(year))%>% 
+  mutate(fossilshare=as.numeric(fossilshare))%>% 
+  mutate(elecheat=as.numeric(elecheat))
+
+fossil_share <- left_join(fossil_share,edgar_GHG_ar6 %>% select(ISO,country,year,region_ar6_10) %>% distinct())
+
+uhoh <- anti_join(fossil_share,edgar_GHG_ar6 %>% select(ISO,country,year,region_ar6_10) %>% distinct())
+
+fossil_share <- fossil_share %>% 
+  mutate(country=ifelse(ISO=="WLD","World",country)) %>% 
+  mutate(region_ar6_10=ifelse(ISO=="WLD","World",region_ar6_10))
+
+plot_data <- fossil_share %>% 
+  group_by(year,region_ar6_10) %>% 
+  summarise(value=weighted.mean(fossilshare,elecheat,na.rm=TRUE)*100)
+
+plot_data %>% 
+  filter(!is.na(region_ar6_10)) %>% 
+  ggplot(.,aes(x=year,y=value,colour=region_ar6_10)) +
+  geom_path() +
+  geom_point() +
+  geom_text(data=plot_data %>% filter(year==2018),
+            aes(x=year+1,y=value,label=region_ar6_10,hjust=0),
+            position=position_jitter(width=0,height=0.0)) +
+  theme(legend.position="none",
+        axis.title.x = element_blank(),
+        panel.grid.minor = element_blank()) +
+  scale_x_continuous(limits=c(1990,2050),breaks=c(1990,2000,2010,2018)) +
+  ylab("%") +
+  ggtitle("Fossil fuel share of electricity and heat production")
+
+```
+
+
+``` {r land, echo=FALSE,warning=FALSE,fig.width=7,fig.height=5,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+land <- openxlsx::read.xlsx('../../Data/supplemetary data/land.xlsx')
+
+names(land) <- c("type","region","1990","2000","2010","2018")
+
+land <- land %>% 
+  fill(type)
+
+land <- gather(land,year,value,`1990`:`2018`)
+
+land <- land %>% 
+  mutate(value=value/1e6) %>% 
+  filter(type!="Wood Harvest (Pg C)")
+
+p1 <- land %>% ggplot(.,aes(x=year,y=value,color=region,group=region)) +
+  geom_path() +
+  geom_point() +
+  facet_grid(.~type) +
+  theme(legend.position="none",
+        legend.title=element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  ylab("Area (million km2)")
+
+land <- land %>%
+  group_by(type,region) %>% 
+  mutate(value=value/first(value))
+
+p2 <- land %>% ggplot(.,aes(x=year,y=value,color=region,group=region)) +
+  geom_path() +
+  geom_point() +
+  facet_grid(.~type) +
+  theme(legend.position="bottom",
+        legend.title=element_blank(),
+        axis.title.x = element_blank(),
+        panel.grid.minor = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        axis.text.x = element_text(angle = 45,hjust=1)) +
+  ylab(str_wrap("Area (million km2) normalised to 1 in 1990",width=25))
+
+p1 / p2 + plot_layout(heights=c(1,1.1))
+
+```
+
+``` {r sums, echo=FALSE,warning=FALSE,fig.width=8,fig.height=10,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+sums <- act %>% 
+  group_by(year,product,activity) %>% 
+  summarise(value=sum(value,na.rm = TRUE))
+
+sums %>% 
+  ggplot(.,aes(x=year,y=value,colour=activity)) +
+  geom_path() +
+  facet_wrap(.~product,scales="free",ncol = 3) +
+  theme(legend.position = "none")
+
+
+```
+
+``` {r maps, echo=FALSE,warning=FALSE,fig.width=8,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+
+isos <- openxlsx::read.xlsx("C:\\Users\\lamw\\Documents\\SpiderOak Hive\\Work\\Code\\R\\.Place names and codes\\output\\ISOcodes.xlsx",sheet="alternative_names")
+
+world <- map_data("world") %>% 
+  filter(region!="Antarctica")
+world <- left_join(world %>% mutate(region=tolower(region)),isos,by=c("region"="alternative.name")) 
+
+blarg <- act %>% 
+  select(ISO) %>% 
+  distinct() %>% 
+  mutate(included=1)
+
+world <- left_join(world,blarg ,by=c("alpha.3"="ISO"))
+
+ggplot() + 
+    geom_polygon(data = world, aes(x=long, y = lat, group=group, fill=included),color="white",na.rm=T) + 
+    coord_fixed(1,xlim=c(-155,175)) +
+    theme_bw() +
+    guides(fill = guide_legend(reverse = TRUE))  +
+    ggtitle("Countries with IEA activity data") +
+    theme(panel.border = element_rect(colour = "black",fill=NA),
+          legend.position = "none",
+          legend.background = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_blank(),
+          plot.title = element_text(face="plain"))
+
+
+```
+
+
+
+``` {r transport, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+transport <- act %>% 
+  filter(grepl("pkm|tkm|vkm|stock", product))
+
+transport <- transport %>% 
+  group_by(year,product,activity) %>% 
+  summarise(value=sum(value,na.rm = TRUE))
+
+transport %>% 
+  ggplot(.,aes(x=year,y=value,colour=activity)) +
+  geom_path() +
+  geom_text(data=transport %>% filter(year==2017),aes(x=2018,y=value,label=activity),hjust=0) +
+  xlim(2000,2025) +
+  facet_wrap(.~product,scales="free",ncol = 2) +
+  theme(legend.position="none")
+
+
+
+```
+
+``` {r buildings, echo=FALSE,warning=FALSE,fig.width=8,fig.height=6,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+floor_space <- act %>% 
+  filter(product %in% c("Residential floor area (10^9 m2)","Services floor area (10^9 m2)"))
+
+floor_space <- floor_space %>% 
+  mutate(product=ifelse(product=="Residential floor area (10^9 m2)","residential",product)) %>% 
+  mutate(product=ifelse(product=="Services floor area (10^9 m2)","services",product))
+
+floor_space <- spread(floor_space,product,value)
+
+floor_space <- floor_space %>% 
+  mutate(pop=pop*1e6) %>% 
+  mutate(residential=residential*1e9) %>% 
+  mutate(residential_pc=residential/pop)
+
+```
+
+
+``` {r transport, echo=FALSE,warning=FALSE,fig.width=6,fig.height=4,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+passengerkm <- act %>% 
+  filter(product %in% c("Passenger-kilometres (10^9 pkm)"))
+
+passengerkm <- left_join(passengerkm,basic %>% select(ISO,year=Year,gdp_ppp_WB),by = c("ISO", "year"))
+
+passengerkm <- passengerkm %>% 
+  mutate(pop=pop*1e6) %>% 
+  mutate(value_pc =(value*1e9)/pop) %>% 
+  mutate(gdp_pc = gdp_ppp_WB/pop)
+
+
+passengerkm <- passengerkm %>% 
+  filter(activity=="Cars/light trucks") %>% 
+  filter(year %in% c(2000,2017))
+
+passengerkm <- passengerkm %>% 
+  filter(country %in% c("Australia","Canada","France","Germany","Hungary","Japan","United States","United Kingdom","Brazil","Czech Republic","Finland"))
+
+library(RColorBrewer)
+mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(length(unique(passengerkm$country)))
+
+
+passengerkm %>% ggplot(.,aes(x=gdp_pc,y=value_pc,color=country)) +
+  geom_path() +
+  geom_point() +
+  geom_text(data=passengerkm %>% filter(year==2017),
+            inherit.aes=FALSE,aes(x=gdp_pc+1000,y=value_pc,label=country,color=country),hjust=0) + 
+  scale_color_manual(values=mycolors) +
+  xlim(10000,65000) +
+  theme(legend.position="none") +
+  ggtitle("Travel distance vs. GDP per capita (2000 & 2017)") +
+  ylab("Passenger km (cars/light trucks)\n per capita (km/person)") +
+  xlab("GDP per capita (US$ PPP)")
+
+
+```
+
+
+
+``` {r industry, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4,fig.path="../../Results/Plots/Supplementary/",dev=c('png','pdf')}
+
+top_countries <- function(data) {
+  
+  rank <- data %>% 
+    filter(year==max(year)) %>% 
+    arrange(desc(value)) %>% 
+    head(10) %>% 
+    mutate(include=1) %>% 
+    select(country,include)
+  
+  data <- left_join(data,rank,by=c("country"="country"))
+  small_group <- anti_join(data,rank,by=c("country"="country"))
+  
+  small_group <- small_group %>% 
+    group_by(year,activity,product) %>% 
+    summarise(value=sum(value,na.rm=TRUE),pop=sum(pop,na.rm = TRUE)) %>% 
+    mutate(country="Rest",ISO="ZZZ",region_ar6_5="ZZZ",region_ar6_5_short="ZZZ",include=1) %>% 
+    select(country,ISO,activity,region_ar6_5,region_ar6_5_short,year,pop,activity,product,value,include) %>%
+    ungroup()
+  
+  data <- rbind(data,small_group)
+  data <- data %>% filter(include==1)
+  
+  
+  return(data)
+}
+
+
+cement <- act %>% 
+  filter(grepl("Cement", product))
+cement <- top_countries(cement)
+
+steel <- act %>% 
+  filter(grepl("Steel",product))
+steel <- top_countries(steel)
+
+p1 <- cement %>% 
+  ggplot(.,aes(x=year,y=value,colour=country)) +
+  geom_path() +
+  geom_text(data=cement %>% filter(year==2017),aes(x=2018,y=value,label=country),hjust=0) +
+  xlim(2000,2023) +
+  facet_wrap(.~product,scales="free",ncol = 2) +
+  theme(legend.position="none",
+        axis.title = element_blank())
+
+p2 <- steel %>% 
+  ggplot(.,aes(x=year,y=value,colour=country)) +
+  geom_path() +
+  geom_text(data=steel %>% filter(year==2017),aes(x=2018,y=value,label=country),hjust=0) +
+  xlim(2000,2023) +
+  facet_wrap(.~product,scales="free",ncol = 2) +
+  theme(legend.position="none",
+        axis.title = element_blank())
+
+ggarrange(p1,p2,nrow=1,ncol=2)
+
+
+```

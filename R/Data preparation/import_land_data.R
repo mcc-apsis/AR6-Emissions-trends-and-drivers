@@ -10,9 +10,9 @@ library(openxlsx)
 #houghton <- read.xlsx("../../Data/Land and GCB/Country_ELUC_25112020_forWill.xlsx",sheet="H&N_2017_IPCC_regions")
 #oscar <- read.xlsx("../../Data/Land and GCB/Country_ELUC_25112020_forWill.xlsx",sheet="OSCAR_IPCC_regions")
 
-blue <- read.xlsx("Data/Land and GCB/Country_ELUC_23032021.xlsx",sheet="BLUE_GCB2020_IPCC_regions")
-houghton <- read.xlsx("Data/Land and GCB/Country_ELUC_23032021.xlsx",sheet="H&N_2017_IPCC_regions")
-oscar <- read.xlsx("Data/Land and GCB/Country_ELUC_23032021.xlsx",sheet="oscar_10ipccregions")
+blue <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="BLUE_GCB2020_IPCC_regions")
+houghton <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="H&N_2017_IPCC_regions")
+oscar <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="oscar_10ipccregions")
 
 blue <- gather(blue,region_ar6_10,blue,`Africa`:`Southern.Asia`) %>% 
   select(region_ar6_10,year=X1,blue) %>%
@@ -87,4 +87,4 @@ openxlsx::writeData(wb, sheet = "data", land, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,"Results/Data/ipcc_ar6_data_land_co2.xlsx",overwrite=T)
 
-save(land,file='Data/land.RData')
+save(land,file='Data/data_land_co2.RData')

@@ -5,7 +5,6 @@ output: html_document
 
 ```{r setup, include=FALSE}
 
-
 rm(list = ls())
 library(tidyverse)
 library(openxlsx)
@@ -13,18 +12,20 @@ library(openxlsx)
 options(dplyr.summarise.inform = FALSE)
 knitr::opts_chunk$set(echo = FALSE)
 
+load("../../Data/ipcc_regions.RData")
+load("../../Data/data_land_co2.RData")
+load("../../Data/data_edgar_ghg.RData")
+
 
 ```
 
 
-```{r historic_emissions_for_synthesis_report}
+```{r historic_emissions_cut_for_synthesis_report}
 
 
-gcb_hist<-read_csv('../../Data/supplemetary data/GCB2020v18_MtCO2_flat.csv') %>%
+gcb_hist<-read_csv('../../Data/Supplementary datasets/GCB2020v18_MtCO2_flat.csv') %>%
   filter(Country!="Global")
 
-load("../../Data/ipcc_regions.RData")
-load("../../Data/land.RData")
 
 gcb_hist<-gcb_hist %>%
   mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Panama Canal Zone","PAN",`ISO 3166-1 alpha-3`))%>%
@@ -72,7 +73,7 @@ gcb_hist <- gcb_hist %>%
 sum(gcb_hist$co2)
 
 
-wb <- openxlsx::createWorkbook(title = "ipcc_ar6_synthesis_cumulative_co2")
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_synthesis_cumulative_co2_cut")
 
 addWorksheet(wb,"info")
 addWorksheet(wb,"data")
@@ -82,9 +83,234 @@ info = data.frame(x=c("Author","Last update","Code","Source (CO2_FFI)","Source (
 writeData(wb, sheet="info",info,colNames=F,rowNames=F)
 writeData(wb, sheet = "data",gcb_hist, colNames = T, rowNames = F)
 
-saveWorkbook(wb,"../../Results/Plot data/ipcc_ar6_synthesis_cumulative_co2.xlsx",overwrite=T)
+saveWorkbook(wb,"../../Results/Plot data/ipcc_ar6_synthesis_cumulative.xlsx",overwrite=T)
 
 
 
+
+```
+
+
+
+```{r historic_emissions_for_synthesis_report}
+
+gcb_hist<-read_csv('../../Data/Supplementary datasets/GCB2020v18_MtCO2_flat.csv') %>%
+  filter(Country!="Global")
+
+gcb_hist<-gcb_hist %>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Panama Canal Zone","PAN",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="French Equatorial Africa","TCD",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="French West Africa","NER",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Kosovo","MNE",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Kuwaiti Oil Fires","KWT",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Leeward Islands","GLP",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Pacific Islands (Palau)","PLW",`ISO 3166-1 alpha-3`))%>%
+  mutate(`ISO 3166-1 alpha-3`=ifelse(Country=="Ryukyu Islands","JPN",`ISO 3166-1 alpha-3`))
+
+gcb_hist<-left_join(gcb_hist,ipcc_regions,by=c("ISO 3166-1 alpha-3"="ISO")) %>%
+  mutate(region_ar6_6=ifelse(Country=="International Transport","Int. Aviation and Shipping",region_ar6_6)) %>%
+  mutate(region_ar6_10=ifelse(Country=="International Transport","Int. Aviation and Shipping",region_ar6_10)) %>%
+  mutate(region_ar6_dev=ifelse(Country=="International Transport","Int. Aviation and Shipping",region_ar6_dev)) %>%
+  filter(!is.na(region_ar6_10))
+
+gcb_hist<-gcb_hist %>%
+  filter(Year>=1850) %>%
+  group_by(Year,region_ar6_6) %>%
+  summarise(co2=sum(Total,na.rm=TRUE)/1000) %>%
+  mutate(source="CO2_FFI") %>%
+  rename("year"="Year")
+
+gcb_hist <- rbind(gcb_hist,land %>% 
+                    group_by(year,region_ar6_6) %>% 
+                    summarise(co2=sum(mean,na.rm=TRUE)/1e9) %>% 
+                    mutate(source="CO2_LULUCF"))
+
+gcb_hist <- gcb_hist %>% 
+  group_by(year,source) %>% 
+  summarise(co2=sum(co2,na.rm=TRUE))
+
+gcb_hist <- spread(gcb_hist,year,co2)
+
+#### ghg by gas
+
+ghg <- edgar_ghg %>% 
+  filter(year!=2020) %>% 
+  filter(year>=1990) %>% 
+  group_by(year) %>% 
+  summarise_at(vars("CH4","CO2","N2O","Fgas","GHG"),sum,na.rm=TRUE)
+
+ghg <- left_join(ghg,land %>% 
+                    group_by(year) %>% 
+                    summarise("CO2_LULUCF"=sum(mean,na.rm=TRUE)))
+
+ghg <- ghg %>% 
+  mutate(GHG=GHG+CO2_LULUCF)
+
+ghg <- gather(ghg,gas,value,-year)
+ghg <- ghg %>% mutate(value=value/1e9)
+ghg <- ghg %>% mutate(gas=ifelse(gas=="CO2","CO2_FFI",gas))
+ghg$gas <- as.factor(ghg$gas)
+ghg$gas <- factor(ghg$gas,levels(ghg$gas)[c(2,3,1,6,4,5)])
+
+ghg <- spread(ghg,year,value)
+
+#### ghg by sector
+
+sector <- edgar_ghg %>% 
+  filter(year!=2020) %>% 
+  filter(year>=1990) %>% 
+  group_by(year,sector_title) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+sector <- left_join(sector,land %>% 
+                    group_by(year) %>% 
+                    summarise("CO2_LULUCF"=sum(mean,na.rm=TRUE)) %>% 
+                    mutate(sector_title="AFOLU"),
+                 by=c("year","sector_title"))
+
+sector <- sector %>% 
+  mutate(GHG=ifelse(!is.na(CO2_LULUCF),GHG+CO2_LULUCF,GHG)) %>% 
+  select(-CO2_LULUCF)
+
+sector <- sector %>% mutate(GHG=GHG/1e9)
+sector <- spread(sector,year,GHG)
+
+wb <- openxlsx::createWorkbook(title = "ipcc_ar6_synthesis_historic_emissions")
+
+addWorksheet(wb,"info")
+addWorksheet(wb,"co2 1850-2019")
+addWorksheet(wb,"ghg gases 1990-2019")
+addWorksheet(wb,"ghg sectors 1990-2019")
+
+info = data.frame(x=c("Author","Last update","Code","Source (co2 1850-2019)","Source (ghg gases & sectors)","Units","Note"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/additional_data_files.Rmd","CO2_FFI: Global carbon budget v2020, see https://folk.universitetetioslo.no/roberan/GCB2020.shtml; CO2_LULUCF: Mean of 3 bookkeeping models (Houghton & Nassikas; BLUE; OSCAR), see https://essd.copernicus.org/articles/13/5213/2021/essd-13-5213-2021.html","EDGARv6 & 3 bookkeeping models, fully documented in https://essd.copernicus.org/articles/13/5213/2021/essd-13-5213-2021.html","GtCO2 (for CO2), otherwise GtCO2eq","CO2_FFI in the long time series (1850-2019) is drawn from a different source (Global Carbon Budget) than the short time series (1990-2019; EDGARv6). EDGARv6 CO2_FFI emissions are slightly higher due to wider system boundaries. See https://essd.copernicus.org/articles/13/5213/2021/essd-13-5213-2021.html"))
+
+writeData(wb, sheet="info",info,colNames=F,rowNames=F)
+writeData(wb, sheet = "co2 1850-2019",gcb_hist, colNames = T, rowNames = F)
+writeData(wb, sheet = "ghg gases 1990-2019",ghg, colNames = T, rowNames = F)
+writeData(wb, sheet = "ghg sectors 1990-2019",sector, colNames = T, rowNames = F)
+
+saveWorkbook(wb,"../../Results/Plot data/ipcc_ar6_synthesis_historic_emissions.xlsx",overwrite=T)
+
+```
+
+```{r afolu_data}
+
+
+########## produce AFOLU data for Jeremy
+
+load('../../Data/edgar6_v5_data_raw.RData')
+afolu <- edgar_raw %>%
+  filter(sector_title=="AFOLU") %>%
+  group_by(year,sector_title,subsector_title,gas,gwp100_ar6) %>%
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  arrange(subsector_title,year)
+sectors <- edgar_raw %>%
+  filter(year>=1990) %>%
+  group_by(year,sector_title,subsector_title,gas,gwp100_ar6) %>%
+  summarise(value=sum(value,na.rm=TRUE)) %>%
+  arrange(sector_title,subsector_title,year)
+sectors <- spread(sectors,year,value)
+write.xlsx(afolu,"edgar_afolu_data.xlsx")
+openxlsx::write.xlsx(sectors,"edgar_sector_data.xlsx")
+
+
+
+
+```
+
+
+```{r aviation_trends}
+
+# aviation trends
+
+
+rm(list = ls())
+library(tidyverse)
+load('Data/edgar5_data_ghg_gwp_ar6.RData')
+
+data <- edgar_ghg  %>% 
+  mutate(version="EDGARv5_FT") %>% 
+  filter(chapter_title=="Transport") %>% 
+  group_by(year,subsector_title,version) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+data1 <- data %>% 
+  filter(year %in% c(1990,2018)) %>% 
+  group_by(subsector_title) %>% 
+  mutate(rate_1990_2018=((last(GHG)/first(GHG))^(1/(last(year)-first(year)))-1)) %>% 
+  mutate(rate_1990_2018=rate_1990_2018*100) %>% 
+  filter(year==2018)
+
+data2 <- data %>% 
+  filter(year %in% c(2010,2018)) %>% 
+  group_by(subsector_title) %>% 
+  mutate(rate_2010_2018=((last(GHG)/first(GHG))^(1/(last(year)-first(year)))-1)) %>% 
+  mutate(rate_2010_2018=rate_2010_2018*100) %>% 
+  filter(year==2018)
+
+aviation_summary <- left_join(data1,data2, by = c("year", "subsector_title", "GHG","version"))
+
+
+##############
+
+load('Data/edgar6_v2_data_ghg_gwp_ar6.RData')
+
+data <- edgar_ghg  %>% 
+  mutate(version="EDGARv6") %>% 
+  filter(chapter_title=="Transport") %>% 
+  group_by(year,subsector_title,version) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+data1 <- data %>% 
+  filter(year %in% c(1990,2018)) %>% 
+  group_by(subsector_title) %>% 
+  mutate(rate_1990_2018=((last(GHG)/first(GHG))^(1/(last(year)-first(year)))-1)) %>% 
+  mutate(rate_1990_2018=rate_1990_2018*100) %>% 
+  filter(year==2018)
+
+data2 <- data %>% 
+  filter(year %in% c(2010,2018)) %>% 
+  group_by(subsector_title) %>% 
+  mutate(rate_2010_2018=((last(GHG)/first(GHG))^(1/(last(year)-first(year)))-1)) %>% 
+  mutate(rate_2010_2018=rate_2010_2018*100) %>% 
+  filter(year==2018)
+
+data <- left_join(data1,data2, by = c("year", "subsector_title", "GHG","version"))
+aviation_summary <- rbind(aviation_summary,data)
+
+##############
+
+load('Data/Old data versions/edgar_data_gwp_ar6_late_2020.RData')
+
+data <- edgar_GHG_ar6_late_2020  %>% 
+  mutate(version="EDGARv5") %>% 
+  filter(chapter_title=="Transport") %>% 
+  group_by(year,subsector_title,version) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+data1 <- data %>% 
+  filter(year %in% c(1990,2018)) %>% 
+  group_by(subsector_title) %>% 
+  mutate(rate_1990_2018=((last(GHG)/first(GHG))^(1/(last(year)-first(year)))-1)) %>% 
+  mutate(rate_1990_2018=rate_1990_2018*100) %>% 
+  filter(year==2018)
+
+data2 <- data %>% 
+  filter(year %in% c(2010,2018)) %>% 
+  group_by(subsector_title) %>% 
+  mutate(rate_2010_2018=((last(GHG)/first(GHG))^(1/(last(year)-first(year)))-1)) %>% 
+  mutate(rate_2010_2018=rate_2010_2018*100) %>% 
+  filter(year==2018)
+
+data <- left_join(data1,data2, by = c("year", "subsector_title", "GHG","version"))
+aviation_summary <- rbind(aviation_summary,data)
+
+
+##############
+aviation_summary <- aviation_summary %>% select(-GHG)
+aviation_summary <- gather(aviation_summary,time_period,value,rate_1990_2018,rate_2010_2018)
+aviation_summary <- spread(aviation_summary,version,value)
+
+openxlsx::write.xlsx(aviation_summary,"aviation_summary.xlsx")
 
 ```

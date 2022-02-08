@@ -3,15 +3,20 @@ title: "indirect emissions"
 author: "William F. Lamb"
 date: "19 10 2020"
 output: word_document
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, output_dir = "../../Results/knitr/") })
 ---
 
 ```{r setup, include=FALSE}
+
+## this script takes the IEA CO2 emissions data
 
 rm(list = ls())
 library(tidyverse)
 library(openxlsx)
 
-load("../../Data/edgar6_v5_data_ghg_gwp_ar6.RData")
+# we must use the non public EDGAR data in order to precisely match the sector codes
+load("../../Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp_ar6.RData")
 
 ```
 
@@ -22,15 +27,12 @@ load("../../Data/edgar6_v5_data_ghg_gwp_ar6.RData")
 
 ######### read IEA data and clean empty country rows
 
-iea <- read.csv(file="../../Data/IEA/2021 update/iea_scope2_2021.csv",sep = ";")
-#iea <- read.csv(file="../../Data/IEA/2020 update/iea_scope2.csv",sep = ";")
+iea <- read.csv(file="../../Data/Not public/IEA/2021 update/iea_scope2_2021.csv",sep = ";")
 names <- c("country","flow","var",1990:2019)
 names(iea) <- names
 iea <- iea %>% 
   filter(country!="COUNTRY") %>% 
   filter(row_number()!=20631:20738)
-  #filter(row_number()!=19553:19656)         # 2020 data
-  
 
 ######### tidy up variables, convert to long format, change units to Gt CO2
 
@@ -57,12 +59,11 @@ world_totals <- iea %>%
   select(year,world_elec_heat=value)
 
 
-
 ```
 
 ```{r allocate_ononspec, echo=FALSE}
 
-### calculate indirect CO2
+### calculate indirect CO2 for each sector
 
 iea <- spread(iea,var,value)
 iea <- iea %>% 
@@ -79,8 +80,7 @@ blarg <- iea %>%
   filter(country=="World") %>% 
   filter(year==2019)
 
-
-###### allocate ONONSPEC indirect CO2
+###### allocate other non specified (ONONSPEC) indirect CO2 to sectors
 # get the residential, commercial, agriculture/forestry and fishing CO2 for each country and year ("other_sector_CO2")
 
 other_sectors <- iea %>%
@@ -127,14 +127,11 @@ iea <- iea %>%
 iea <- iea %>% 
   select(country:indirect_CO2)
 
-
 # check sums - sum of indirect CO2 should equal world elecheat with a small difference from TRNONSPE
 
 totals <- iea %>% 
   filter(country=="World") %>% 
   filter(year==2019)
-
-#totals2 <- totals
 
 ```
 
@@ -235,12 +232,6 @@ regions_10 <- ipcc_regions %>%
   distinct() %>%
   mutate(include=1)
 
-## rename South-East Asia to match TSU codes though
-
-# iea <- iea %>% 
-#   mutate(country = as.character(country)) %>% 
-#   mutate(country = ifelse(country=="South-East Asia and developing Pacific","South-East Asia and Developing Pacific",country))
-
 indirect_CO2_regions <- left_join(iea,regions_10,by=c("country"="region_ar6_10"))
 indirect_CO2_regions <- indirect_CO2_regions %>%
   filter(include==1) %>% 
@@ -254,11 +245,11 @@ not_joined <- anti_join(iea,regions_10,by=c("country"="region_ar6_10"))
 indirect_CO2_world <- iea %>% 
   filter(country=="World")
 
-indirect_CO2_world <- spread(indirect_CO2_world,year,CO2_indirect)
+#indirect_CO2_world <- spread(indirect_CO2_world,year,CO2_indirect)
 
 ######### match up individual countries
 
-codes <- openxlsx::read.xlsx('C:/Users/lamw/Documents/SpiderOak Hive/Work/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
+codes <- openxlsx::read.xlsx('C:/Users/lamw/ownCloud/Projects/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
 
 indirect_CO2_countries <- left_join(iea %>% mutate(country=tolower(country)),codes,by=c("country"="alternative.name"))
 
@@ -305,10 +296,9 @@ check <- indirect_CO2_regions %>%
   group_by(year) %>%
   summarise(total=sum(CO2_indirect))
 
-world <- gather(indirect_CO2_world,year,value,`1990`:`2018`)
-world <- world %>%
+world <- indirect_CO2_world %>%
   group_by(year) %>%
-  summarise(total=sum(value))
+  summarise(total=sum(CO2_indirect))
 
 # what about countries?
 
@@ -327,9 +317,39 @@ region_check <- indirect_CO2_regions %>%
 ```
 
 
+
+```{r checks, echo=FALSE}
+
+# aggregate data to subsectors
+
+indirect_CO2_countries <- indirect_CO2_countries %>% 
+  group_by(across(c(-iea_code,-sector_code,-description,-CO2_indirect))) %>% 
+  summarise(CO2_indirect=sum(CO2_indirect)) %>%
+  ungroup() %>% 
+  select(-chapter,-subsector) %>% 
+  rename(sector_title=chapter_title)
+
+indirect_CO2_regions <- indirect_CO2_regions %>% 
+  group_by(across(c(-iea_code,-sector_code,-description,-CO2_indirect))) %>% 
+  summarise(CO2_indirect=sum(CO2_indirect)) %>%
+  ungroup() %>% 
+  select(-chapter,-subsector) %>% 
+  rename(sector_title=chapter_title)
+
+indirect_CO2_world <- indirect_CO2_world %>% 
+  group_by(across(c(-iea_code,-sector_code,-description,-CO2_indirect))) %>% 
+  summarise(CO2_indirect=sum(CO2_indirect)) %>%
+  ungroup() %>% 
+  select(-chapter,-subsector) %>% 
+  rename(sector_title=chapter_title)
+
+
+```
+
+
 ```{r save_data, echo=FALSE}
 
-save(indirect_CO2_regions,indirect_CO2_world,indirect_CO2_countries,file="../../Data/indirect_CO2.RData")
+save(indirect_CO2_regions,indirect_CO2_world,indirect_CO2_countries,file="../../Data/data_indirect_co2.RData")
 
 wb <- openxlsx::createWorkbook(title = paste("ipcc_indirect_emissions"))
 
@@ -348,8 +368,6 @@ openxlsx::addWorksheet(wb,"Countries")
 openxlsx::writeData(wb, sheet = "Countries",indirect_CO2_countries , colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Data/ipcc_ar6_data_indirect_co2.xlsx"),overwrite=T)
-
-
 
 ``` 
 
