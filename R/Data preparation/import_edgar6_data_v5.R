@@ -468,7 +468,6 @@ save(edgar_ghg,file='Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp10
 edgar_ghg <- edgar_GHG_ar4
 save(edgar_ghg,file='Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp100_ar4.RData')
 
-
 #### how much of 2019 is projected vs stable?
 
 projected <- left_join(projected,gwps %>% select(gas,gwp100_ar6))

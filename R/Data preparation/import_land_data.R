@@ -84,10 +84,6 @@ totals_compare <- totals_compare %>%
 write.xlsx(totals_compare,"land_co2_comparison.xlsx")
 
 
-## use FGD one for now
-land <- land_fgd
-
-
 
 # check country names and regions
 land$region_ar6_10 <- gsub("[.]"," ",land$region_ar6_10)

@@ -87,7 +87,7 @@ saveWorkbook(wb1,"Results/Data/essd_ghg_data.xlsx",overwrite = T)
 
 
 #################### aggregated data
-load('Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp_ar6.RData')
+load('Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp100_ar6.RData')
 
 edgar_ghg <- edgar_ghg %>% 
   select(-chapter,-subsector)
