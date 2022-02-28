@@ -2,17 +2,48 @@ rm(list = ls())
 library(tidyverse)
 library(openxlsx)
 
-#blue <- read.xlsx("Data/Land and GCB/Country_ELUC_26082020.xlsx",sheet = "BLUE_GCB2019_IPCC_regions",startRow=1,colNames=TRUE)
-#houghton <- read.xlsx("Data/Land and GCB/Country_ELUC_26082020.xlsx",sheet = "H&N_2017_IPCC_regions",startRow=1,colNames=TRUE)
-#houghton <- read.xlsx("Data/Land and GCB/Country_ELUC_26082020_HNExtrapolated.xlsx",sheet = "data",startRow=1,colNames=TRUE)
+# FGD version
 
-#blue_old <- read.xlsx("../../Data/Land and GCB/Country_ELUC_25112020_forWill.xlsx",sheet="BLUE_GCB2020_IPCC_regions")
-#houghton <- read.xlsx("../../Data/Land and GCB/Country_ELUC_25112020_forWill.xlsx",sheet="H&N_2017_IPCC_regions")
-#oscar <- read.xlsx("../../Data/Land and GCB/Country_ELUC_25112020_forWill.xlsx",sheet="OSCAR_IPCC_regions")
+blue_fgd <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="BLUE_GCB2020_IPCC_regions")
+houghton_fgd <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="H&N_2017_IPCC_regions")
+oscar_fgd <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="oscar_10ipccregions")
 
-blue <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="BLUE_GCB2020_IPCC_regions")
-houghton <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="H&N_2017_IPCC_regions")
-oscar <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="oscar_10ipccregions")
+
+blue_fgd <- gather(blue_fgd,region_ar6_10,blue,`Africa`:`Southern.Asia`) %>% 
+  select(region_ar6_10,year=X1,blue) %>%
+  filter(!is.na(year))
+houghton_fgd <- gather(houghton_fgd,region_ar6_10,houghton,`Africa`:`Southern.Asia`) %>% 
+  select(region_ar6_10,year=X1,houghton) %>%
+  filter(!is.na(year))
+oscar_fgd <- gather(oscar_fgd,region_ar6_10,oscar,`Africa`:`Southern.Asia`) %>%
+  select(region_ar6_10,year=X1,oscar) %>%
+  filter(!is.na(year))
+
+land_fgd <- left_join(blue_fgd,houghton_fgd,by = c("region_ar6_10", "year"))
+land_fgd <- left_join(land_fgd,oscar_fgd,by = c("region_ar6_10", "year"))
+
+land_fgd <- land_fgd %>% 
+  mutate(blue=blue*1e6) %>% 
+  mutate(blue=blue*3.664) %>% 
+  mutate(houghton=houghton*1e6) %>% 
+  mutate(houghton=houghton*3.664) %>% 
+  mutate(oscar=oscar*1e6) %>% 
+  mutate(oscar=oscar*3.664)
+land_fgd <- land_fgd %>% 
+  mutate(mean=(blue+houghton+oscar)/3)
+
+totals_fgd <- land_fgd %>% 
+  group_by(year) %>% 
+  summarise_at(vars(blue,houghton,oscar,mean),sum,na.rm=TRUE)
+
+totals_fgd <- gather(totals_fgd,var,value_old,-year)
+
+# SPM plenary version
+
+
+blue <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_GCB2020_24022022.xlsx",sheet="BLUE_GCB2020_IPCC_regions")
+houghton <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_GCB2020_24022022.xlsx",sheet="H&N_2017_IPCC_regions")
+oscar <- read.xlsx("Data/Not public/Land and GCB/Country_ELUC_GCB2020_24022022.xlsx",sheet="oscar_10ipccregions")
 
 blue <- gather(blue,region_ar6_10,blue,`Africa`:`Southern.Asia`) %>% 
   select(region_ar6_10,year=X1,blue) %>%
@@ -20,7 +51,7 @@ blue <- gather(blue,region_ar6_10,blue,`Africa`:`Southern.Asia`) %>%
 houghton <- gather(houghton,region_ar6_10,houghton,`Africa`:`Southern.Asia`) %>% 
   select(region_ar6_10,year=X1,houghton) %>%
   filter(!is.na(year))
-oscar <- gather(oscar,region_ar6_10,oscar,`Africa`:`Southern.Asia`) %>% 
+oscar <- gather(oscar,region_ar6_10,oscar,`Africa`:`Southern.Asia`) %>%
   select(region_ar6_10,year=X1,oscar) %>%
   filter(!is.na(year))
 
@@ -38,6 +69,26 @@ land <- land %>%
 land <- land %>% 
   mutate(mean=(blue+houghton+oscar)/3)
 
+##
+
+totals <- land %>% 
+  group_by(year) %>% 
+  summarise_at(vars(blue,houghton,oscar,mean),sum,na.rm=TRUE)
+
+totals <- gather(totals,var,value_new,-year)
+
+totals_compare <- left_join(totals,totals_fgd,by=c("year","var"))
+totals_compare <- totals_compare %>% 
+  mutate(difference=value_new-value_old)
+
+write.xlsx(totals_compare,"land_co2_comparison.xlsx")
+
+
+## use FGD one for now
+land <- land_fgd
+
+
+
 # check country names and regions
 land$region_ar6_10 <- gsub("[.]"," ",land$region_ar6_10)
 
@@ -46,9 +97,6 @@ load('Data/ipcc_regions.RData')
 regions <- ipcc_regions %>% select(region_ar6_10,region_ar6_6,region_ar6_10_short,region_ar6_6_short) %>% distinct()
 
 uhoh <- anti_join(land,regions,by="region_ar6_10")
-
-land <- land %>% 
-  mutate(region_ar6_10=ifelse(region_ar6_10=="South-East Asia and Developing Pacific","South-East Asia and developing Pacific",region_ar6_10))
 
 land <- left_join(land,regions,by="region_ar6_10")
 

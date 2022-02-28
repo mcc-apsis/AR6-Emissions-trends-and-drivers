@@ -20,9 +20,11 @@ wb <- openxlsx::createWorkbook(title = "sector_kaya_data")
 #load('../../Data/Not public/IPCC data versions/edgar_data_gwp_ar6_late_2020.RData')
 #edgar_ghg <- edgar_GHG_ar6_late_2020
 
+#####
 
 load('../../Data/data_edgar_ghg.RData')
 load('../../Data/data_land_co2.RData')
+load('../../Data/data_WDI_gdp_pop.RData')
 
 land <- land %>%
   filter(year>1969) %>% 
@@ -34,6 +36,8 @@ land <- land %>%
 
 load('../../Data/basic.RData')
 load("../../Data/ipcc_regions.RData")
+
+codes <- openxlsx::read.xlsx('C:/Users/lamw/ownCloud/Projects/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
 
 ```
 
@@ -145,90 +149,198 @@ kaya_data <- kaya_data %>%
 
 ```
 
-```{r data_decomposition_afolu }
+```{r data_decomposition_afolu_fgd}
 
 # for AFOLU use the Hong et al decomposition
 # data source here: https://www.ess.uci.edu/~sustsys/CALUE/index.html
 
-hong_a <- openxlsx::read.xlsx('../../Data/Not public/DataPortal_LUE_28Jun20.xlsx',sheet='Ag_production_kcal')
-names(hong_a) <- c("country","product",1961:2017)
-hong_a <- gather(hong_a,year,ag_production_kcal,`1961`:`2017`)
-hong_a <- hong_a %>% 
-  group_by(year,country) %>% 
-  summarise(ag_production_kcal=sum(ag_production_kcal,na.rm=TRUE))
+## updated Hong dataset for final government draft
 
-hong_b <- openxlsx::read.xlsx('../../Data/Not public/DataPortal_LUE_28Jun20.xlsx',sheet='Land_area_hectares')
-names(hong_b) <- c("country","product",1961:2017)
-hong_b <- gather(hong_b,year,land_area_hectares,`1961`:`2017`)
-hong_b <- hong_b %>% 
-  group_by(year,country) %>% 
-  summarise(land_area_hectares=sum(land_area_hectares,na.rm=TRUE))
+## load and join data for agricultural production and land area
+
+hong_a <- openxlsx::read.xlsx('../../Data/Not public/LUE_Data_2019_CH.xlsx',sheet='8.1.AgProd')
+names(hong_a) <- c("country",1961:2019)
+hong_a <- gather(hong_a,year,ag_production_kcal,`1961`:`2019`)
+
+hong_b <- openxlsx::read.xlsx('../../Data/Not public/LUE_Data_2019_CH.xlsx',sheet='9.1.AgLand')
+names(hong_b) <- c("country",1961:2019)
+hong_b <- gather(hong_b,year,land_area_hectares,`1961`:`2019`)
 
 kaya_data_afolu <- left_join(hong_a,hong_b,by = c("year", "country"))
-codes <- openxlsx::read.xlsx('C:/Users/lamw/ownCloud/Projects/Code/R/.Place names and codes/output/ISOcodes.xlsx',sheet = 'alternative_names')
+
+
+## join ISO codes
 
 kaya_data_afolu <- left_join(kaya_data_afolu %>% mutate(country=tolower(country)),codes,by=c("country"="alternative.name"))
 
-kaya_data_afolu <- kaya_data_afolu %>% 
-  mutate(alpha.3=ifelse(grepl("d ivoire",country),"CIV",alpha.3)) %>% 
-  mutate(alpha.3=ifelse(grepl("china, taiwan province of",country),"TWN",alpha.3)) %>% 
-  mutate(alpha.3=ifelse(grepl("union",country),"REU",alpha.3))  %>% 
-  mutate(alpha.3=ifelse(grepl("pacific islands trust territory",country),"PCI",alpha.3)) %>%
-  ungroup() %>% 
-  mutate(year=as.numeric(year))
+missing_countries <- kaya_data_afolu %>%
+  filter(is.na(alpha.3)) %>%
+  select(country) %>%
+  distinct()
 
-afolu_GHG <- edgar_ghg %>% 
-  filter(sector_title=="AFOLU") %>% 
-  group_by(ISO,year,region_ar6_10) %>% 
+kaya_data_afolu <- kaya_data_afolu %>%
+  mutate(alpha.3=ifelse(grepl("china- taiwan province of",country),"TWN",alpha.3)) %>%
+  mutate(alpha.3=ifelse(grepl("china- hong kong sar",country),"HKG",alpha.3)) %>%
+  mutate(alpha.3=ifelse(grepl("china- macao sar",country),"MAC",alpha.3)) %>%
+  mutate(alpha.3=ifelse(grepl("china- mainland",country),"CHN",alpha.3)) %>%
+  mutate(alpha.3=ifelse(grepl("saint helena- ascension and tristan da cunha",country),"SHN",alpha.3)) %>%
+  ungroup() %>%
+  mutate(year=as.numeric(year)) %>%
+  filter(year>=1970)
+
+
+## join AFOLU GHG emissions from the EDGAR dataset (not LULUCF)
+
+afolu_GHG <- edgar_ghg %>%
+  filter(sector_title=="AFOLU") %>%
+  group_by(ISO,year,region_ar6_10) %>%
   summarise(GHG=sum(GHG,na.rm = TRUE))
 
 kaya_data_afolu <- left_join(kaya_data_afolu,afolu_GHG,by=c("alpha.3"="ISO","year"="year"))
-kaya_data_afolu <- kaya_data_afolu %>% 
-  filter(year>1989) %>% 
-  filter(!is.na(region_ar6_10)) %>% 
+
+missing_countries <- anti_join(afolu_GHG,kaya_data_afolu,by=c("ISO"="alpha.3","year"))
+
+
+## constrain to 1990 onwards and IPCC regions only
+
+kaya_data_afolu <- kaya_data_afolu %>%
+  filter(year>1989) %>%
+  filter(!is.na(region_ar6_10)) %>%
   select(ISO=alpha.3,country,region_ar6_10,year,everything())
 
-kaya_data_afolu <- left_join(kaya_data_afolu,basic %>% select(ISO,year=Year,pop_UN),by = c("ISO", "year"))
-all_data <- kaya_data_afolu
 
-## gather world region
+## join population data
 
-wld <- kaya_data_afolu %>% 
-  group_by(year) %>% 
-  summarise_at(vars(pop_UN,GHG,ag_production_kcal,land_area_hectares),sum,na.rm=TRUE)
-wld <- wld %>% 
-  mutate(region_ar6_10="World") %>% 
-  select(year,region_ar6_10,pop_UN,GHG,ag_production_kcal,land_area_hectares)
+kaya_data_afolu <- left_join(kaya_data_afolu,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population),by=c("ISO","year"))
 
-## join land use co2 data
 
-wld_land <- land %>% 
-  group_by(year) %>% 
-  summarise(CO2_land=sum(CO2))
-wld <- left_join(wld,wld_land, by = "year")
-wld <- wld %>% 
-  mutate(GHG_total=GHG+CO2_land)
+## create a world region
 
-kaya_data_afolu <- kaya_data_afolu %>% 
-  group_by(year,region_ar6_10) %>% 
-  summarise_at(vars(pop_UN,GHG,ag_production_kcal,land_area_hectares),sum,na.rm=TRUE)
+wld <- kaya_data_afolu %>%
+  group_by(year) %>%
+  summarise_at(vars(population,GHG,ag_production_kcal,land_area_hectares),sum,na.rm=TRUE) %>%
+  mutate(region_ar6_10="World") %>%
+  mutate(sector_title="AFOLU")
 
-kaya_data_afolu <- left_join(kaya_data_afolu,land %>% select(year,region_ar6_10,CO2_land=CO2), by = c("year", "region_ar6_10"))
-kaya_data_afolu <- kaya_data_afolu %>% 
-  mutate(GHG_total = GHG+CO2_land)
 
-## calculate decomposition
+## sum to regions and join world
 
-kaya_data_afolu <- kaya_data_afolu %>% 
-  bind_rows(wld)
+kaya_data_afolu <- kaya_data_afolu %>%
+  mutate(sector_title="AFOLU") %>%
+  group_by(region_ar6_10,sector_title,year) %>%
+  summarise(ag_production_kcal=sum(ag_production_kcal,na.rm=TRUE),
+            land_area_hectares=sum(land_area_hectares,na.rm=TRUE),
+            GHG=sum(GHG,na.rm=TRUE),
+            population=sum(population,na.rm=TRUE))
 
-kaya_data_afolu <- kaya_data_afolu %>% 
-  mutate(production_percap=ag_production_kcal/pop_UN) %>% 
-  mutate(land_production=land_area_hectares/ag_production_kcal) %>% 
-  mutate(ghg_land=GHG_total/land_area_hectares)
+kaya_data_afolu <- kaya_data_afolu %>%
+  bind_rows(wld) %>%
+  rename(POP=population)
 
-kaya_data_afolu <- kaya_data_afolu %>% 
-  select(region_ar6_10,year,GHG=GHG_total,POP=pop_UN,production_percap,land_production,ghg_land)
+
+```
+
+
+
+
+```{r data_decomposition_afolu_erl}
+
+## this is for the published ERL version of the kaya analysis
+
+## load datasets and join
+
+# hong_a <- openxlsx::read.xlsx('../../Data/Not public/DataPortal_LUE_28Jun20.xlsx',sheet='Ag_production_kcal')
+# names(hong_a) <- c("country","product",1961:2017)
+# hong_a <- gather(hong_a,year,ag_production_kcal,`1961`:`2017`)
+# hong_a <- hong_a %>%
+#   group_by(year,country) %>%
+#   summarise(ag_production_kcal=sum(ag_production_kcal,na.rm=TRUE))
+# 
+# hong_b <- openxlsx::read.xlsx('../../Data/Not public/DataPortal_LUE_28Jun20.xlsx',sheet='Land_area_hectares')
+# names(hong_b) <- c("country","product",1961:2017)
+# hong_b <- gather(hong_b,year,land_area_hectares,`1961`:`2017`)
+# hong_b <- hong_b %>%
+#   group_by(year,country) %>%
+#   summarise(land_area_hectares=sum(land_area_hectares,na.rm=TRUE))
+# 
+# kaya_data_afolu <- left_join(hong_a,hong_b,by = c("year", "country"))
+# 
+# 
+# ## join ISO codes
+# 
+# kaya_data_afolu <- left_join(kaya_data_afolu %>% mutate(country=tolower(country)),codes,by=c("country"="alternative.name"))
+# 
+# kaya_data_afolu <- kaya_data_afolu %>%
+#   mutate(alpha.3=ifelse(grepl("d ivoire",country),"CIV",alpha.3)) %>%
+#   mutate(alpha.3=ifelse(grepl("china, taiwan province of",country),"TWN",alpha.3)) %>%
+#   mutate(alpha.3=ifelse(grepl("union",country),"REU",alpha.3))  %>%
+#   mutate(alpha.3=ifelse(grepl("pacific islands trust territory",country),"PCI",alpha.3)) %>%
+#   ungroup() %>%
+#   mutate(year=as.numeric(year))
+# 
+# 
+# ## join GHG emissions
+# 
+# afolu_GHG <- edgar_ghg %>%
+#   filter(sector_title=="AFOLU") %>%
+#   group_by(ISO,year,region_ar6_10) %>%
+#   summarise(GHG=sum(GHG,na.rm = TRUE))
+# 
+# kaya_data_afolu <- left_join(kaya_data_afolu,afolu_GHG,by=c("alpha.3"="ISO","year"="year"))
+# 
+# 
+# ## constrain to 1990-
+# 
+# kaya_data_afolu <- kaya_data_afolu %>%
+#   filter(year>1989) %>%
+#   filter(!is.na(region_ar6_10)) %>%
+#   select(ISO=alpha.3,country,region_ar6_10,year,everything())
+# 
+# 
+# ## join population (prior dataset for the ERL version)
+# 
+# kaya_data_afolu <- left_join(kaya_data_afolu,basic %>% select(ISO,year=Year,population=pop_UN),by = c("ISO", "year"))
+# 
+# 
+# ## gather world region
+# 
+# wld <- kaya_data_afolu %>%
+#   group_by(year) %>%
+#   summarise_at(vars(population,GHG,ag_production_kcal,land_area_hectares),sum,na.rm=TRUE) %>% 
+#   mutate(region_ar6_10="World") %>%
+#   select(year,region_ar6_10,population,GHG,ag_production_kcal,land_area_hectares)
+# 
+# 
+# ## join land use co2 data
+# 
+# wld_land <- land %>%
+#   group_by(year) %>%
+#   summarise(CO2_land=sum(CO2))
+# wld <- left_join(wld,wld_land, by = "year")
+# wld <- wld %>%
+#   mutate(GHG_total=GHG+CO2_land)
+# 
+# 
+# ## sum data to regions
+# 
+# kaya_data_afolu <- kaya_data_afolu %>%
+#   group_by(year,region_ar6_10) %>%
+#   summarise_at(vars(population,GHG,ag_production_kcal,land_area_hectares),sum,na.rm=TRUE)
+# 
+# 
+# ## join land use CO2
+# 
+# kaya_data_afolu <- left_join(kaya_data_afolu,land %>% select(year,region_ar6_10,CO2_land=CO2),by = c("year", "region_ar6_10"))
+# 
+# kaya_data_afolu <- kaya_data_afolu %>%
+#   mutate(GHG_total = GHG+CO2_land)
+# 
+# 
+# ## join world
+# 
+# kaya_data_afolu <- kaya_data_afolu %>%
+#   bind_rows(wld) %>% 
+#   rename(POP=population)
 
 ```
 

@@ -108,7 +108,7 @@ hist_1750_dev<-hist_emissions %>%
 
 ```{r save,echo=FALSE}
 
-save(hist_1750_10,hist_1750_6,hist_1750_dev,hist_1850_10,hist_1850_6,hist_1850_dev,file="../../Data/data_cumulative_co2.RData")
+save(hist_1750_10,hist_1750_6,hist_1750_dev,hist_1850_10,hist_1850_6,hist_1850_dev,hist_emissions,file="../../Data/data_cumulative_co2.RData")
 
 wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_figure_spm_cumulative_co2"))
 

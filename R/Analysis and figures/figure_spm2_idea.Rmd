@@ -1,0 +1,95 @@
+---
+title: "figure_spm2_idea"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+
+rm(list = ls())
+library(tidyverse)
+library(ggplot2); theme_set(theme_bw())
+library(patchwork)
+library(RColorBrewer)
+library(openxlsx)
+library(scales)
+
+load('../../Data/data_cumulative_co2.RData')
+
+options(dplyr.summarise.inform = FALSE)
+source("locate_shares.R")
+
+```
+
+```{r data, echo=FALSE}
+
+trend_data <- hist_emissions %>% 
+  ungroup() %>% 
+  filter(year>=1850) %>%
+  group_by(year,region_ar6_10) %>% 
+  summarise(value=sum(co2_cum,na.rm=TRUE))
+
+trend_data$region_ar6_10 <- as.factor(trend_data$region_ar6_10)
+trend_data$region_ar6_10 <- fct_relevel(trend_data$region_ar6_10,"Int. Aviation and Shipping","Middle East","Southern Asia","Africa","South-East Asia and developing Pacific","Latin America and Caribbean","Eastern Asia","Asia-Pacific Developed","Eurasia","Europe","North America",after=Inf)
+
+
+bar_data <- trend_data %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(value=sum(value,na.rm=TRUE))
+
+```
+
+```{r plot, echo=FALSE,fig.width=9,fig.height=4}
+
+colors = colorRampPalette(brewer.pal(8, "Set2"))(11)
+
+p1 <- trend_data %>% 
+  ggplot(.,aes(x=year,y=value,fill=region_ar6_10)) +
+  geom_area(color="#737373") +
+  scale_fill_manual(values = colors) +
+  theme(legend.position="none") +
+  ylab("CO2 emissions (GtCO2/yr)") +
+  ggtitle("Annual CO2 emissions (FFI + LULUCF)")
+
+p2 <- bar_data %>% 
+  ggplot(.,aes(x=1,y=value,fill=region_ar6_10)) +
+  geom_bar(stat='identity',color="#737373") +
+  scale_fill_manual(values = colors) +
+  theme(legend.position="none",
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),) +
+  ggtitle("Cumulative historical CO2 emissions")
+
+shares <- bar_data %>% 
+  mutate(totals=sum(value)) %>% 
+  group_by(region_ar6_10) %>% 
+  mutate(fractions=(value/totals)*100) %>% 
+  mutate(year=2019)
+
+
+shares <- locate_shares(shares,"region_ar6_10",1)
+
+
+
+# side panel for the labels
+p_labels <- bar_data %>%
+  ggplot(.,aes(x=year,y=value,fill=region_ar6_10)) +
+  geom_text(data=shares,aes(x=1,y=location,label=str_wrap(region_ar6_10,width=28),color=region_ar6_10,lineheight=0.65),hjust=0) +
+  scale_color_manual(values = colors) +
+  xlim(1,1.1) +
+  theme(panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        plot.margin = margin(0,0,0,0,"cm"),
+        legend.position="none")
+
+
+
+p1 + p2 + p_labels + plot_layout(widths=c(7,1,3))
+
+```

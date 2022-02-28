@@ -33,6 +33,19 @@ colors = c("#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#cccccc"
 
 
 
+# hotfix Ukraine and North Macedonia
+# edgar_ghg <- edgar_ghg %>% 
+#   mutate(region_ar6_6_short=as.character(region_ar6_6_short)) %>% 
+#   mutate(region_ar6_6=ifelse(country=="Ukraine","Eastern Europe and West-Central Asia",region_ar6_6)) %>% 
+#   mutate(region_ar6_6_short=ifelse(country=="Ukraine","EEA",region_ar6_6_short)) %>% 
+#   mutate(region_ar6_10=ifelse(country=="Ukraine","Eurasia",region_ar6_10)) %>% 
+#   mutate(region_ar6_10_short=ifelse(country=="Ukraine","Eurasia",region_ar6_10_short)) %>% 
+#   mutate(region_ar6_6=ifelse(country=="Macedonia, FYR","Developed Countries",region_ar6_6)) %>% 
+#   mutate(region_ar6_6_short=ifelse(country=="Macedonia, FYR","DEV",region_ar6_6_short)) %>% 
+#   mutate(region_ar6_10=ifelse(country=="Macedonia, FYR","Europe",region_ar6_10)) %>% 
+#   mutate(region_ar6_10_short=ifelse(country=="Macedonia, FYR","Europe",region_ar6_10_short)) 
+
+
 ```
 
 

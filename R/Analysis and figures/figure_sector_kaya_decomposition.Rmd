@@ -161,8 +161,24 @@ openxlsx::writeData(wb, sheet = "industry_normalised",p$normalised_data, colName
 
 ```{r AFOLU_hong,echo=FALSE,warning=FALSE,fig.width=9,fig.height=9,fig.path="../../Results/Plots/Kaya/",dev=c('png','pdf','svg')}
 
+## include land use CO2
+
+kaya_data_afolu <- kaya_data_afolu %>% 
+  mutate(GHG=GHG+CO2_land)
+
+## calculate kaya factors
+
+kaya_data_afolu <- kaya_data_afolu %>% 
+  mutate(production_percap=ag_production_kcal/POP) %>% 
+  mutate(land_production=land_area_hectares/ag_production_kcal) %>% 
+  mutate(ghg_land=GHG/land_area_hectares)
+
+kaya_data_afolu <- kaya_data_afolu %>% 
+  select(region_ar6_10,year,GHG,POP,production_percap,land_production,ghg_land)
+
 
 ## calculate rates
+
 rates <- gather(kaya_data_afolu,var,value,-region_ar6_10,-year)
 rates <- rates %>%
   filter(year %in% c(2010,2017)) %>%

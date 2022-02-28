@@ -34,6 +34,7 @@ load('../../Data/gwps.RData')
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
 
 
+
 ```
 
 ```{r region_data,echo=FALSE,warning=FALSE,include=FALSE}

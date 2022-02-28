@@ -11,9 +11,14 @@ save(ipcc_sectors,file='Data/ipcc_sectors.RData')
 ###
 
 
+## FGD version
+#ipcc_regions <- read.xlsx('Data/Codes and classifications/Classification of countries and areas plus alpha codes_APRIL_2021.xlsx','final_list_clean')
 
-#ipcc_regions <- read.xlsx('Data/Codes and classifications/Country categories plus alpha codes 27-04-2021.xlsx','Breakdown_list_dev_level')
-ipcc_regions <- read.xlsx('Data/Codes and classifications/Classification of countries and areas plus alpha codes_APRIL_2021.xlsx','final_list_clean')
+## FGD Corrigenda version
+
+ipcc_regions <- read.xlsx('Data/Codes and classifications/Classification of countries and areas plus alpha codes_FEB_2022.xlsx','final_list_clean')
+
+
 
 # add short versions
 ipcc_regions <- ipcc_regions %>% 
@@ -36,9 +41,9 @@ regions_10 <- ipcc_regions %>%
 regions_10 <- cbind(regions_10,
                     data.frame(region_ar6_10_short=c(
                       "Africa",
-                      "A. Pacific",
+                      "AU, JP, NZ",
                       "E. Asia",
-                      "Eurasia",
+                      "E.E. & W.C. Asia",
                       "Europe",
                       "Latin Am.",
                       "Middle E.",
