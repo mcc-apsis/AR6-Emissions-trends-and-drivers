@@ -1,0 +1,100 @@
+---
+title: "analysis_SIDS"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggplot2); theme_set(theme_bw())
+library(patchwork)
+library(RColorBrewer)
+library(openxlsx)
+library(scales)
+
+end_year = 2019
+
+load('../../Data/data_edgar_ghg.RData')
+load('../../Data/data_land_co2.RData')
+load('../../Data/ipcc_regions.RData')
+load('../../Data/data_WDI_gdp_pop.RData')
+load('../../Data/data_cumulative_co2.RData')
+
+options(dplyr.summarise.inform = FALSE)
+
+isos <- openxlsx::read.xlsx("C:/Users/lamw/ownCloud/Projects/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
+
+
+
+blue_fgd <- read.xlsx("../../Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="BLUE_GCB2020_HN_countries")
+
+blue_fgd <- gather(blue_fgd,iso,blue,`AFG`:`SCG`) %>% 
+  select(iso,year=X1,blue) %>%
+  filter(!is.na(year)) %>% 
+  mutate(blue=blue*1e6) %>% 
+  mutate(blue=blue*3.664)
+
+houghton_fgd <- read.xlsx("../../Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="H&N_2017_countries")
+
+houghton_fgd <- gather(houghton_fgd,iso,houghton,`AFG`:`SCG`) %>% 
+  select(iso,year=X1,houghton) %>%
+  filter(!is.na(year)) %>% 
+  mutate(houghton=houghton*1e6) %>% 
+  mutate(houghton=houghton*3.664)
+
+
+
+```
+
+```{r join}
+
+sids <- read.xlsx('../../Data/Not public/01_edgar_w_countries_groupings_aak_March_2022.xlsx')
+
+sids <- left_join(sids,blue_fgd,by = c("iso", "year"))
+sids <- left_join(sids,houghton_fgd,by = c("iso", "year"))
+sids <- sids %>% 
+  mutate(CO2_LULUCF_mean=(blue+houghton)/2)
+
+
+# write.xlsx(sids,"01_edgar_w_countries_groupings_aak_March_2022_WL.xlsx")
+# 
+# 
+# 
+# land <- land %>% filter(year>=1990)
+# 
+# land %>% ggplot(.,aes(x=year,y=mean,fill=region_ar6_10)) + 
+#   geom_area()
+#   
+
+sids <- sids %>% 
+  select(iso,year,sids_m49_other,country,ghg,population,CO2_LULUCF_mean) %>% 
+  filter(year==2019) %>% 
+  filter(sids_m49_other=="SIDS") %>% 
+  filter(!is.na(population)) #%>% 
+  mutate(CO2_LULUCF_mean=ifelse(is.na(CO2_LULUCF_mean),0,CO2_LULUCF_mean))# %>% 
+  mutate(ghg_total=CO2_LULUCF_mean+ghg)
+  
+sum(sids$ghg_total)
+sum(sids$population,na.rm=TRUE)
+sum(sids$ghg_total)/sum(sids$population,na.rm=TRUE)
+sum(sids$ghg_total)/(59*1e9)
+
+
+```
+
+
+```{r analysis}
+
+data <- edgar_ghg %>% 
+  filter(year==2019) %>% 
+  group_by(ISO,country) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+data <- left_join(data,sids %>% select(ISO,SIDS),by = "ISO")
+
+data <- data %>% 
+  mutate(SIDS=ifelse(is.na(SIDS)))
+
+
+```

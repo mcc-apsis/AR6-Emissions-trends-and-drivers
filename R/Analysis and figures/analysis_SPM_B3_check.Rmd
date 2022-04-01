@@ -1,0 +1,443 @@
+---
+title: "analysis_SPM_B3_check"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(janitor)
+library(openxlsx)
+
+load('../../Data/data_edgar_ghg.RData')
+load('../../Data/data_land_co2.RData')
+load('../../Data/ipcc_regions.RData')
+load('../../Data/data_WDI_gdp_pop.RData')
+load('../../Data/data_cumulative_co2.RData')
+
+
+blue_fgd <- read.xlsx("../../Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="BLUE_GCB2020_HN_countries")
+
+blue_fgd <- gather(blue_fgd,iso,blue,`AFG`:`SCG`) %>% 
+  select(ISO=iso,year=X1,blue) %>%
+  filter(!is.na(year)) %>% 
+  mutate(blue=blue*1e6) %>% 
+  mutate(blue=blue*3.664)
+
+houghton_fgd <- read.xlsx("../../Data/Not public/Land and GCB/Country_ELUC_23032021.xlsx",sheet="H&N_2017_countries")
+
+houghton_fgd <- gather(houghton_fgd,iso,houghton,`AFG`:`SCG`) %>% 
+  select(ISO=iso,year=X1,houghton) %>%
+  filter(!is.na(year)) %>% 
+  mutate(houghton=houghton*1e6) %>% 
+  mutate(houghton=houghton*3.664)
+
+
+```
+
+```{r global_percapita_average}
+
+global <- edgar_ghg %>% 
+  filter(year %in% c(2010,2019)) %>% 
+  group_by(year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2=sum(CO2,na.rm=TRUE))
+
+global <- left_join(global,land %>% group_by(year) %>% summarise(lulucf=sum(mean,na.rm=TRUE)))
+
+global <- global %>% 
+  mutate(total=GHG+lulucf)
+
+global <- left_join(global,wdi_data_gdp_pop %>% filter(iso3c=="WLD") %>% select(year,population))
+
+global <- global %>% 
+  mutate(ghg_pc = total/population)
+
+
+```
+
+
+```{r pop_ghg_emissions_data}
+
+## sum edgar data to countries
+
+data <- edgar_ghg %>% 
+  filter(year %in% c(2010,2019)) %>% 
+  group_by(ISO,country,region_ar6_6,region_ar6_10,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+
+## join population data
+
+data <- left_join(data,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population),
+                  by = c("ISO", "year"))
+
+
+## sum countries to r10 regions
+
+data <- data %>% 
+  group_by(region_ar6_6,region_ar6_10,year) %>% 
+  summarise(ghg=sum(GHG,na.rm=TRUE)/1e9,pop=sum(population,na.rm=TRUE)/1e6)
+
+
+## join land data
+
+data <- left_join(data,land %>% 
+                           select(year,region_ar6_6,region_ar6_10,lulucf=mean),
+                         by = c("region_ar6_6", "region_ar6_10", "year"))
+
+data <- data %>% 
+  mutate(lulucf=lulucf/1e9) %>% 
+  mutate(lulucf=ifelse(region_ar6_10=="Intl. Aviation",0,lulucf)) %>% 
+  mutate(lulucf=ifelse(region_ar6_10=="Intl. Shipping",0,lulucf)) %>% 
+  mutate(ghg_total=ghg+lulucf)
+
+
+## calculate and join global total
+
+global_totals <- data %>% 
+  group_by(year) %>% 
+  summarise(ghg_global_total=sum(ghg_total,na.rm=TRUE),pop_global_total=sum(pop,na.rm=TRUE))
+
+data <- left_join(data,global_totals,by="year")
+
+
+```
+
+```{r tables, echo=FALSE}
+
+data_r10 <- data %>% 
+  mutate(ghg_pc=(ghg_total*1e9)/(pop*1e6)) %>% 
+  mutate(ghg_fraction=ghg_total/ghg_global_total) %>% 
+  mutate(pop_fraction=pop/pop_global_total) %>% 
+  group_by(region_ar6_10) %>% 
+  mutate(ghg_total_change=last(ghg_total)-first(ghg_total))
+
+data_r6 <- data %>% 
+  group_by(year,region_ar6_6) %>% 
+  summarise(pop=sum(pop),pop_global_total=first(pop_global_total),ghg=sum(ghg),lulucf=sum(lulucf),ghg_total=sum(ghg_total),ghg_global_total=first(ghg_global_total))
+
+data_r6 <- data_r6 %>% 
+  mutate(ghg_pc=(ghg_total*1e9)/(pop*1e6)) %>% 
+  mutate(ghg_fraction=ghg_total/ghg_global_total) %>% 
+  mutate(pop_fraction=pop/pop_global_total) %>% 
+  group_by(region_ar6_6) %>% 
+  mutate(ghg_total_change=last(ghg_total)-first(ghg_total))
+
+
+wb2 <- openxlsx::createWorkbook(title = "ipcc_ar6_data_b3")
+
+addWorksheet(wb2,"ghg_r10_regions")
+addWorksheet(wb2,"ghg_r6_regions")
+
+writeData(wb2, sheet="ghg_r10_regions",data_r10,colNames=T,rowNames=F)
+writeData(wb2, sheet="ghg_r6_regions",data_r6,colNames=T,rowNames=F)
+
+```
+
+
+
+
+```{r cumulative_r10, echo=FALSE}
+
+data_cumulative <- hist_1850_10 %>% 
+  select(region_ar6_10,source,co2_cum)
+
+data_cumulative <- spread(data_cumulative,source,co2_cum)
+
+data_cumulative <- data_cumulative %>%
+  rename(co2_ffi_1850=`CO2-FFI`) %>% 
+  rename(co2_lulucf_1850=`CO2-LULUCF`) %>% 
+  mutate(co2_lulucf_1850=ifelse(region_ar6_10=="Int. Aviation and Shipping",0,co2_lulucf_1850)) %>% 
+  mutate(co2_total_1850=co2_ffi_1850+co2_lulucf_1850)
+
+## since 1990
+
+data_cumulative_1990 <- hist_emissions %>% 
+  filter(year>=1990) %>% 
+  group_by(region_ar6_10,source) %>% 
+  summarise(co2_cum=sum(co2_cum,na.rm=TRUE))
+
+data_cumulative_1990 <- spread(data_cumulative_1990,source,co2_cum)
+
+data_cumulative_1990 <- data_cumulative_1990 %>%
+  rename(co2_ffi_1990=`CO2-FFI`) %>% 
+  rename(co2_lulucf_1990=`CO2-LULUCF`) %>%
+  mutate(co2_lulucf_1990=ifelse(region_ar6_10=="Int. Aviation and Shipping",0,co2_lulucf_1990)) %>% 
+  mutate(co2_total_1990=co2_ffi_1990+co2_lulucf_1990)
+
+## join
+
+data_cumulative <- left_join(data_cumulative,data_cumulative_1990,by = "region_ar6_10")
+
+
+## 2 significant figures
+
+# data_cumulative <- gather(data_cumulative,var,value,-region_ar6_10)
+# data_cumulative <- data_cumulative %>% 
+#   mutate(value=signif(value,2))
+# data_cumulative <- spread(data_cumulative,var,value)
+# data_cumulative <- data_cumulative %>% 
+#   select(region_ar6_10,co2_ffi_1850,co2_lulucf_1850,co2_total_1850,co2_ffi_1990,co2_lulucf_1990,co2_total_1990)
+
+
+## transpose
+
+data_cumulative <- t(data_cumulative) %>% 
+  as.data.frame() %>% 
+  row_to_names(1)
+
+
+addWorksheet(wb2,"cumulative_r10_regions")
+writeData(wb2, sheet="cumulative_r10_regions",data_cumulative,colNames=T,rowNames=T)
+
+
+```
+
+
+```{r cumulative_r6, echo=FALSE}
+
+data_cumulative_r6 <- hist_1850_6 %>% 
+  select(region_ar6_6,source,co2_cum)
+
+data_cumulative_r6 <- spread(data_cumulative_r6,source,co2_cum)
+
+data_cumulative_r6 <- data_cumulative_r6 %>%
+  rename(co2_ffi_1850=`CO2-FFI`) %>% 
+  rename(co2_lulucf_1850=`CO2-LULUCF`) %>%
+  mutate(co2_lulucf_1850=ifelse(region_ar6_6=="Int. Aviation and Shipping",0,co2_lulucf_1850)) %>% 
+  mutate(co2_total_1850=co2_ffi_1850+co2_lulucf_1850)
+
+## since 1990
+
+data_cumulative_r6_1990 <- hist_emissions %>% 
+  filter(year>=1990) %>% 
+  group_by(region_ar6_6,source) %>% 
+  summarise(co2_cum=sum(co2_cum,na.rm=TRUE))
+
+data_cumulative_r6_1990 <- spread(data_cumulative_r6_1990,source,co2_cum)
+
+data_cumulative_r6_1990 <- data_cumulative_r6_1990 %>%
+  rename(co2_ffi_1990=`CO2-FFI`) %>% 
+  rename(co2_lulucf_1990=`CO2-LULUCF`) %>%
+  mutate(co2_lulucf_1990=ifelse(region_ar6_6=="Int. Aviation and Shipping",0,co2_lulucf_1990)) %>% 
+  mutate(co2_total_1990=co2_ffi_1990+co2_lulucf_1990)
+
+## join
+
+data_cumulative_r6 <- left_join(data_cumulative_r6,data_cumulative_r6_1990,by = "region_ar6_6")
+
+
+## 2 significant figures
+
+# data_cumulative_r6 <- gather(data_cumulative_r6,var,value,-region_ar6_6)
+# data_cumulative_r6 <- data_cumulative_r6 %>% 
+#   mutate(value=signif(value,2))
+# data_cumulative_r6 <- spread(data_cumulative_r6,var,value)
+# data_cumulative_r6 <- data_cumulative_r6 %>% 
+#   select(region_ar6_6,co2_ffi_1850,co2_lulucf_1850,co2_total_1850,co2_ffi_1990,co2_lulucf_1990,co2_total_1990)
+
+
+## transpose
+
+data_cumulative_r6 <- t(data_cumulative_r6) %>% 
+  as.data.frame() %>% 
+  row_to_names(1)
+
+addWorksheet(wb2,"cumulative_r6_regions")
+writeData(wb2, sheet="cumulative_r6_regions",data_cumulative_r6,colNames=T,rowNames=T)
+
+
+```
+
+```{r sids, echo=FALSE}
+
+
+sids_list <- read.xlsx('../../Data/Not public/01_edgar_w_countries_groupings_aak_March_2022.xlsx')
+sids_list <- sids_list %>% 
+  select(ISO=iso,sids_m49_other) %>% 
+  distinct()
+
+sids <- edgar_ghg %>% 
+  group_by(ISO,year,country) %>% 
+  summarise(ghg=sum(GHG,na.rm=TRUE))
+
+sids <- left_join(sids,sids_list,by = "ISO")
+sids <- sids %>% 
+  filter(sids_m49_other=="SIDS")
+
+
+## join population
+
+sids <- left_join(sids,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population))
+
+
+## join lulucf
+
+sids <- left_join(sids,blue_fgd,by = c("ISO", "year"))
+sids <- left_join(sids,houghton_fgd,by = c("ISO", "year"))
+sids <- sids %>% 
+  mutate(lulucf=(blue+houghton)/2) %>% 
+  select(-blue,-houghton) %>% 
+  mutate(lulucf=ifelse(is.na(lulucf),0,lulucf)) %>% 
+  mutate(ghg_total=ghg+lulucf)
+  
+
+## aggregate
+
+sids <- sids %>% 
+  filter(year %in% c(2010,2019)) %>% 
+  group_by(year) %>% 
+  summarise(ghg=sum(ghg,na.rm=TRUE),lulucf=sum(lulucf,na.rm=TRUE),ghg_total=sum(ghg_total,na.rm=TRUE),pop=sum(population,na.rm=TRUE))
+  
+
+## per capita ghg
+
+sids <- sids %>% 
+  mutate(ghg_pc=ghg_total/pop)
+  
+
+## cumulative co2
+
+sids_c <- left_join(hist_countries,sids_list,by = "ISO")
+
+sids_c <- sids_c %>% 
+  filter(sids_m49_other=="SIDS") %>% 
+  filter(year>=1850)
+
+sids_c_1990 <- sids_c %>% 
+  filter(year>=1990) %>% 
+  group_by(sids_m49_other) %>% 
+  summarise(co2_ffi=sum(co2_cum,na.rm=TRUE))
+
+sids_c <- sids_c %>% 
+  group_by(sids_m49_other) %>% 
+  summarise(co2_ffi=sum(co2_cum,na.rm=TRUE))
+
+
+sids <- sids %>% 
+  mutate(co2_ffi_1850=sids_c$co2_ffi) %>% 
+  mutate(co2_ffi_1990=sids_c_1990$co2_ffi)
+
+
+## join global pop and tidy
+
+sids <- left_join(sids,global_totals %>% select(year,pop_global_total,ghg_global_total),by = "year")
+sids <- sids %>% 
+  mutate(ghg=ghg/1e9) %>% 
+  mutate(lulucf=lulucf/1e9) %>% 
+  mutate(pop=pop/1e6) %>% 
+  mutate(ghg_total=ghg_total/1e9)
+
+## global ghg (excl. lulucf)
+
+global_ghg <- edgar_ghg %>% 
+  filter(year %in% c(2010,2019)) %>% 
+  group_by(year) %>% 
+  summarise(ghg_total_ex_lulucf=sum(GHG,na.rm=TRUE)/1e9)
+
+sids <- left_join(sids,global_ghg)
+
+
+addWorksheet(wb2,"sids")
+writeData(wb2, sheet="sids",sids,colNames=T,rowNames=F)
+
+
+```
+
+
+```{r ldcs, echo=FALSE}
+
+
+ldcs <- edgar_ghg %>%
+  filter(region_ar6_dev=="ldc") %>% 
+  group_by(ISO,year,country) %>% 
+  summarise(ghg=sum(GHG,na.rm=TRUE))
+
+
+## join population
+
+ldcs <- left_join(ldcs,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population))
+
+
+## join lulucf
+
+ldcs <- left_join(ldcs,blue_fgd,by = c("ISO", "year"))
+ldcs <- left_join(ldcs,houghton_fgd,by = c("ISO", "year"))
+ldcs <- ldcs %>% 
+  mutate(lulucf=(blue+houghton)/2) %>% 
+  select(-blue,-houghton) %>% 
+  mutate(lulucf=ifelse(is.na(lulucf),0,lulucf)) %>% 
+  mutate(ghg_total=ghg+lulucf)
+  
+
+## aggregate
+
+ldcs <- ldcs %>% 
+  filter(year %in% c(2010,2019)) %>% 
+  group_by(year) %>% 
+  summarise(ghg=sum(ghg,na.rm=TRUE),lulucf=sum(lulucf,na.rm=TRUE),ghg_total=sum(ghg_total,na.rm=TRUE),pop=sum(population,na.rm=TRUE))
+
+
+## per capita ghg (exclude LULUCF - high uncertainty !!)
+
+ldcs <- ldcs %>% 
+  mutate(ghg_pc=ghg/pop)
+  
+
+## cumulative co2
+
+ldcs_1850 <- hist_emissions %>% 
+  filter(region_ar6_dev=="ldc") %>% 
+  filter(year>=1850) %>% 
+  group_by(region_ar6_dev) %>% 
+  summarise(co2_ffi=sum(co2_cum,na.rm=TRUE))
+
+ldcs_1990 <- hist_emissions %>% 
+  filter(region_ar6_dev=="ldc") %>% 
+  filter(year>=1990) %>% 
+  group_by(region_ar6_dev) %>% 
+  summarise(co2_ffi=sum(co2_cum,na.rm=TRUE))
+
+ldcs <- ldcs %>% 
+  mutate(co2_ffi_1850=ldcs_1850$co2_ffi) %>% 
+  mutate(co2_ffi_1990=ldcs_1990$co2_ffi)
+
+
+
+## join global pop and tidy
+
+ldcs <- left_join(ldcs,global_totals %>% select(year,pop_global_total,ghg_global_total),by = "year")
+ldcs <- ldcs %>% 
+  mutate(ghg=ghg/1e9) %>% 
+  mutate(lulucf=lulucf/1e9) %>% 
+  mutate(pop=pop/1e6) %>% 
+  mutate(ghg_total=ghg_total/1e9)
+
+## global ghg (excl. lulucf)
+
+global_ghg <- edgar_ghg %>% 
+  filter(year %in% c(2010,2019)) %>% 
+  group_by(year) %>% 
+  summarise(ghg_total_ex_lulucf=sum(GHG,na.rm=TRUE)/1e9)
+
+ldcs <- left_join(ldcs,global_ghg)
+
+
+addWorksheet(wb2,"ldcs")
+writeData(wb2, sheet="ldcs",ldcs,colNames=T,rowNames=F)
+
+```
+
+
+
+```{r write, echo=FALSE}
+
+
+openxlsx::saveWorkbook(wb2,paste0("../../Results/Data/ipcc_ar6_data_b3.xlsx"),overwrite=T)
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

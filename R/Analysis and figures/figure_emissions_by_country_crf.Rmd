@@ -18,6 +18,7 @@ library(ggpubr)
 library(patchwork)
 library(openxlsx)
 library(ggplot2); theme_set(theme_bw())
+library(RColorBrewer)
 
 source("locate_shares.R")
 source("plot_theme.R")
@@ -30,9 +31,9 @@ load('../../Data/data_WDI_gdp_pop.RData')
 load('../../Data/data_primap_ghg.RData')
 load('../../Data/gwps.RData')
 
-# set palette
-ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
-
+# custom color palette
+colors = colorRampPalette(brewer.pal(8, "Set2"))(11)
+colors = c("#B3B3B3","#66C2A5","#CF9C76","#CF948C","#969DCA","#D58EC4","#C6B18B","#B7D84C","#F6D832","#EFCC6B","#D5BE9D")
 
 
 ```
@@ -44,18 +45,15 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2"
 plot_data <- edgar_ghg %>% 
   filter(year>=1990) %>% 
   filter(year<=2019) %>% 
-  group_by(year,region_ar6_6,region_ar6_6_short,region_ar6_10) %>% 
-  summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
-  ungroup() %>% 
-  mutate(region_ar6_6_short=as.character(region_ar6_6_short))
+  group_by(year,region_ar6_10) %>% 
+  summarise(value=sum(GHG,na.rm=TRUE)/1e9)
 
 
 ## group aviation and shipping into a single region
 
 plot_data <- plot_data %>%
-  mutate(region_ar6_6=ifelse(region_ar6_6_short=="AIR","Intl. Shipping & Aviation",region_ar6_6)) %>% 
-  mutate(region_ar6_6=ifelse(region_ar6_6_short=="SEA","Intl. Shipping & Aviation",region_ar6_6)) %>%  
-  mutate(region_ar6_6_short=ifelse(region_ar6_6=="Intl. Shipping & Aviation","AIRSEA",region_ar6_6_short))
+  mutate(region_ar6_10=ifelse(region_ar6_10=="Intl. Aviation","Intl. Shipping & Aviation",region_ar6_10)) %>% 
+  mutate(region_ar6_10=ifelse(region_ar6_10=="Intl. Shipping","Intl. Shipping & Aviation",region_ar6_10))
 
 
 ## Add land use CO2
@@ -63,42 +61,49 @@ plot_data <- plot_data %>%
 plot_data <- left_join(plot_data,land %>% select(region_ar6_10,year,mean),by=c("year","region_ar6_10"))
 plot_data <- plot_data %>% 
   mutate(mean=mean/1e9) %>% 
-  mutate(value=ifelse(region_ar6_6_short!="AIRSEA",value+mean,value))
+  mutate(value=ifelse(region_ar6_10!="Intl. Shipping & Aviation",value+mean,value))
 
 
 ## combine everything
 
 plot_data <- plot_data %>% 
-  group_by(year,region_ar6_6,region_ar6_6_short) %>%
+  group_by(year,region_ar6_10) %>%
   mutate(value=sum(value)) %>%
-  select(-region_ar6_10,-mean) %>% 
+  select(-mean) %>% 
   unique() %>% 
   ungroup()
 
-## adjust levels
 
-plot_data$region_ar6_6_short <- as.factor(plot_data$region_ar6_6_short)
-plot_data$region_ar6_6_short <-  factor(plot_data$region_ar6_6_short,levels(plot_data$region_ar6_6_short)[c(1,3,4,5,6,7,2)])
-
-plot_data$region_ar6_6 <- as.factor(plot_data$region_ar6_6)
-plot_data$region_ar6_6 <-  factor(plot_data$region_ar6_6,levels(plot_data$region_ar6_6)[c(1,3,4,5,6,7,2)])
+## adjust levels, as in SPM2
+plot_data$region_ar6_10 <- as.factor(plot_data$region_ar6_10)
+plot_data$region_ar6_10 <- fct_relevel(plot_data$region_ar6_10,
+                                      "Intl. Shipping & Aviation",
+                                      "Australia, Japan, New Zealand",
+                                      "Middle East",
+                                      "Eastern Europe and West-Central Asia",
+                                      "Europe",
+                                      "Southern Asia",
+                                      "Africa",
+                                      "South-East Asia and Pacific",
+                                      "Latin America and Caribbean",
+                                      "North America",
+                                      "Eastern Asia")
 
 ```
 
 ```{r region_panel, echo=FALSE,warning=FALSE,include=FALSE,fig.width=8,fig.height=4}
-
 
 shares <- plot_data %>% 
   filter(year %in% c(1990,2000,2010,2019)) %>% 
   group_by(year) %>% 
   mutate(totals=sum(value)) %>% 
   ungroup() %>% 
-  group_by(year,region_ar6_6_short) %>% 
+  group_by(year,region_ar6_10) %>% 
   mutate(fractions=(value/totals)*100)
 
-shares <- locate_shares(shares,"region_ar6_6_short",4)
+shares <- locate_shares(shares,"region_ar6_10",4)
 
-line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2019,2019),y=c(0,60))
+line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2019,2019),y=c(0,61))
 
 
 ### get the growth rates between time periods
@@ -108,10 +113,6 @@ rates <- plot_data %>%
   summarise(value=sum(value)) %>% 
   mutate(total_rate=NA)
 
-### leap year adjustment
-# rates <- rates %>% 
-#   mutate(leap_year = leap_year(year)) %>%
-#   mutate(value_ly_adjusted = ifelse(leap_year=="TRUE",value*365/366,value))
 
 rates$total_rate[rates$year==1990] = ((rates$value[rates$year==1999]/rates$value[rates$year==1990])^(1/(1999-1990))-1)*100
 rates$total_rate[rates$year==2000] = ((rates$value[rates$year==2009]/rates$value[rates$year==2000])^(1/(2009-2000))-1)*100
@@ -119,7 +120,7 @@ rates$total_rate[rates$year==2010] = ((rates$value[rates$year==2019]/rates$value
   
 
 p1 <- plot_data %>%
-  ggplot(.,aes(x=year,y=value,fill=region_ar6_6_short)) +
+  ggplot(.,aes(x=year,y=value,fill=region_ar6_10)) +
   geom_area(colour="#737373") +
   
   #### text with the shares
@@ -128,7 +129,7 @@ p1 <- plot_data %>%
   geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed")  +
   
   #### text with the totals
-  geom_text(data=shares %>% filter(region_ar6_6_short=="AIRSEA"),aes(x=year,y=62,label=paste(signif(totals,2),  "Gt")),size=3.5,colour="#252525")+
+  geom_text(data=shares %>% filter(region_ar6_10=="Africa"),aes(x=year,y=62,label=paste(signif(totals,2),  "Gt")),size=3.5,colour="#252525") +
   
   #### text with the rates
   geom_text(data=rates %>% filter(!is.na(total_rate)),inherit.aes = FALSE,
@@ -137,10 +138,11 @@ p1 <- plot_data %>%
   
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60),limits=c(0,62)) +
   scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
-  coord_cartesian(xlim = c(1990,2020), 
-                  clip = 'off') +
+  scale_fill_manual(values=colors) +
+  coord_cartesian(xlim = c(1990,2020.5)) +
   big_trend_theme +
-  theme(legend.position="none",
+  theme(legend.position="right",
+        legend.title=element_blank(),
         plot.title = element_text(size = 11,color="#252525"),
         axis.title = element_text(color="#252525"),
         plot.background = element_blank(),
@@ -150,21 +152,22 @@ p1 <- plot_data %>%
 
 
 # side panel for the labels
-p_labels <- plot_data %>%
-  ggplot(.,aes(x=year,y=value,fill=region_ar6_6_short)) +
-  geom_text(data=shares %>% filter(year==2019),aes(x=1,y=location,label=str_wrap(region_ar6_6,width=28),color=region_ar6_6_short,lineheight=0.65),hjust=0) +
-  xlim(1,1.1) +
-  ylim(0,62) +
-  theme(panel.grid = element_blank(),
-        axis.title = element_blank(),
-        axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        panel.border = element_blank(),
-        plot.background = element_blank(),
-        plot.margin = margin(0,0,0,0,"cm"),
-        legend.position="none")
-
-p1 <- p1 + p_labels + plot_layout(widths=c(5,2.1))
+# p_labels <- plot_data %>%
+#   ggplot(.,aes(x=year,y=value,fill=region_ar6_10)) +
+#   geom_text(data=shares %>% filter(year==2019),aes(x=1,y=location,label=str_wrap(region_ar6_10,width=28),color=region_ar6_10,lineheight=0.65),hjust=0) +
+#   scale_color_manual(values=colors) +
+#   xlim(1,1.1) +
+#   ylim(0,62) +
+#   theme(panel.grid = element_blank(),
+#         axis.title = element_blank(),
+#         axis.text = element_blank(),
+#         axis.ticks = element_blank(),
+#         panel.border = element_blank(),
+#         plot.background = element_blank(),
+#         plot.margin = margin(0,0,0,0,"cm"),
+#         legend.position="none")
+# 
+# p1 <- p1 + p_labels + plot_layout(widths=c(5,2.1))
 
 ```
 
@@ -180,15 +183,29 @@ countries <- edgar_ghg %>%
   filter(region_ar6_6_short!="AIR") %>% 
   filter(region_ar6_6_short!="SEA") %>% 
   filter(year>=time_start & year<=2019) %>% 
-  group_by(country,ISO,year,region_ar6_6_short) %>% 
-  summarise(GHG=sum(GHG,na.rm=TRUE)) %>%
-  ungroup() %>%
-  mutate(region_ar6_6_short=as.character(region_ar6_6_short))
+  group_by(country,ISO,year,region_ar6_10) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
 
-countries$region_ar6_6_short <- as.factor(countries$region_ar6_6_short)
-countries$region_ar6_6_short <-  factor(countries$region_ar6_6_short,levels(plot_data$region_ar6_6_short)[1:6])
 
-countries <- left_join(countries,wdi_data_gdp_pop,by=c("ISO"="iso3c","year"="year"))
+## adjust levels, as in SPM2
+countries$region_ar6_10 <- as.factor(countries$region_ar6_10)
+countries$region_ar6_10 <- fct_relevel(countries$region_ar6_10,
+                                      "Intl. Shipping & Aviation",
+                                      "Australia, Japan, New Zealand",
+                                      "Middle East",
+                                      "Eastern Europe and West-Central Asia",
+                                      "Europe",
+                                      "Southern Asia",
+                                      "Africa",
+                                      "South-East Asia and Pacific",
+                                      "Latin America and Caribbean",
+                                      "North America",
+                                      "Eastern Asia")
+
+colors = c("#66C2A5","#CF9C76","#CF948C","#969DCA","#D58EC4","#C6B18B","#B7D84C","#F6D832","#EFCC6B","#D5BE9D")
+
+
+countries <- left_join(countries,wdi_data_gdp_pop %>% select(-country),by=c("ISO"="iso3c","year"="year"))
 
 countries <- left_join(countries,crf_ghg %>% filter(gas=="GHG"),by=c("ISO","year"))
 
@@ -254,10 +271,11 @@ plot_theme <- theme_bw() +
 p2 <- countries %>%
   filter(cutoff==1) %>%
   ggplot(.,aes(x = reorder(country,avg_growth)))+
-  geom_bar(aes(y = avg_growth,fill=region_ar6_6_short),stat='identity',colour="#525252")+
+  geom_bar(aes(y = avg_growth,fill=region_ar6_10),stat='identity',colour="#525252")+
   geom_point(aes(y = avg_growth_crf),stat='identity',colour="#525252",fill="yellow",size=2,shape=21)+
   coord_flip() +
   plot_theme +
+  scale_fill_manual(values=colors) +
   ylab("%/yr") +
   ggtitle(str_wrap("b. Avg. annual GHG emissions change",width=32)) +
   annotate(geom = 'text', label = paste0('Years: ',time_start,'-2019'),
@@ -267,13 +285,14 @@ p2 <- countries %>%
 p3 <- countries %>% 
   filter(cutoff==1) %>% 
   #filter(var=="abs_growth") %>% 
-  #ggplot(.,aes(x = reorder(country,value),y = value/1e9, fill=region_ar6_6_short)) +
+  #ggplot(.,aes(x = reorder(country,value),y = value/1e9, fill=region_ar6_10)) +
   ggplot(.,aes(x = reorder(country,abs_growth)))+
-  geom_bar(aes(y = abs_growth,fill=region_ar6_6_short),stat='identity',colour="#525252")+
+  geom_bar(aes(y = abs_growth,fill=region_ar6_10),stat='identity',colour="#525252")+
   geom_point(aes(y = abs_growth_crf),stat='identity',colour="#525252",fill="yellow",size=2,shape=21)+
   #geom_bar(stat='identity',colour="#737373") + 
   coord_flip() +
   plot_theme +
+  scale_fill_manual(values=colors) +
   ylab(bquote("Gt" ~CO[2]* "eq/yr")) +
   ggtitle(str_wrap("c. Change in annual GHG emission level",width=35)) +
     annotate(geom = 'text', label = paste0('Years: ',time_start,'-2019'),
@@ -283,13 +302,14 @@ p3 <- countries %>%
 p4 <- countries %>% 
   filter(cutoff==1) %>% 
   #filter(var=="emissions_pc") %>%  
-  #ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_6_short)) +
+  #ggplot(.,aes(x = reorder(country,value),y = value, fill=region_ar6_10)) +
   #geom_bar(stat='identity',colour="#737373") + 
   ggplot(.,aes(x = reorder(country,emissions_pc)))+
-  geom_bar(aes(y = emissions_pc ,fill=region_ar6_6_short),stat='identity',colour="#525252")+
+  geom_bar(aes(y = emissions_pc ,fill=region_ar6_10),stat='identity',colour="#525252")+
   geom_point(aes(y = emissions_pc_crf),stat='identity',colour="#525252",fill="yellow",size=2,shape=21)+
   coord_flip() +
   plot_theme +
+  scale_fill_manual(values=colors) +
   ylab(bquote("t" ~CO[2]* "eq/cap")) +
   ggtitle(str_wrap("d. GHG emissions per capita",width=35)) +
     annotate(geom = 'text', label = 'Year: 2019',
@@ -299,13 +319,14 @@ p4 <- countries %>%
 p5 <- countries %>% 
   filter(cutoff==1) %>% 
   #filter(var=="emissions_pgdp") %>% 
-  #ggplot(.,aes(x = reorder(country,value),y = value*1000, fill=region_ar6_6_short)) +
+  #ggplot(.,aes(x = reorder(country,value),y = value*1000, fill=region_ar6_10)) +
   #geom_bar(stat='identity',colour="#737373") + 
   ggplot(.,aes(x = reorder(country,emissions_pgdp)))+
-  geom_bar(aes(y = emissions_pgdp ,fill=region_ar6_6_short),stat='identity',colour="#525252")+
+  geom_bar(aes(y = emissions_pgdp ,fill=region_ar6_10),stat='identity',colour="#525252")+
   geom_point(aes(y = emissions_pgdp_crf),stat='identity',colour="#525252",fill="yellow",size=2,shape=21)+
   coord_flip() +
   plot_theme +
+  scale_fill_manual(values=colors) +
   ylab(bquote("kg" ~CO[2]* "eq/$")) +
   ggtitle(str_wrap("e. GHG emissions intensity",width=35)) +
     annotate(geom = 'text', label = 'Year: 2019',
@@ -314,7 +335,7 @@ p5 <- countries %>%
 
 ```
 
-```{r regions_countries,echo=FALSE,warning=FALSE,fig.width=8,fig.height=11,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
+```{r regions_countries,echo=FALSE,warning=FALSE,fig.width=9,fig.height=12,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
 
 wrap_elements(p1) / wrap_elements((p2 + p3) / (p4 + p5)) + plot_layout(heights = c(1,2))
 
@@ -336,10 +357,10 @@ addWorksheet(wb,"panel a shares")
 addWorksheet(wb,"panel b-e")
 
 writeData(wb, sheet="info",info,colNames=F,rowNames=F)
-writeData(wb, sheet = "panel a", spread(plot_data %>% select(-region_ar6_6_short),year,value), colNames = T, rowNames = F)
+writeData(wb, sheet = "panel a", spread(plot_data,year,value), colNames = T, rowNames = F)
 writeData(wb, sheet = "panel a totals and rates",rates, colNames = T, rowNames = F)
 writeData(wb, sheet = "panel a shares",shares %>% select(-value,-totals) %>% rename(shares=fractions), colNames = T, rowNames = F)
-writeData(wb, sheet = "panel b-e",countries %>% filter(cutoff==1) %>% select(country,ISO,region_ar6_6_short,avg_growth,abs_growth,emissions_pc,emissions_pgdp), colNames = T, rowNames = F)
+writeData(wb, sheet = "panel b-e",countries %>% filter(cutoff==1) %>% select(country,ISO,region_ar6_10,avg_growth,abs_growth,emissions_pc,emissions_pgdp), colNames = T, rowNames = F)
 
 
 

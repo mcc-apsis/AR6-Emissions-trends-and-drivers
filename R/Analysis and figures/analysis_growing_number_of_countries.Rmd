@@ -1,0 +1,152 @@
+---
+title: "analysis_growing_number_of_countries"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(ggplot2)
+library(openxlsx)
+library(ggplot2); theme_set(theme_bw())
+
+options(dplyr.summarise.inform = FALSE)
+
+load('../../Data/data_edgar_ghg.RData')
+load('../../Data/data_WDI_gdp_pop.RData')
+load('../../Data/data_primap_ghg.RData')
+
+# set palette
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_brewer(palette="Set2") + scale_fill_brewer(palette="Set2")
+
+source("growth_rate_fit.R")
+
+
+```
+
+
+```{r calc_rates}
+
+data <- edgar_ghg %>% 
+  filter(year>=1990) %>% 
+  group_by(ISO,country,year) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),CO2=sum(CO2,na.rm=TRUE)) %>% 
+  mutate(GHG_growth_rate_10yr=NA) %>% 
+  mutate(CO2_growth_rate_10yr=NA)
+
+
+data <- left_join(data,wdi_data_gdp_pop %>% select(ISO=iso3c,year,population))
+
+data <- data %>% 
+  filter(year!=2020) %>% 
+  group_by(ISO) %>% 
+  mutate(include=ifelse(max(population)>1e6,1,0)) %>% 
+  ungroup() %>% 
+  filter(include==1) %>% 
+  select(-include) %>% 
+  filter(!is.na(population))
+
+
+# for each year starting in 2000, calculate the growth rate in the preceding 10 years
+
+for (i in 1999:2019) {
+  
+  for (j in 1:length(unique(data$country))) {
+  
+    temp_data <- data %>% 
+      filter(country==unique(data$country)[j]) %>% 
+      filter(year>=i-9) %>% 
+      filter(year<=i)
+    
+    rates_GHG <- growth_rate(temp_data$year,temp_data$GHG)
+    rates_CO2 <- growth_rate(temp_data$year,temp_data$CO2)
+    
+    data$GHG_growth_rate_10yr[data$country==unique(data$country)[j] & data$year==i] <-
+      rates_GHG$rate
+    
+    data$CO2_growth_rate_10yr[data$country==unique(data$country)[j] & data$year==i] <-
+      rates_CO2$rate
+    
+  }
+}
+
+
+
+
+```
+
+
+```{r plot}
+data <- data %>% 
+  mutate(summary = ifelse(GHG_growth_rate_10yr<0 & CO2_growth_rate_10yr<0,"-tve growth rate","+tve growth rate"))
+
+
+data <- data %>% 
+  mutate(low_rate=ifelse(abs(GHG_growth_rate_10yr)<0.001,"low","other"))%>% 
+  mutate(summary=ifelse(low_rate=="low","+tve growth rate",summary))
+
+
+data <- data %>% 
+  filter(country!="Equatorial Guinea") %>% 
+  filter(country!="Timor-Leste") %>% 
+  filter(country!="Trinidad and Tobago") %>% 
+  filter(country!="Gabon")
+
+# exclude Austria, which has an absolute increase in GHG emissions since CO2 peak year (special!)
+
+data <- data %>% 
+  filter(country!="Austria")
+
+# exclude Uzbekistan, due to data issues
+
+data <- data %>% 
+  filter(country!="Uzbekistan")
+
+
+# exclude countries with recent major civil conflict or economic decline (Failed State Index Rank lower than 50)
+
+fsi <- openxlsx::read.xlsx('../../Data/Not public/supplemetary data/fsi-2019.xlsx')
+isos <- openxlsx::read.xlsx("C:/Users/lamw/ownCloud/Projects/Code/R/.Place names and codes/output/ISOcodes.xlsx","alternative_names")
+fsi <- left_join(fsi %>% mutate(Country=tolower(Country)),isos,by=c("Country"="alternative.name"))
+fsi$Rank <- gsub("st","",fsi$Rank)
+fsi$Rank <- gsub("nd","",fsi$Rank)
+fsi$Rank <- gsub("rd","",fsi$Rank)
+fsi$Rank <- gsub("th","",fsi$Rank)
+fsi$Rank <- as.numeric(fsi$Rank)
+
+data <- left_join(data,fsi %>% select(alpha.3,fsi=Total,fsi_rank=Rank),by=c("ISO"="alpha.3"))
+
+excluded <- data
+
+data <- data %>% 
+  filter(fsi_rank>50) %>% 
+  select(-fsi,-fsi_rank)
+
+blarg <- data %>%
+  filter(year>=1999) %>% 
+  filter(year!=2020) %>% 
+  group_by(year,summary) %>% 
+  summarise(n=n(),countries=paste0(country,collapse="; "))
+
+blarg %>% ggplot(.,aes(x=year,y=n,fill=summary)) + 
+  geom_bar(stat="identity") +
+  geom_text(data=blarg %>% filter(summary=="-tve growth rate"),aes(x=year,y=105,label=n))
+
+```
+
+
+```{r per_capita}
+
+
+data_pc <- data %>% 
+  filter(summary=="-tve growth rate") %>% 
+  filter(year==2019) %>% 
+  mutate(GHG_pc = GHG/population)
+
+sum(data_pc$GHG)/sum(data_pc$population)
+min(data_pc$GHG_pc)
+max(data_pc$GHG_pc)
+
+
+```

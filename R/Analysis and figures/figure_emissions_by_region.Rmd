@@ -16,6 +16,7 @@ library(ggplot2)
 library(patchwork)
 library(ggplot2); theme_set(theme_bw())
 library(openxlsx)
+library(RColorBrewer)
 
 source("locate_shares.R")
 source("plot_theme.R")
@@ -29,8 +30,7 @@ load('../../Data/gwps.RData')
 options(dplyr.summarise.inform = FALSE)
 
 # custom color palette
-colors = c("#66c2a5","#fc8d62","#8da0cb","#e78ac3","#a6d854","#ffd92f","#cccccc","#969696","#636363")
-
+colors = colorRampPalette(brewer.pal(8, "Set2"))(12)
 
 ```
 
@@ -51,9 +51,11 @@ region_trend <- edgar_ghg %>%
 ## group aviation and shipping into a single region
 
 region_trend <- region_trend %>%
-  mutate(region_ar6_6=ifelse(region_ar6_6_short=="AIR","Intl. Shipping & Aviation",region_ar6_6)) %>% 
-  mutate(region_ar6_6=ifelse(region_ar6_6_short=="SEA","Intl. Shipping & Aviation",region_ar6_6)) %>%  
-  mutate(region_ar6_6_short=ifelse(region_ar6_6=="Intl. Shipping & Aviation","AIRSEA",region_ar6_6_short))
+  # mutate(region_ar6_6=ifelse(region_ar6_6_short=="AIR","Intl. Shipping & Aviation",region_ar6_6)) %>% 
+  # mutate(region_ar6_6=ifelse(region_ar6_6_short=="SEA","Intl. Shipping & Aviation",region_ar6_6)) %>%  
+  # mutate(region_ar6_6_short=ifelse(region_ar6_6=="Intl. Shipping & Aviation","AIRSEA",region_ar6_6_short)) %>% 
+  mutate(region_ar6_10=ifelse(region_ar6_6_short=="AIR","Intl. Shipping & Aviation",region_ar6_10)) %>% 
+  mutate(region_ar6_10=ifelse(region_ar6_6_short=="SEA","Intl. Shipping & Aviation",region_ar6_10))
 
 
 ## Add land use CO2
@@ -61,22 +63,19 @@ region_trend <- region_trend %>%
 region_trend <- left_join(region_trend,land %>% select(region_ar6_6,region_ar6_10,year,mean),by=c("year","region_ar6_6","region_ar6_10"))
 region_trend <- region_trend %>% 
   mutate(mean=mean/1e9) %>% 
-  mutate(value=ifelse(region_ar6_6_short!="AIRSEA",value+mean,value))
+  mutate(value=ifelse(region_ar6_10!="Intl. Shipping & Aviation",value+mean,value))
 
 
-## sum everything into 6 regions and merge aviation and shipping
+## merge aviation and shipping
 
 region_trend <- region_trend %>% 
-  group_by(year,region_ar6_6,region_ar6_6_short) %>%
+  group_by(year,region_ar6_10) %>%
   summarise(value=sum(value))
   
 ## adjust levels to put shipping and aviation last
 
-region_trend$region_ar6_6_short <- as.factor(region_trend$region_ar6_6_short)
-region_trend$region_ar6_6_short <-  factor(region_trend$region_ar6_6_short,levels(region_trend$region_ar6_6_short)[c(1,3,4,5,6,7,2)])
-
-region_trend$region_ar6_6 <- as.factor(region_trend$region_ar6_6)
-region_trend$region_ar6_6 <-  factor(region_trend$region_ar6_6,levels(region_trend$region_ar6_6)[c(1,3,4,5,6,7,2)])
+region_trend$region_ar6_10 <- as.factor(region_trend$region_ar6_10)
+region_trend$region_ar6_10 <- fct_relevel(region_trend$region_ar6_10,"Intl. Shipping & Aviation",after=Inf)
 
 
 ```
@@ -89,10 +88,10 @@ shares <- region_trend %>%
   group_by(year) %>% 
   mutate(totals=sum(value)) %>% 
   ungroup() %>% 
-  group_by(year,region_ar6_6_short) %>% 
+  group_by(year,region_ar6_10) %>% 
   mutate(fractions=(value/totals)*100)
 
-shares <- locate_shares(shares,"region_ar6_6_short",4)
+shares <- locate_shares(shares,"region_ar6_10",4)
 
 line_data <- data.frame(x=c(1990,1990,2000,2000,2010,2010,2019,2019),y=c(0,60))
 
@@ -115,7 +114,7 @@ rates$total_rate[rates$year==2010] = ((rates$value[rates$year==2019]/rates$value
   
 
 p1 <- region_trend %>%
-  ggplot(.,aes(x=year,y=value,fill=region_ar6_6_short)) +
+  ggplot(.,aes(x=year,y=value,fill=region_ar6_10)) +
   geom_area(colour="#737373") +
   
   #### text with the shares
@@ -124,7 +123,7 @@ p1 <- region_trend %>%
   geom_line(inherit.aes = FALSE,data=line_data,aes(x=x,y=y,group=x),alpha=0.3,linetype="dashed")  +
   
   #### text with the totals
-  geom_text(data=shares %>% filter(region_ar6_6_short=="AIRSEA"),aes(x=year,y=62,label=paste(signif(totals,2),  "Gt")),size=3.5,colour="#252525")+
+  geom_text(data=shares %>% filter(region_ar6_10=="Africa"),aes(x=year,y=62,label=paste(signif(totals,2),  "Gt")),size=3.5,colour="#252525")+
   
   #### text with the rates
   geom_text(data=rates %>% filter(!is.na(total_rate)),inherit.aes = FALSE,
@@ -135,7 +134,7 @@ p1 <- region_trend %>%
   scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
   coord_cartesian(xlim = c(1990,2020), 
                   clip = 'off') +
-  scale_fill_brewer(palette = "Set2") +
+  scale_fill_manual(values=colors) +
   theme(legend.position="none",
         plot.title = element_text(size = 11,color="#252525"),
         axis.title = element_text(color="#252525"),
@@ -147,9 +146,9 @@ p1 <- region_trend %>%
 
 # side panel for the labels
 p_labels <- region_trend %>%
-  ggplot(.,aes(x=year,y=value,fill=region_ar6_6_short)) +
-  geom_text(data=shares %>% filter(year==2019),aes(x=1,y=location,label=str_wrap(region_ar6_6,width=28),color=region_ar6_6_short,lineheight=0.65),hjust=0) +
-  scale_color_brewer(palette = "Set2") +
+  ggplot(.,aes(x=year,y=value,fill=region_ar6_10)) +
+  geom_text(data=shares %>% filter(year==2019),aes(x=1,y=location,label=str_wrap(region_ar6_10,width=28),color=region_ar6_10,lineheight=0.65),hjust=0) +
+  scale_color_manual(values=colors) +
   xlim(1,1.1) +
   ylim(0,62) +
   theme(panel.grid = element_blank(),
@@ -236,7 +235,7 @@ scenario_data <- scenario_data %>%
 region_rates <- edgar_ghg %>% 
   filter(region_ar6_6_short!="AIR") %>% 
   filter(region_ar6_6_short!="SEA") %>% 
-  group_by(country,ISO,year,region_ar6_6,region_ar6_6_short) %>% 
+  group_by(country,ISO,year,region_ar6_10) %>% 
   summarise(GHG=sum(GHG,na.rm = TRUE)) %>% 
   ungroup() %>% 
   rename(emissions_total=GHG)
@@ -245,11 +244,11 @@ time_start = 2010
 
 region_rates <- region_rates %>% 
   filter(year %in% c(time_start,2019)) %>% 
-  group_by(country,ISO,region_ar6_6) %>% 
+  group_by(country,ISO,region_ar6_10) %>% 
   summarise(rate=(last(emissions_total)/first(emissions_total))^(1/(last(year)-first(year)))-1,emissions_total_2019=last(emissions_total)) %>% 
   ungroup() %>% 
   mutate(rate=rate*100) %>% 
-  mutate(aggregated_category=region_ar6_6) %>% 
+  mutate(aggregated_category=region_ar6_10) %>% 
   select(country,ISO,aggregated_category,rate,emissions_total_2019) %>% 
   mutate(facet="Average annual emissions change (2010-2019)") %>% 
   mutate(model=NA) %>% 
@@ -274,18 +273,18 @@ region_rates <- region_rates %>%
 
 region_averages_nolulucf <- edgar_ghg %>% 
   filter(year %in% c(time_start,2019)) %>% 
-  group_by(year,region_ar6_6) %>% 
+  group_by(year,region_ar6_10) %>% 
   summarise(value=sum(GHG,na.rm=TRUE)/1e9) %>% 
   ungroup()
 
 region_averages_nolulucf <- region_averages_nolulucf %>% 
-  group_by(region_ar6_6) %>% 
+  group_by(region_ar6_10) %>% 
   summarise(region_mean=(last(value)/first(value))^(1/(last(year)-first(year)))-1) %>% 
   ungroup() %>% 
   mutate(region_mean=region_mean*100)
 
 # join data
-region_rates <- left_join(region_rates,region_averages_nolulucf,by=c("aggregated_category"="region_ar6_6"))
+region_rates <- left_join(region_rates,region_averages_nolulucf,by=c("aggregated_category"="region_ar6_10"))
 region_rates <- region_rates %>% 
   mutate(mean=ifelse(!is.na(region_mean),region_mean,mean)) %>% 
   select(-region_mean)
@@ -304,8 +303,10 @@ region_rates <- region_rates %>%
 region_rates <- region_rates %>% 
   mutate(aggregated_category = as.factor(aggregated_category))
 
-region_rates$aggregated_category <- factor(region_rates$aggregated_category,levels= levels(region_rates$aggregated_category)[c(1,2,5,6,7,8,4,3)])
-
+region_rates$aggregated_category <- fct_relevel(region_rates$aggregated_category,
+                                                "C3a: Likely below 2°C with immediate action",
+                                                "C1: Below 1.5°C with no or low overshoot",
+                                                after=Inf)
 
 region_summary <- region_rates %>% 
   group_by(aggregated_category,facet) %>% 
@@ -357,7 +358,7 @@ region_growth <- region_growth %>%
 
 country_ghg <- edgar_ghg %>% 
   filter(year %in% c(1990,2010,2019)) %>% 
-  group_by(ISO,country,region_ar6_6,region_ar6_dev,year) %>% 
+  group_by(ISO,country,region_ar6_10,year) %>% 
   summarise(ghg=sum(GHG,na.rm=TRUE))
 
 country_ghg <- left_join(country_ghg,wdi_data_gdp_pop %>% select(year,ISO=iso3c,population),by=c("ISO","year"))
@@ -368,36 +369,34 @@ country_ghg <- country_ghg %>%
   filter(population>=1e6)
 
 country_ghg <- country_ghg %>% 
-  group_by(year,region_ar6_6) %>% 
+  group_by(year,region_ar6_10) %>% 
   summarise(min=min(per_capita,na.rm=TRUE),max=max(per_capita,na.rm=TRUE),population=sum(population,na.rm=TRUE)/1e9,ghg=sum(ghg,na.rm=TRUE)/1e9,per_capita=sum(ghg,na.rm=TRUE)/sum(population,na.rm=TRUE))
 
-country_ghg <- country_ghg %>% 
-  filter(population!=0)
   
-country_co2 <- edgar_ghg %>% 
-  filter(year %in% c(1990,2010,2019)) %>% 
-  group_by(ISO,country,region_ar6_6,region_ar6_dev,year) %>% 
-  summarise(co2=sum(CO2,na.rm=TRUE))
-
-country_co2 <- left_join(country_co2,wdi_data_gdp_pop %>% select(year,ISO=iso3c,population),by=c("ISO","year"))
-
-country_co2 <- country_co2 %>% 
-  filter(region_ar6_6!="Intl. Aviation") %>% 
-  filter(region_ar6_6!="Intl. Shipping") %>% 
-  mutate(per_capita=co2/population)
-
-country_co2_averages <- country_co2 %>% 
-  group_by(year,region_ar6_6) %>% 
-  summarise(pop_total=sum(population,na.rm=TRUE)/1e9,
-            co2_total=sum(co2,na.rm=TRUE)/1e9,
-            per_capita=sum(co2,na.rm=TRUE)/sum(population,na.rm=TRUE))
-
-country_co2 <- country_co2 %>% 
-  group_by(year,region_ar6_6) %>% 
-  filter(population>=1e6) %>% 
-  summarise(`min (pop>1e6)`=min(per_capita,na.rm=TRUE),`max (pop>1e6)`=max(per_capita,na.rm=TRUE))
-
-country_co2 <- left_join(country_co2,country_co2_averages, by = c("year", "region_ar6_6"))
+# country_co2 <- edgar_ghg %>% 
+#   filter(year %in% c(1990,2010,2019)) %>% 
+#   group_by(ISO,country,region_ar6_6,region_ar6_dev,year) %>% 
+#   summarise(co2=sum(CO2,na.rm=TRUE))
+# 
+# country_co2 <- left_join(country_co2,wdi_data_gdp_pop %>% select(year,ISO=iso3c,population),by=c("ISO","year"))
+# 
+# country_co2 <- country_co2 %>% 
+#   filter(region_ar6_6!="Intl. Aviation") %>% 
+#   filter(region_ar6_6!="Intl. Shipping") %>% 
+#   mutate(per_capita=co2/population)
+# 
+# country_co2_averages <- country_co2 %>% 
+#   group_by(year,region_ar6_6) %>% 
+#   summarise(pop_total=sum(population,na.rm=TRUE)/1e9,
+#             co2_total=sum(co2,na.rm=TRUE)/1e9,
+#             per_capita=sum(co2,na.rm=TRUE)/sum(population,na.rm=TRUE))
+# 
+# country_co2 <- country_co2 %>% 
+#   group_by(year,region_ar6_6) %>% 
+#   filter(population>=1e6) %>% 
+#   summarise(`min (pop>1e6)`=min(per_capita,na.rm=TRUE),`max (pop>1e6)`=max(per_capita,na.rm=TRUE))
+# 
+# country_co2 <- left_join(country_co2,country_co2_averages, by = c("year", "region_ar6_6"))
 
 ```
 
@@ -405,27 +404,55 @@ country_co2 <- left_join(country_co2,country_co2_averages, by = c("year", "regio
 
 fraction <- edgar_ghg %>%
   filter(year==2019) %>% 
-  group_by(year,country,ISO) %>% 
-  summarise(CO2=sum(CO2,na.rm=TRUE))
+  group_by(year,country,ISO,region_ar6_10) %>% 
+  summarise(CO2=sum(CO2,na.rm=TRUE),GHG=sum(GHG,na.rm=TRUE))
 
 fraction <- left_join(fraction,wdi_data_gdp_pop %>% select(iso3c,year,population),by=c("ISO"="iso3c","year"))
 
 fraction <- fraction %>% 
   mutate(CO2_pc=CO2/population) %>% 
-  mutate(threshold=ifelse(CO2_pc>12,">12tCO2/cap",NA)) %>% 
-  mutate(threshold=ifelse(CO2_pc<3,"<3tCO2/cap",threshold)) 
+  mutate(threshold_CO2=ifelse(CO2_pc>12,">12tCO2/cap",NA)) %>% 
+  mutate(threshold_CO2=ifelse(CO2_pc<3,"<3tCO2/cap",threshold_CO2)) %>% 
+  mutate(GHG_pc=GHG/population) %>% 
+  mutate(threshold_GHG=ifelse(GHG_pc>12,">12tCO2/cap",NA)) %>% 
+  mutate(threshold_GHG=ifelse(GHG_pc<3,"<3tCO2/cap",threshold_GHG)) 
 
-summary <- fraction %>% 
-  group_by(threshold) %>% 
+summary_CO2 <- fraction %>% 
+  group_by(threshold_CO2) %>% 
   summarise(population=sum(population,na.rm=TRUE)/sum(fraction$population,na.rm=TRUE),emissions=sum(CO2)/sum(fraction$CO2))
+
+summary_regions_CO2 <- fraction %>% 
+  filter(threshold_CO2=="<3tCO2/cap")
+summary_regions_CO2 <- summary_regions_CO2 %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(population=sum(population,na.rm=TRUE)/sum(summary_regions_CO2$population,na.rm=TRUE))
+
+summary_GHG <- fraction %>% 
+  group_by(threshold_GHG) %>% 
+  summarise(population=sum(population,na.rm=TRUE)/sum(fraction$population,na.rm=TRUE),emissions=sum(GHG)/sum(fraction$GHG))
+
+summary_regions_GHG <- fraction %>% 
+  filter(threshold_GHG=="<3tCO2/cap")
+summary_regions_GHG <- summary_regions_GHG %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(population=sum(population,na.rm=TRUE)/sum(summary_regions_GHG$population,na.rm=TRUE))
+
+
 
 wb2 <- openxlsx::createWorkbook(title = "per_capita_summary")
 
 addWorksheet(wb2,"data")
-addWorksheet(wb2,"summary")
+addWorksheet(wb2,"summary_CO2")
+addWorksheet(wb2,"summary_GHG")
+addWorksheet(wb2,"summary_CO2_low_emissions")
+addWorksheet(wb2,"summary_GHG_low_emissions")
+
 
 writeData(wb2, sheet="data",fraction,colNames=T,rowNames=F)
-writeData(wb2, sheet="summary",summary,colNames=T,rowNames=F)
+writeData(wb2, sheet="summary_CO2",summary_CO2,colNames=T,rowNames=F)
+writeData(wb2, sheet="summary_GHG",summary_GHG,colNames=T,rowNames=F)
+writeData(wb2, sheet="summary_CO2_low_emissions",summary_regions_CO2,colNames=T,rowNames=F)
+writeData(wb2, sheet="summary_GHG_low_emissions",summary_regions_GHG,colNames=T,rowNames=F)
 
 openxlsx::saveWorkbook(wb2,paste0("../../Results/Data/per_capita_summary.xlsx"),overwrite=T)
 
@@ -456,12 +483,12 @@ addWorksheet(wb,"region per cap (not in figure)")
 info = data.frame(x=c("Author","Last update","Code","","Units","Panel a","Panel a totals","Panel a growth rates","Panel a shares","Panel b rates","Panel b emission totals","Panel b mean rates by region or scenario"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_region.Rmd","","","GtCO2eq","GtCO2eq","%/yr","%","%/yr","tCO2eq","%/yr"))
 
 writeData(wb, sheet="info",info,colNames=F,rowNames=F)
-writeData(wb, sheet = "panel a", spread(region_trend %>% select(-region_ar6_6_short),year,value), colNames = T, rowNames = F)
+writeData(wb, sheet = "panel a", spread(region_trend,year,value), colNames = T, rowNames = F)
 writeData(wb, sheet = "panel a totals and rates",rates, colNames = T, rowNames = F)
 writeData(wb, sheet = "panel a shares",shares %>% select(-value,-totals) %>% rename(shares=fractions), colNames = T, rowNames = F)
 writeData(wb, sheet = "panel b", region_rates %>% select(-population), colNames = T, rowNames = F)
 writeData(wb, sheet = "overall growth (not in figure)", region_growth, colNames = T, rowNames = F)
-writeData(wb, sheet = "region per cap (not in figure)", country_co2, colNames = T, rowNames = F)
+writeData(wb, sheet = "region per cap (not in figure)", country_ghg, colNames = T, rowNames = F)
 
 openxlsx::saveWorkbook(wb,paste0("../../Results/Plot data/ipcc_ar6_figure_spm_regions.xlsx"),overwrite=T)
 

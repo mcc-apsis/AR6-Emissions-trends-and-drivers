@@ -61,6 +61,30 @@ openxlsx::writeData(wb,sheet="info",info,colNames=F,rowNames=F)
 
 ```
 
+
+``` {r growth_contribution}
+
+data <- edgar_ghg %>% 
+  filter(year %in% c(2010,2019)) %>% 
+  group_by(sector_title,subsector_title,year) %>% 
+  summarise(value=sum(GHG,na.rm=TRUE))
+
+data <- left_join(data,data %>% group_by(year,sector_title) %>% summarise(sector_total=sum(value,na.rm=TRUE)),by=c("year","sector_title"))
+
+data <- data %>% 
+  group_by(sector_title,subsector_title) %>% 
+  summarise(subsector_difference_2010_2019=last(value)-first(value),
+            sector_difference_2010_2019=last(sector_total)-first(sector_total))
+
+data <- data %>% 
+  group_by(sector_title,subsector_title) %>% 
+  mutate(contribution=round((subsector_difference_2010_2019/sector_difference_2010_2019)*100,1))
+
+write.xlsx(data,"contributions_to_sector_growth.xlsx")
+
+```
+
+
 # Data
 ## Gather trend data
 
@@ -301,6 +325,8 @@ trend_figure <- function(trend_data,ch) {
 
 ```{r regional_plots,echo=FALSE,warning=FALSE}
 
+ch=="Transport"
+
 gather_region_data <- function(edgar_ghg,ch) {
   
   ## Gather data
@@ -355,8 +381,8 @@ gather_region_data <- function(edgar_ghg,ch) {
       mutate(value=ifelse(region_ar6_10_short=="AIR",0,value)) %>% 
       mutate(value=ifelse(region_ar6_10_short=="SEA",0,value))
     
-    region_data$region_ar6_10_short[region_data$region_ar6_10_short=="AIR"] <- "A. Pacific"
-    region_data$region_ar6_10_short[region_data$region_ar6_10_short=="SEA"] <- "A. Pacific"  
+    region_data$region_ar6_10_short[region_data$region_ar6_10_short=="AIR"] <- "Africa"
+    region_data$region_ar6_10_short[region_data$region_ar6_10_short=="SEA"] <- "Africa"  
     
   }  else {
     
@@ -693,6 +719,7 @@ openxlsx::addWorksheet(wb,paste0(ch," panel b"))
 
 openxlsx::writeData(wb, sheet = paste0(ch," panel a"),trend_data, colNames = T, rowNames = F)
 openxlsx::writeData(wb, sheet = paste0(ch," panel b"),region_data, colNames = T, rowNames = F)
+
 
 
 ```

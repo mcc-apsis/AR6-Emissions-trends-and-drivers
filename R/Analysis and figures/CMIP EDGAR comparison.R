@@ -2,12 +2,9 @@
 
 rm(list = ls())
 library(tidyverse)
-#load('Data/edgar6_v5_data_raw.RData')
-#load('Data/edgar6_v5_data_ghg_gwp_ar6.RData')
-load('Data/ipcc_data.RData')
-
+load('Data/data_edgar_ghg.RData')
 load('Data/gwps.RData')
-load("Data/land.RData")
+load('Data/data_land_co2.RData')
 
 
 cmip <- read.csv('Data/Not public/supplemetary data/history_ar6_harmonization.csv')
@@ -21,7 +18,6 @@ cmip <- cmip %>%
 
 cmip <- cmip %>% 
   filter(!is.na(gas))
-
 
 cmip <- gather(cmip,year,value,X1750:X2015)
 cmip$year <- gsub("X","",cmip$year)
@@ -39,8 +35,6 @@ cmip <- cmip %>%
 
 cmip <- cmip %>% 
   select(gas,year,CMIP=value)
-  filter(year>1989)
-
 
 edgar_raw <- edgar_raw %>%
   group_by(gas,year) %>% 
@@ -67,12 +61,18 @@ land <- land %>%
 
 data <- left_join(data,land)
 
-
-
 data <- data %>% 
   mutate(ch2=edgar_v6) %>% 
   mutate(ch2=ifelse(gas=="CO2 LULUCF",GCB_2020,ch2)) %>% 
-  select(-edgar_v6,-GCB_2020)
+  select(-edgar_v6,-GCB_2020) %>% 
+  mutate(ch2=ch2/1e9) %>% 
+  mutate(CMIP=CMIP/1e9)
+
+data <- left_join(data,gwps %>% select(gas,gwp100_ar6))
+data <- data %>% 
+  mutate(gwp100_ar6=ifelse(gas=="CH4",27,gwp100_ar6)) %>% 
+  mutate(gwp100_ar6=ifelse(gas=="CO2 LULUCF",1,gwp100_ar6)) %>% 
+  mutate(gwp100_ar6=ifelse(gas=="Fgas",1,gwp100_ar6))
 
 diff <- data
 
@@ -80,8 +80,6 @@ wb <- openxlsx::createWorkbook(title = "blarg")
 
 openxlsx::addWorksheet(wb,"data")
 openxlsx::writeData(wb,"data",data, colNames = T, rowNames = F)
-
-
 
 data <- gather(data,dataset,value,CMIP:ch2)
 
@@ -91,14 +89,13 @@ data %>%
   facet_wrap(.~gas,scales="free")
 
 diff <- diff %>% 
-  filter(year==2015)
+  filter(year==2015)# %>% 
+  mutate(CMIP=CMIP*gwp100_ar6) %>% 
+  mutate(ch2=ch2*gwp100_ar6)
 
-diff <- left_join(diff,gwps %>% select(gas,gwp_ar6))
-diff <- diff %>% 
-  mutate(gwp_ar6=ifelse(gas=="CH4",32,gwp_ar6))
 
 
 openxlsx::addWorksheet(wb,"differences")
 openxlsx::writeData(wb,"differences",diff, colNames = T, rowNames = F)
 
-openxlsx::saveWorkbook(wb,"cmip_edgar_comparison.xlsx",overwrite=T)
+openxlsx::saveWorkbook(wb,"Results/Analysis/ipcc_ar6_cmip_edgar_comparison.xlsx",overwrite=T)

@@ -39,6 +39,10 @@ gcb_hist<-left_join(gcb_hist,ipcc_regions,by=c("ISO 3166-1 alpha-3"="ISO")) %>%
   mutate(region_ar6_dev=ifelse(Country=="International Transport","Int. Aviation and Shipping",region_ar6_dev)) %>%
   filter(!is.na(region_ar6_10))
 
+hist_countries <- gcb_hist %>% 
+  select(year=Year,ISO=`ISO 3166-1 alpha-3`,co2_cum=Total) %>% 
+  mutate(co2_cum=co2_cum/1000)
+
 gcb_hist<-gcb_hist %>%
   #filter(Year>=1850) %>%
   group_by(Year,region_ar6_10,region_ar6_6,region_ar6_dev) %>%
@@ -108,7 +112,7 @@ hist_1750_dev<-hist_emissions %>%
 
 ```{r save,echo=FALSE}
 
-save(hist_1750_10,hist_1750_6,hist_1750_dev,hist_1850_10,hist_1850_6,hist_1850_dev,hist_emissions,file="../../Data/data_cumulative_co2.RData")
+save(hist_1750_10,hist_1750_6,hist_1750_dev,hist_1850_10,hist_1850_6,hist_1850_dev,hist_emissions,hist_countries,file="../../Data/data_cumulative_co2.RData")
 
 wb <- openxlsx::createWorkbook(title = paste("ipcc_ar6_figure_spm_cumulative_co2"))
 

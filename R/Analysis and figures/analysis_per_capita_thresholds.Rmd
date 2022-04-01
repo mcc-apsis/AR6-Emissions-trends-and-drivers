@@ -1,0 +1,227 @@
+---
+title: "analysis_per_capita_thresholds"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+
+rm(list = ls())
+library(tidyverse)
+library(janitor)
+library(openxlsx)
+
+load('../../Data/data_edgar_ghg.RData')
+load('../../Data/data_WDI_gdp_pop.RData')
+
+
+```
+
+
+```{r per_capita_fraction,echo=FALSE,include=FALSE,warning=FALSE}
+
+## load country data and join population
+
+data <- edgar_ghg %>%
+  filter(year==2019) %>% 
+  group_by(year,country,ISO,region_ar6_10) %>% 
+  summarise(ghg=sum(GHG,na.rm=TRUE))
+
+data <- left_join(data,wdi_data_gdp_pop %>% select(iso3c,year,pop=population),by=c("ISO"="iso3c","year"))
+
+data <- data %>% 
+  filter(!is.na(pop)) %>% 
+  mutate(ghg_pc=ghg/pop) 
+
+## calculate deciles
+deciles <- quantile(data$ghg_pc,probs = seq(.1,.9,by=.1))
+
+
+## calculate per capita and different thresholds
+
+threshold_less_3 <- data %>% 
+  filter(ghg_pc<3) %>% 
+  group_by(year) %>% 
+  summarise(fraction=sum(pop)/sum(data$pop),pop=sum(pop)/1e6) %>% 
+  mutate(threshold="<3 tCO2eq/capita")
+
+threshold_more_4 <- data %>% 
+  filter(ghg_pc>4) %>% 
+  group_by(year) %>% 
+  summarise(fraction=sum(pop)/sum(data$pop),pop=sum(pop)/1e6) %>% 
+  mutate(threshold=">4 tCO2eq/capita")
+
+threshold_more_5 <- data %>% 
+  filter(ghg_pc>5) %>% 
+  group_by(year) %>% 
+  summarise(fraction=sum(pop)/sum(data$pop),pop=sum(pop)/1e6) %>% 
+  mutate(threshold=">5 tCO2eq/capita")
+
+threshold_more_6 <- data %>% 
+  filter(ghg_pc>6) %>% 
+  group_by(year) %>% 
+  summarise(fraction=sum(pop)/sum(data$pop),pop=sum(pop)/1e6) %>% 
+  mutate(threshold=">6 tCO2eq/capita")
+
+threshold_more_7 <- data %>% 
+  filter(ghg_pc>7) %>% 
+  group_by(year) %>% 
+  summarise(fraction=sum(pop)/sum(data$pop),pop=sum(pop)/1e6) %>% 
+  mutate(threshold=">7 tCO2eq/capita")
+
+threshold_more_8 <- data %>% 
+  filter(ghg_pc>8) %>% 
+  group_by(year) %>% 
+  summarise(fraction=sum(pop)/sum(data$pop),pop=sum(pop)/1e6) %>% 
+  mutate(threshold=">8 tCO2eq/capita")
+
+threshold_more_9 <- data %>% 
+  filter(ghg_pc>9) %>% 
+  group_by(year) %>% 
+  summarise(fraction=sum(pop)/sum(data$pop),pop=sum(pop)/1e6) %>% 
+  mutate(threshold=">9 tCO2eq/capita")
+
+threshold_more_10 <- data %>% 
+  filter(ghg_pc>10) %>% 
+  group_by(year) %>% 
+  summarise(fraction=sum(pop)/sum(data$pop),pop=sum(pop)/1e6) %>% 
+  mutate(threshold=">10 tCO2eq/capita")
+
+threshold_more_12 <- data %>% 
+  filter(ghg_pc>12) %>% 
+  group_by(year) %>% 
+  summarise(fraction=sum(pop)/sum(data$pop),pop=sum(pop)/1e6) %>% 
+  mutate(threshold=">12 tCO2eq/capita")
+
+summary <- rbind(threshold_less_3,threshold_more_4)
+summary <- rbind(summary,threshold_more_5)
+summary <- rbind(summary,threshold_more_6)
+summary <- rbind(summary,threshold_more_7)
+summary <- rbind(summary,threshold_more_8)
+summary <- rbind(summary,threshold_more_9)
+summary <- rbind(summary,threshold_more_10)
+summary <- rbind(summary,threshold_more_12)
+summary <- summary %>% select(-year)
+
+regions_less_3 <- data %>% 
+  filter(ghg_pc<3) %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(fraction=sum(pop)/1e6) %>% 
+  mutate(threshold="<3 tCO2eq/capita") %>% 
+  mutate(fraction=(fraction/threshold_less_3$pop))
+
+regions_more_4 <- data %>% 
+  filter(ghg_pc>4) %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(fraction=sum(pop)/1e6) %>% 
+  mutate(threshold=">4 tCO2eq/capita") %>% 
+  mutate(fraction=(fraction/threshold_more_6$pop))
+
+regions_more_5 <- data %>% 
+  filter(ghg_pc>5) %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(fraction=sum(pop)/1e6) %>% 
+  mutate(threshold=">5 tCO2eq/capita") %>% 
+  mutate(fraction=(fraction/threshold_more_6$pop))
+
+regions_more_6 <- data %>% 
+  filter(ghg_pc>6) %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(fraction=sum(pop)/1e6) %>% 
+  mutate(threshold=">6 tCO2eq/capita") %>% 
+  mutate(fraction=(fraction/threshold_more_6$pop))
+
+regions_more_7 <- data %>% 
+  filter(ghg_pc>7) %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(fraction=sum(pop)/1e6) %>% 
+  mutate(threshold=">7 tCO2eq/capita") %>% 
+  mutate(fraction=(fraction/threshold_more_6$pop))
+
+regions_more_8 <- data %>% 
+  filter(ghg_pc>8) %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(fraction=sum(pop)/1e6) %>% 
+  mutate(threshold=">8 tCO2eq/capita") %>% 
+  mutate(fraction=(fraction/threshold_more_6$pop))
+
+regions_more_9 <- data %>% 
+  filter(ghg_pc>9) %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(fraction=sum(pop)/1e6) %>% 
+  mutate(threshold=">9 tCO2eq/capita") %>% 
+  mutate(fraction=(fraction/threshold_more_6$pop))
+
+regions_more_10 <- data %>% 
+  filter(ghg_pc>10) %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(fraction=sum(pop)/1e6) %>% 
+  mutate(threshold=">10 tCO2eq/capita") %>% 
+  mutate(fraction=(fraction/threshold_more_10$pop))
+
+regions_more_12 <- data %>% 
+  filter(ghg_pc>12) %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(fraction=sum(pop)/1e6) %>% 
+  mutate(threshold=">12 tCO2eq/capita") %>% 
+  mutate(fraction=(fraction/threshold_more_12$pop))
+
+summary_regions <- rbind(regions_less_3,regions_more_4)
+summary_regions <- rbind(summary_regions,regions_more_5)
+summary_regions <- rbind(summary_regions,regions_more_6)
+summary_regions <- rbind(summary_regions,regions_more_7)
+summary_regions <- rbind(summary_regions,regions_more_8)
+summary_regions <- rbind(summary_regions,regions_more_9)
+summary_regions <- rbind(summary_regions,regions_more_10)
+summary_regions <- rbind(summary_regions,regions_more_12)
+
+
+summary_regions <- spread(summary_regions,region_ar6_10,fraction)
+
+summary <- left_join(summary,summary_regions,by = "threshold")
+summary <- summary %>% 
+  select(threshold,fraction,pop,everything())
+
+
+```
+
+``` {r energy_services}
+
+blarg <- left_join(data,wdi_data_gdp_pop %>% select(ISO=iso3c,year,elec_access,clean_cooking))
+
+blarg <- blarg %>% 
+  filter(ghg_pc<3) %>% 
+  mutate(elec_threshold=ifelse(elec_access<95,"no_elec","elec")) %>% 
+  mutate(cooking_threshold=ifelse(clean_cooking<95,"no_cooking","cooking"))
+
+pop_total <- sum(blarg$pop)
+
+blarg <- blarg %>% 
+  mutate(elec_access_multiplier=(elec_access/100)*pop) %>% 
+  mutate(clean_cooking_multiplier=(clean_cooking/100)*pop)
+
+blarg <- blarg %>% 
+  group_by(year) %>% 
+  summarise(elec_access_multiplier=sum(elec_access_multiplier,na.rm=TRUE),
+            clean_cooking_multiplier=sum(clean_cooking_multiplier,na.rm=TRUE))
+
+blarg <- blarg %>% 
+  mutate(elec_access_multiplier=1-(elec_access_multiplier/pop_total)) %>% 
+  mutate(clean_cooking_multiplier=1-(clean_cooking_multiplier/pop_total))
+
+```
+
+
+``` {r write}
+
+wb2 <- openxlsx::createWorkbook(title = "per_capita_summary")
+
+addWorksheet(wb2,"data")
+addWorksheet(wb2,"summary_ghg")
+
+writeData(wb2, sheet="data",data,colNames=T,rowNames=F)
+writeData(wb2, sheet="summary_ghg",summary,colNames=T,rowNames=F)
+
+openxlsx::saveWorkbook(wb2,paste0("../../Results/Data/per_capita_summary.xlsx"),overwrite=T)
+
+```

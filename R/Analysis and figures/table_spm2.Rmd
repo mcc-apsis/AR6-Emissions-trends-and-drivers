@@ -1,0 +1,70 @@
+---
+title: "table_spm2"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+library(tidyverse)
+library(openxlsx)
+library(janitor)
+
+load('../../Data/data_edgar_ghg.RData')
+load('../../Data/data_land_co2.RData')
+load('../../Data/data_WDI_gdp_pop.RData')
+load('../../Data/ipcc_regions.RData')
+
+options(dplyr.summarise.inform = FALSE)
+
+```
+
+
+```{r gather_data}
+
+data <- edgar_ghg %>% 
+  filter(year==2019) %>% 
+  group_by(ISO,country,region_ar6_10) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE))
+
+data <- left_join(data,wdi_data_gdp_pop %>% 
+                          filter(year==2019) %>% 
+                          select(ISO=iso3c,gdp_ppp,population),by = "ISO")
+
+data_averages <- data %>% 
+  group_by(region_ar6_10) %>% 
+  summarise(GHG=sum(GHG,na.rm=TRUE),GDP=sum(gdp_ppp,na.rm=TRUE),POP=sum(population,na.rm=TRUE)) %>% 
+  filter(region_ar6_10!="Intl. Aviation") %>% 
+  filter(region_ar6_10!="Intl. Shipping")
+
+data_averages <- left_join(data_averages,land %>% 
+                             filter(year==2019) %>% 
+                             select(region_ar6_10,CO2_LULUCF=mean),by="region_ar6_10")
+
+
+data_averages <- data_averages %>% 
+  mutate(GDP=GDP/1000) %>% 
+  mutate(GHG_total=GHG+CO2_LULUCF) %>% 
+  mutate(GHG_pc=GHG_total/POP) %>% 
+  mutate(GDP_pc=GDP/POP) %>% 
+  mutate(GHG_pGDP=GHG_total/GDP)
+
+data_averages <- as.data.frame(t(data_averages))
+data_averages <- data_averages %>% 
+  row_to_names(row_number=1)
+
+```
+
+```{r write}
+
+wb2 <- openxlsx::createWorkbook(title = "table_spm2")
+
+addWorksheet(wb2,"data")
+
+writeData(wb2, sheet="data",data_averages,colNames=T,rowNames=T)
+
+openxlsx::saveWorkbook(wb2,paste0("../../Results/Data/ipcc_ar6_table_spm2.xlsx"),overwrite=T)
+
+
+```
+

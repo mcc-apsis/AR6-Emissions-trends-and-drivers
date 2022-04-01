@@ -26,9 +26,9 @@ library(zoo)
 knitr::opts_chunk$set(echo = FALSE,warning=FALSE)
 options(dplyr.summarise.inform = FALSE)
 
-load('../../Data/edgar6_v5_data_raw.RData')
-load('../../Data/edgar6_v5_data_ghg_gwp_ar6.RData')
-load('../../Data/land.RData')
+load('../../Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp100_ar6.RData')
+load('../../Data/Not public/IPCC data versions/edgar6_v5_data_raw.RData')
+load('../../Data/data_land_co2.RData')
 
 
 ```
@@ -135,14 +135,20 @@ writeData(wb, sheet = "sectors_2019_gwp_ar6", sector_gwps_ar6, colNames = T)
 
 regions_ar6 <- edgar_ghg %>% 
   filter(year==2019) %>% 
-  group_by(region_ar6_6,chapter_title) %>% 
+  group_by(region_ar6_10,chapter_title) %>% 
   summarise_at(vars(CO2,CH4,N2O,Fgas),sum,na.rm=TRUE) %>%
   ungroup()
 
-regions_ar6 <- gather(regions_ar6,gas,value,CO2:Fgas) %>% 
+regions_ar6 <- left_join(regions_ar6,land %>% 
+                           filter(year==2019) %>% 
+                           select(region_ar6_10,CO2_LULUCF=mean) %>% 
+                           mutate(chapter_title="AFOLU"),by=c("region_ar6_10","chapter_title"))
+
+
+regions_ar6 <- gather(regions_ar6,gas,value,CO2:CO2_LULUCF) %>% 
   mutate(value=value/1e9)
 regions_ar6$gas <- as.factor(regions_ar6$gas)
-regions_ar6$gas <- fct_relevel(regions_ar6$gas,"CO2","CH4","N2O")
+regions_ar6$gas <- fct_relevel(regions_ar6$gas,"CO2","CH4","N2O","Fgas","CO2_LULUCF")
 regions_ar6 <- spread(regions_ar6,gas,value)
 
 addWorksheet(wb,"regions_2019_gwp_ar6")

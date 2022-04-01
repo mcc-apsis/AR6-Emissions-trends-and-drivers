@@ -16,7 +16,7 @@ library(tidyverse)
 library(openxlsx)
 
 # we must use the non public EDGAR data in order to precisely match the sector codes
-load("../../Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp_ar6.RData")
+load("../../Data/Not public/IPCC data versions/edgar6_v5_data_ghg_gwp100_ar6.RData")
 
 ```
 
