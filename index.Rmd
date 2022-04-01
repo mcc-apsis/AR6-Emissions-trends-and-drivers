@@ -45,7 +45,7 @@ library(kableExtra)
 library(openxlsx)
 
 captions <- read.xlsx('Results/Plots/captions.xlsx')
-load("Data/rates.RData")
+load("Data/data_rates.RData")
 rates <- gather(rates,blarg,values,`1990`:`1990-2019`)
 rates <- rates %>% 
   mutate(values=round(values,1))
@@ -84,15 +84,6 @@ cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm_gases.xlsx'>data</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_gas.Rmd'>code</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Figures/SPM_gases.png'>download png</a>")
-```
-```{r,out.width="100%"}
-
-spm_table <- read.xlsx('Results/Plot data/ipcc_ar6_figure_spm_gases.xlsx',sheet="spm table")
-
-spm_table %>% 
-  kbl() %>% 
-  kable_styling(bootstrap_options = c("striped"))
-
 ```
 
 -----------------------------------------------------------------------
@@ -669,66 +660,6 @@ rates %>%
   add_header_above(c("","Emissions (MtCO2eq)"=6,"Growth rate (%/yr)"=4)) %>% 
   kable_styling(bootstrap_options = c("striped")) %>%
   scroll_box(width = "100%", height = "400px")
-
-
-```
-
-
-Decarbonising countries
-=====================================
-
-### Decarbonising countries
-
-Some countries have sustained greenhouse gas (GHG) emissions reductions for at least 10 years. This is true for multiple metrics, including territorial GHG emissions, territorial CO2 emissions, consumption-based CO2 emissions, and territorial GHG emissions including LULUCF CO2.
-
-As shown in the individual plots by country, most reductions were made in the electricity and heat sub-sector. Some countries have been reducing for several decades, others in the past 10 years only.
-
-Please note: this analysis is based on EDGAR v5 and is not currently up to date.
-
------------------------------------------------------------------------
-
-### 24 countries have reduced CO2 and GHG emissions for longer than a decade
-
-```{r,out.width="75%",fig.align = 'center',results='asis'}
-
-#decarbonising_countries
-
-include_graphics(paste0("Results/Plots/Decarbonising countries/all_countries_trend-1.png"))
-
-
-```
-```{r,results = 'asis'}
-cat("<br>")
-cat("Caption: ")
-#cat(captions$caption[captions$plot=="regions"])
-cat("<br>")
-cat("Links: ")
-#cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm2_regions.xlsx'>data</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_sector.Rmd'>code</a> | <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/Results/Plots/Sectors/afolu-1.png'>download png</a>")
-```
-
-
-
-```{r,out.height="100%",fig.align = 'center',results='asis'}
-
-
-load('Data/decarbonising_countries.RData')
-countries <- unique(data$country)
-
-for(i in 1:length(countries)) {
-  
-  link = paste0("Results/Plots/Decarbonising countries/countries/countries-", i, ".png)")
-  
-  cat("  \n")
-  cat(paste0("  \n### ",countries[i]))
-  cat("  \n")
-  cat("  \n")
-  #cat("  \n<img src='Results/Plots/Decarbonising countries/countries/countries-1.png' alt='drawing' width='800px'/>")
-  cat(paste0("  \n![](",link,"  \n"))
-  cat("  \n")
-  cat("  \n")
-  
-  
-}
 
 
 ```

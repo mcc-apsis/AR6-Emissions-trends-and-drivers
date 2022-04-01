@@ -392,8 +392,8 @@ data <- data %>%
 info = data.frame(x=c("Author","Last update","Code"),y=c("William F. Lamb",as.character(Sys.time()),"https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/equity_perspectives.Rmd"))
 
 writeData(wb, sheet="info",info,colNames=F,rowNames=F)
-writeData(wb, sheet = "top panels", data %>% filter(region_ar6_6!="ldc"), colNames = T, rowNames = F)
-writeData(wb, sheet = "lower panels", data_dev %>% filter(region_ar6_6=="ldc"), colNames = T, rowNames = F)
+writeData(wb, sheet = "top panels", data %>% filter(region_ar6_10!="ldc"), colNames = T, rowNames = F)
+writeData(wb, sheet = "lower panels", data_dev %>% filter(region_ar6_10=="ldc"), colNames = T, rowNames = F)
 
 saveWorkbook(wb,"../../Results/Plot data/ipcc_ar6_figure_equity_perspectives.xlsx",overwrite=T)
 
@@ -404,14 +404,15 @@ saveWorkbook(wb,"../../Results/Plot data/ipcc_ar6_figure_equity_perspectives.xls
 
 ```{r equity_perspectives,dpi=300,fig.width=11,fig.height=6,fig.path="../../Results/Plots/",dev=c('png','pdf')}
 
-colors = colorRampPalette(brewer.pal(8, "Set2"))(10)
+colors = colorRampPalette(brewer.pal(8, "Set2"))(11)
 
 p1 <- data %>%
   filter(region_ar6_10!="ldc") %>% 
+  filter(region_ar6_10!="sids") %>% 
   ggplot(.,aes(x=var,y=fraction,fill=region_ar6_10)) +
   geom_bar(stat='identity',color="#737373") +
   geom_text(data=data %>% filter(region_ar6_10=="Africa"),aes(x=var,y=1.05,label=label),vjust=0,lineheight=0.75,color="#525252") +
-  geom_text(data=data,aes(x=var,y=position,label=paste0(round(fraction,2)*100,"%")),color="#525252") +
+  geom_text(data=data %>% filter(region_ar6_10!="sids"),aes(x=var,y=position,label=paste0(round(fraction,2)*100,"%")),color="#525252") +
   scale_fill_manual(values=colors) +
   facet_grid(.~category,scales="free",space="free",labeller = (label_wrap_gen(width = 32))) +
   scale_y_continuous(labels = percent,breaks=c(0,0.25,0.50,0.75,1),limits=c(0,1.12)) +
@@ -429,6 +430,7 @@ p1 <- data %>%
 # side panel for the labels
 p_labels <- data %>%
   filter(region_ar6_10!="ldc") %>% 
+  filter(region_ar6_10!="sids") %>% 
   filter(var=="Production CO2, incl. LULUCF (1850-2019)") %>%
   ggplot(.,aes(x=1,y=position,label=str_wrap(region_ar6_10,width=20),color=region_ar6_10)) +
   geom_text(hjust=0,lineheight=0.75) +

@@ -29,8 +29,6 @@ load('../../Data/gwps.RData')
 
 options(dplyr.summarise.inform = FALSE)
 
-# custom color palette
-colors = colorRampPalette(brewer.pal(8, "Set2"))(12)
 
 ```
 
@@ -51,9 +49,6 @@ region_trend <- edgar_ghg %>%
 ## group aviation and shipping into a single region
 
 region_trend <- region_trend %>%
-  # mutate(region_ar6_6=ifelse(region_ar6_6_short=="AIR","Intl. Shipping & Aviation",region_ar6_6)) %>% 
-  # mutate(region_ar6_6=ifelse(region_ar6_6_short=="SEA","Intl. Shipping & Aviation",region_ar6_6)) %>%  
-  # mutate(region_ar6_6_short=ifelse(region_ar6_6=="Intl. Shipping & Aviation","AIRSEA",region_ar6_6_short)) %>% 
   mutate(region_ar6_10=ifelse(region_ar6_6_short=="AIR","Intl. Shipping & Aviation",region_ar6_10)) %>% 
   mutate(region_ar6_10=ifelse(region_ar6_6_short=="SEA","Intl. Shipping & Aviation",region_ar6_10))
 
@@ -72,15 +67,29 @@ region_trend <- region_trend %>%
   group_by(year,region_ar6_10) %>%
   summarise(value=sum(value))
   
-## adjust levels to put shipping and aviation last
 
+## adjust levels, as in SPM2
 region_trend$region_ar6_10 <- as.factor(region_trend$region_ar6_10)
-region_trend$region_ar6_10 <- fct_relevel(region_trend$region_ar6_10,"Intl. Shipping & Aviation",after=Inf)
+region_trend$region_ar6_10 <- fct_relevel(region_trend$region_ar6_10,
+                                      "Intl. Shipping & Aviation",
+                                      "Australia, Japan, New Zealand",
+                                      "Middle East",
+                                      "Eastern Europe and West-Central Asia",
+                                      "Europe",
+                                      "Southern Asia",
+                                      "Africa",
+                                      "South-East Asia and Pacific",
+                                      "Latin America and Caribbean",
+                                      "North America",
+                                      "Eastern Asia")
 
 
 ```
 
 ```{r trend_plot, echo=FALSE,warning=FALSE,fig.width=8,fig.height=4}
+
+
+colors = c("#B3B3B3","#66C2A5","#CF9C76","#CF948C","#969DCA","#D58EC4","#C6B18B","#B7D84C","#F6D832","#EFCC6B","#D5BE9D")
 
 
 shares <- region_trend %>% 
@@ -132,10 +141,11 @@ p1 <- region_trend %>%
   
   scale_y_continuous(breaks=c(0,10,20,30,40,50,60),limits=c(0,62)) +
   scale_x_continuous(breaks=c(1990,2000,2010,2019)) +
-  coord_cartesian(xlim = c(1990,2020), 
-                  clip = 'off') +
+  coord_cartesian(xlim = c(1990,2020.5)) +
   scale_fill_manual(values=colors) +
-  theme(legend.position="none",
+  theme(legend.position="right",
+        legend.title=element_blank(),
+        axis.title.x = element_blank(),
         plot.title = element_text(size = 11,color="#252525"),
         axis.title = element_text(color="#252525"),
         plot.background = element_blank(),
@@ -145,22 +155,22 @@ p1 <- region_trend %>%
 
 
 # side panel for the labels
-p_labels <- region_trend %>%
-  ggplot(.,aes(x=year,y=value,fill=region_ar6_10)) +
-  geom_text(data=shares %>% filter(year==2019),aes(x=1,y=location,label=str_wrap(region_ar6_10,width=28),color=region_ar6_10,lineheight=0.65),hjust=0) +
-  scale_color_manual(values=colors) +
-  xlim(1,1.1) +
-  ylim(0,62) +
-  theme(panel.grid = element_blank(),
-        axis.title = element_blank(),
-        axis.text = element_blank(),
-        axis.ticks = element_blank(),
-        panel.border = element_blank(),
-        plot.background = element_blank(),
-        plot.margin = margin(0,0,0,0,"cm"),
-        legend.position="none")
-
-p1 <- p1 + p_labels + plot_layout(widths=c(5,2.1))
+# p_labels <- region_trend %>%
+#   ggplot(.,aes(x=year,y=value,fill=region_ar6_10)) +
+#   geom_text(data=shares %>% filter(year==2019),aes(x=1,y=location,label=str_wrap(region_ar6_10,width=28),color=region_ar6_10,lineheight=0.65),hjust=0) +
+#   scale_color_manual(values=colors) +
+#   xlim(1,1.1) +
+#   ylim(0,62) +
+#   theme(panel.grid = element_blank(),
+#         axis.title = element_blank(),
+#         axis.text = element_blank(),
+#         axis.ticks = element_blank(),
+#         panel.border = element_blank(),
+#         plot.background = element_blank(),
+#         plot.margin = margin(0,0,0,0,"cm"),
+#         legend.position="none")
+# 
+# p1 <- p1 + p_labels + plot_layout(widths=c(5,2.1))
 
 ```
 
@@ -298,15 +308,40 @@ region_rates <- region_rates %>%
   mutate(population=ifelse(facet=="Scenario reduction rates (2020-2040)",5e6,population)) %>% 
   mutate(emissions_total_2019=ifelse(facet=="Scenario reduction rates (2020-2040)",1e7,emissions_total_2019))
 
+
+## rename scenarios for consistency with SPM
+region_rates <- region_rates %>% 
+  mutate(aggregated_category=ifelse(aggregated_category=="C3a: Likely below 2°C with immediate action",
+                                    "C3a: Likely below 2°C with action starting in 2020",aggregated_category)) %>%   mutate(aggregated_category=ifelse(aggregated_category=="C1: Below 1.5°C with no or low overshoot",
+                                    "C1: 1.5°C with no or limited overshoot",aggregated_category))
+
+
+## adjust levels, as in SPM2
+region_rates$aggregated_category <- as.factor(region_rates$aggregated_category)
+region_rates$aggregated_category <- fct_relevel(region_rates$aggregated_category,
+                                      "Australia, Japan, New Zealand",
+                                      "Middle East",
+                                      "Eastern Europe and West-Central Asia",
+                                      "Europe",
+                                      "Southern Asia",
+                                      "Africa",
+                                      "South-East Asia and Pacific",
+                                      "Latin America and Caribbean",
+                                      "North America",
+                                      "Eastern Asia",
+                                      "C3a: Likely below 2°C with action starting in 2020",
+                                      "C1: 1.5°C with no or limited overshoot")
+
+
 # re-order the scenario levels
 
-region_rates <- region_rates %>% 
-  mutate(aggregated_category = as.factor(aggregated_category))
-
-region_rates$aggregated_category <- fct_relevel(region_rates$aggregated_category,
-                                                "C3a: Likely below 2°C with immediate action",
-                                                "C1: Below 1.5°C with no or low overshoot",
-                                                after=Inf)
+# region_rates <- region_rates %>% 
+#   mutate(aggregated_category = as.factor(aggregated_category))
+# 
+# region_rates$aggregated_category <- fct_relevel(region_rates$aggregated_category,
+#                                                 "C3a: Likely below 2°C with immediate action",
+#                                                 "C1: Below 1.5°C with no or low overshoot",
+#                                                 after=Inf)
 
 region_summary <- region_rates %>% 
   group_by(aggregated_category,facet) %>% 
@@ -315,16 +350,17 @@ region_summary <- region_rates %>%
 
 ```
 
-```{r regions_scenarios, echo=FALSE,warning=FALSE,fig.width=8,fig.height=3,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
+```{r regions_scenarios, echo=FALSE,warning=FALSE,fig.width=9,fig.height=3,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
 
+colors = c("#66C2A5","#CF9C76","#CF948C","#969DCA","#D58EC4","#C6B18B","#B7D84C","#F6D832","#EFCC6B","#D5BE9D","#B3B3B3","#B3B3B3")
 
 
 p2 <- region_rates %>% 
-    mutate(facet=ifelse(facet=="Scenario reduction rates (2020-2040)","Scenario reduction rates\n (2020-2040)",facet)) %>% 
+    mutate(facet=ifelse(facet=="Scenario reduction rates (2020-2040)","Scenario reduction\n rates (2020-2040)",facet)) %>% 
   ggplot(.,aes(x=aggregated_category,rate,fill=aggregated_category,color=aggregated_category,size=emissions_total_2019)) +
   geom_hline(yintercept=0,color="#636363") +
   geom_point(shape=21,color="#636363") +
-  stat_summary(data = region_summary %>% mutate(facet=ifelse(facet=="Scenario reduction rates (2020-2040)","Scenario reduction rates\n (2020-2040)",facet)), geom = "crossbar",
+  stat_summary(data = region_summary %>% mutate(facet=ifelse(facet=="Scenario reduction rates (2020-2040)","Scenario reduction\n rates (2020-2040)",facet)), geom = "crossbar",
                  width = .7,aes(color=aggregated_category),size=0.4) +
   scale_fill_manual(values=alpha(colors,0.5)) +
   scale_color_manual(values=colors) +
@@ -400,70 +436,11 @@ country_ghg <- country_ghg %>%
 
 ```
 
-```{r per_capita_fraction,echo=FALSE,include=FALSE,warning=FALSE}
 
-fraction <- edgar_ghg %>%
-  filter(year==2019) %>% 
-  group_by(year,country,ISO,region_ar6_10) %>% 
-  summarise(CO2=sum(CO2,na.rm=TRUE),GHG=sum(GHG,na.rm=TRUE))
+```{r region_trends_spm, echo=FALSE,warning=FALSE,fig.width=9,fig.height=8,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
 
-fraction <- left_join(fraction,wdi_data_gdp_pop %>% select(iso3c,year,population),by=c("ISO"="iso3c","year"))
-
-fraction <- fraction %>% 
-  mutate(CO2_pc=CO2/population) %>% 
-  mutate(threshold_CO2=ifelse(CO2_pc>12,">12tCO2/cap",NA)) %>% 
-  mutate(threshold_CO2=ifelse(CO2_pc<3,"<3tCO2/cap",threshold_CO2)) %>% 
-  mutate(GHG_pc=GHG/population) %>% 
-  mutate(threshold_GHG=ifelse(GHG_pc>12,">12tCO2/cap",NA)) %>% 
-  mutate(threshold_GHG=ifelse(GHG_pc<3,"<3tCO2/cap",threshold_GHG)) 
-
-summary_CO2 <- fraction %>% 
-  group_by(threshold_CO2) %>% 
-  summarise(population=sum(population,na.rm=TRUE)/sum(fraction$population,na.rm=TRUE),emissions=sum(CO2)/sum(fraction$CO2))
-
-summary_regions_CO2 <- fraction %>% 
-  filter(threshold_CO2=="<3tCO2/cap")
-summary_regions_CO2 <- summary_regions_CO2 %>% 
-  group_by(region_ar6_10) %>% 
-  summarise(population=sum(population,na.rm=TRUE)/sum(summary_regions_CO2$population,na.rm=TRUE))
-
-summary_GHG <- fraction %>% 
-  group_by(threshold_GHG) %>% 
-  summarise(population=sum(population,na.rm=TRUE)/sum(fraction$population,na.rm=TRUE),emissions=sum(GHG)/sum(fraction$GHG))
-
-summary_regions_GHG <- fraction %>% 
-  filter(threshold_GHG=="<3tCO2/cap")
-summary_regions_GHG <- summary_regions_GHG %>% 
-  group_by(region_ar6_10) %>% 
-  summarise(population=sum(population,na.rm=TRUE)/sum(summary_regions_GHG$population,na.rm=TRUE))
-
-
-
-wb2 <- openxlsx::createWorkbook(title = "per_capita_summary")
-
-addWorksheet(wb2,"data")
-addWorksheet(wb2,"summary_CO2")
-addWorksheet(wb2,"summary_GHG")
-addWorksheet(wb2,"summary_CO2_low_emissions")
-addWorksheet(wb2,"summary_GHG_low_emissions")
-
-
-writeData(wb2, sheet="data",fraction,colNames=T,rowNames=F)
-writeData(wb2, sheet="summary_CO2",summary_CO2,colNames=T,rowNames=F)
-writeData(wb2, sheet="summary_GHG",summary_GHG,colNames=T,rowNames=F)
-writeData(wb2, sheet="summary_CO2_low_emissions",summary_regions_CO2,colNames=T,rowNames=F)
-writeData(wb2, sheet="summary_GHG_low_emissions",summary_regions_GHG,colNames=T,rowNames=F)
-
-openxlsx::saveWorkbook(wb2,paste0("../../Results/Data/per_capita_summary.xlsx"),overwrite=T)
-
-
-```
-
-
-```{r region_trends_spm, echo=FALSE,warning=FALSE,fig.width=8,fig.height=7,dpi=300,fig.path="../../Results/Plots/",dev=c('png','pdf','svg')}
-
-p2 <- p2 + ggtitle("b. Recent emission change by region vs. rates compatible with warming targets")
-regions <- p1 / p2 + plot_layout(heights = c(2, 1))
+p2 <- p2 + ggtitle("b. Recent emission change by region vs. global reduction rates compatible with warming targets")
+regions <- wrap_elements(p1) / wrap_elements(p2) + plot_layout(heights = c(1.5, 1))
 regions
 
 ```

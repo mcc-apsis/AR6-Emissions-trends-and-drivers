@@ -58,7 +58,7 @@ scope1_sectors <- scope1_sectors %>%
 # fractions
 
 scope1_sectors <- scope1_sectors %>% 
-  mutate(fraction=signif(((GHG/sum(data$GHG))*100),digits = 2))
+  mutate(fraction=round(((GHG/sum(data$GHG))*100),digits = 0))
 
 ### scope 2 subsectors
 
