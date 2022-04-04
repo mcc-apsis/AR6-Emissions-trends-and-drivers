@@ -82,7 +82,7 @@ cat(captions$caption[captions$plot=="gases"])
 cat("<br>")
 cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm_gases.xlsx'>data</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_gas.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/figure_emissions_by_gas.Rmd'>code</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Figures/SPM_gases.png'>download png</a>")
 ```
 
@@ -104,7 +104,7 @@ cat(captions$caption[captions$plot=="regions"])
 cat("<br>")
 cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm_regions.xlsx'>data</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_region.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/figure_emissions_by_region.Rmd'>code</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/region_trends_spm-1.png'>download png</a>")
 ```
 
@@ -117,7 +117,6 @@ cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/
 cat("<br>")
 include_graphics("Results/Figures/SPM_indirect_emissions.png")
 
-
 ```
 ```{r,results = 'asis'}
 cat("<br>")
@@ -127,7 +126,7 @@ cat(captions$caption[captions$plot=="direct_indirect"])
 cat("<br>")
 cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_spm_sectors.xlsx'>data</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/direct_indirect_emissions.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/figure_direct_indirect_emissions.Rmd'>code</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Figures/SPM_indirect_emissions.png'>download png</a>")
 
 ```
@@ -151,7 +150,7 @@ cat(captions$caption[captions$plot=="regions_countries"])
 cat("<br>")
 cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_regions_countries.xlsx'>data</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/emissions_by_country_with_crf.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/figure_emissions_by_country_crf.Rmd'>code</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/regions_countries-1.png'>download png</a>")
 
 ```
@@ -176,11 +175,33 @@ cat(captions$caption[captions$plot=="covid"])
 cat("<br>")
 cat("Links: ")
 cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_equity_perspectives.xlsx'>data</a> | 
-    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/equity_perspectives.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/figure_equity_perspectives.Rmd'>code</a> | 
     <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/equity_perspectives-1.png'>download png</a>")
 
 ```
 
+-----------------------------------------------------------------------
+
+### Long term trend of CO2 emissions sources vs. remaining carbon budgets
+
+```{r,out.width="80%",fig.align = 'center',results='asis'}
+cat("<br>")
+include_graphics("Results/Plots/long_term_co2-1.png")
+
+
+```
+```{r,results = 'asis'}
+cat("<br>")
+cat("<span class='figure_title'>",captions$title[captions$plot=="long_term"],"</span>")
+cat("<br>")
+cat(captions$caption[captions$plot=="covid"])
+cat("<br>")
+cat("Links: ")
+cat("<a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_co2_emissions_and_budgets.xlsx'>data</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/blob/master/R/Analysis%20and%20figures/figure_co2_emissions_and_budgets.Rmd'>code</a> | 
+    <a href='https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plots/long_term_co2-1.png'>download png</a>")
+
+```
 
 Sector emissions trends
 =====================================
@@ -197,7 +218,7 @@ Most of these figures and analysis have been published in the following article,
 
 Consolidated data files are available for the figures here:
 
-* <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_sectors.xlsx">Emissions by sector</a>
+* <a href="https://github.com/mcc-apsis/AR6-Emissions-trends-and-drivers/raw/master/Results/Plot%20data/ipcc_ar6_figure_sectors_and_regions.xlsx">Emissions by sector</a>
 
 
 -----------------------------------------------------------------------
